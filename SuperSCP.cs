@@ -144,12 +144,9 @@ namespace Next_generationSite_27.UnionP
 
                 // 移除旧补丁
                 Plugin.harmony.Unpatch(scp049Method, HarmonyPatchType.All, Plugin.harmony.Id);
-                Plugin.harmony.Unpatch(scp173Method, HarmonyPatchType.All, Plugin.harmony.Id);
 
                 // 获取补丁方法
                 var scp049PatchMethod = typeof(Scp049AttackPatch).GetMethod("Transpiler",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-                var scp173PatchMethod = typeof(Scp173TantrumPatch).GetMethod("Transpiler",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
                 if (scp049PatchMethod == null)
@@ -158,15 +155,8 @@ namespace Next_generationSite_27.UnionP
                     return;
                 }
 
-                if (scp173PatchMethod == null)
-                {
-                    Log.Error("[SuperSCP] 无法找到 Scp173TantrumPatch.Transpiler 方法");
-                    return;
-                }
-
                 // 重新应用补丁
                 Plugin.harmony.Patch(scp049Method, transpiler: new HarmonyMethod(scp049PatchMethod));
-                Plugin.harmony.Patch(scp173Method, transpiler: new HarmonyMethod(scp173PatchMethod));
 
                 Log.Info("[SuperSCP] 成功应用所有 Harmony 补丁");
             }
@@ -199,7 +189,6 @@ namespace Next_generationSite_27.UnionP
 
                 // 获取目标方法
                 var scp049Method = typeof(Scp049AttackAbility).GetMethod(nameof(Scp049AttackAbility.ServerProcessCmd));
-                var scp173Method = typeof(Scp173TantrumAbility).GetMethod(nameof(Scp173TantrumAbility.ServerProcessCmd));
 
                 if (scp049Method == null)
                 {
@@ -207,20 +196,11 @@ namespace Next_generationSite_27.UnionP
                     return;
                 }
 
-                if (scp173Method == null)
-                {
-                    Log.Error("[SuperSCP] 无法找到 Scp173TantrumAbility.ServerProcessCmd 方法");
-                    return;
-                }
-
                 // 移除旧补丁
                 Plugin.harmony.Unpatch(scp049Method, HarmonyPatchType.All, Plugin.harmony.Id);
-                Plugin.harmony.Unpatch(scp173Method, HarmonyPatchType.All, Plugin.harmony.Id);
 
                 // 获取补丁方法
                 var scp049PatchMethod = typeof(Scp049AttackPatch).GetMethod("Transpiler",
-                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-                var scp173PatchMethod = typeof(Scp173TantrumPatch).GetMethod("Transpiler",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
 
                 if (scp049PatchMethod == null)
@@ -229,15 +209,9 @@ namespace Next_generationSite_27.UnionP
                     return;
                 }
 
-                if (scp173PatchMethod == null)
-                {
-                    Log.Error("[SuperSCP] 无法找到 Scp173TantrumPatch.Transpiler 方法");
-                    return;
-                }
 
                 // 重新应用补丁
                 Plugin.harmony.Patch(scp049Method, transpiler: new HarmonyMethod(scp049PatchMethod));
-                Plugin.harmony.Patch(scp173Method, transpiler: new HarmonyMethod(scp173PatchMethod));
 
                 Log.Info("[SuperSCP] 成功应用所有 Harmony 补丁");
             }

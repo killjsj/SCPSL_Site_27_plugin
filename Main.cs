@@ -34,6 +34,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Unity.Jobs;
 using UnityEngine;
 using Utils.Networking;
 using static HarmonyLib.Code;
@@ -59,9 +60,16 @@ namespace Next_generationSite_27.UnionP
         public MySQLConnect connect = new MySQLConnect();
         public static Plugin plugin;
         public static Plugin Instance { get { return plugin; } }
+        public static List<ReferenceHub> ScpPlayer = new List<ReferenceHub>();
         public EventHandle eventhandle;
         public override PluginPriority Priority => PluginPriority.Lower;
         public static Harmony harmony { get; private set; }
+        // --- bomb gun ---
+        public static int active_g { get; set; } = 0;
+        public static int max_active_g { get; private set; }
+        public static List<ushort> bomb_gun_ItemSerial { get; set; } = new List<ushort>();
+        public BombHandle Bomb = new BombHandle();
+
         // --- vote ---
         [Description("0=yes,1=no")]
         public static List<List<Player>> vote_control = new List<List<Player>>();
@@ -113,7 +121,7 @@ namespace Next_generationSite_27.UnionP
                     no++;
                 }
             }
-            double percentage = no != 0 ?(yes / no) * 100 :  (yes / 1) * 100;
+            double percentage = (yes / Math.Min(1,no)) * 100;
             Exiled.API.Features.Map.Broadcast((ushort)8f, "投票:" + vote_name + " 结果: 同意率:" + percentage.ToString("F2") + "% 同意:" + yes.ToString() + " 不同意:" + no);
             Log.Info("投票:" + vote_name + " 结果: 同意率:" + percentage.ToString("F2") + "% 同意:" + yes.ToString() + " 不同意:" + no);
             vote_control = new List<List<Player>>(); // 清空投票列表
@@ -162,6 +170,11 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
             Exiled.Events.Handlers.Server.EndingRound += eventhandle.EndingRound;
 
+            Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
+            Exiled.Events.Handlers.Scp914.UpgradingPickup += Bomb.OnUpgradingPickup;
+            Exiled.Events.Handlers.Scp914.UpgradingInventoryItem += Bomb.OnUpgradingInventoryItem;
+
+            max_active_g = Config.maxbomb;
             harmony = new Harmony("Killjsj.plugin.site27plugin");
             harmony.PatchAll();
             AutoEvent.AutoEvent.EventManager.RegisterInternalEvents();
@@ -190,6 +203,10 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
             Exiled.Events.Handlers.Server.EndingRound -= eventhandle.EndingRound;
+
+            Exiled.Events.Handlers.Player.Shot -= Bomb.OnPlayerShotWeapon;
+            Exiled.Events.Handlers.Scp914.UpgradingPickup -= Bomb.OnUpgradingPickup;
+            Exiled.Events.Handlers.Scp914.UpgradingInventoryItem -= Bomb.OnUpgradingInventoryItem;
 
             harmony.UnpatchAll();
             eventhandle.update();
@@ -242,6 +259,9 @@ namespace Next_generationSite_27.UnionP
         public int EnableSuperScpCount { get; set; } = 1;
         [Description("启用scp替换")]
         public bool EnableChangeScp { get; set; } = true;
+        [Description("最多炸弹数量")]
+        public int maxbomb { get; set; } = 100;
+
         [Description("是否启用数据库")]
         public bool IsEnableDatabase
         {

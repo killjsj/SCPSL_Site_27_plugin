@@ -247,29 +247,31 @@ namespace Next_generationSite_27.UnionP
 
         public void Shot(ShotEventArgs ev)
         {
-            if (RoundEnded) return;
-
-            if (Config.NoProtectWhenShoot && ProtectionCoroutines.ContainsKey(ev.Player))
+            if (ev.Player.GetEffect<SpawnProtected>() != null)
             {
-                try
+                if (Config.NoProtectWhenShoot && (ProtectionCoroutines.ContainsKey(ev.Player) || ev.Player.GetEffect<SpawnProtected>().IsEnabled))
                 {
-                    // 移除保护效果
-                    ev.Player.DisableEffect(EffectType.SpawnProtected);
-
-                    // 停止保护协程
-                    if (ProtectionCoroutines.TryGetValue(ev.Player, out var handle))
+                    try
                     {
-                        Timing.KillCoroutines(handle);
-                        ProtectionCoroutines.Remove(ev.Player);
-                    }
+                        // 移除保护效果
+                        ev.Player.GetEffect<SpawnProtected>().TimeLeft = 0;
+                        ev.Player.DisableEffect(EffectType.SpawnProtected);
 
-                    // 显示取消保护提示
-                    ShowProtectionCancelledMessage(ev.Player);
-                    Log.Info($"[出生保护] 玩家 {ev.Player.Nickname} 因开枪取消保护");
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"[出生保护] 取消保护时出错: {ex.Message}");
+                        // 停止保护协程
+                        if (ProtectionCoroutines.TryGetValue(ev.Player, out var handle))
+                        {
+                            Timing.KillCoroutines(handle);
+                            ProtectionCoroutines.Remove(ev.Player);
+                        }
+
+                        // 显示取消保护提示
+                        ShowProtectionCancelledMessage(ev.Player);
+                        Log.Info($"[出生保护] 玩家 {ev.Player.Nickname} 因开枪取消保护");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"[出生保护] 取消保护时出错: {ex.Message}");
+                    }
                 }
             }
         }

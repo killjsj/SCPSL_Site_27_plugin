@@ -44,7 +44,7 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            if (sender.CheckPermission(PlayerPermissions.Noclip, out response))
+            if (!sender.CheckPermission(PlayerPermissions.Noclip, out response))
             {
                 return false;
             }
@@ -77,7 +77,7 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            response = $"done! op:{runner.Position}";
+            response = $"done! op:{runner.Position.ToString()}";
             return true;
 
         }
@@ -94,7 +94,7 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            if (sender.CheckPermission(PlayerPermissions.Noclip, out response))
+            if (!sender.CheckPermission(PlayerPermissions.Noclip, out response))
             {
                 return false;
             }

@@ -33,7 +33,7 @@ namespace Next_generationSite_27.UnionP
             initialized = true;
         }
 
-        private void OnCollisionEnter(Collision collision)
+        void OnCollisionEnter(Collision collision)
         {
             try
             {

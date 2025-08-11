@@ -26,6 +26,7 @@ using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp049;
 using PlayerRoles.PlayableScps.Scp173;
 using PlayerStatsSystem;
+using ProjectMER.Features.Objects;
 using Respawning.Waves;
 using System;
 using System.Collections.Generic;
@@ -69,6 +70,8 @@ namespace Next_generationSite_27.UnionP
         public static int active_g { get; set; } = 0;
         public static int max_active_g { get; private set; }
         public static List<ushort> bomb_gun_ItemSerial { get; set; } = new List<ushort>();
+        public static SchematicObject SOB;
+
         public BombHandle Bomb = new BombHandle();
 
         // --- vote ---
@@ -166,9 +169,6 @@ namespace Next_generationSite_27.UnionP
             //PlayerEvents.InspectedKeycard += eventhandle.InspectedKeycard;+-
             Exiled.Events.Handlers.Player.SentValidCommand += eventhandle.SentValidCommand;
 
-            //var a = ProjectMER.Features.MapUtils.GetSchematicDataByName("");
-            //ProjectMER.Features.ObjectSpawner.SpawnSchematic("",);
-
             Exiled.Events.Handlers.Server.RoundStarted += eventhandle.RoundStarted;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
@@ -181,6 +181,7 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Player.Escaped += eventhandle.Escaped;
             Exiled.Events.Handlers.Player.Escaping += eventhandle.Escaping;
+
             //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
 
             max_active_g = Config.maxbomb;

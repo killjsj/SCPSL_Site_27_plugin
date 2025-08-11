@@ -134,6 +134,9 @@
     <Reference Include="Pooling">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
     </Reference>
+    <Reference Include="ProjectMER">
+      <HintPath>..\..\..\AppData\Roaming\SCP Secret Laboratory\LabAPI\plugins\global\ProjectMER.dll</HintPath>
+    </Reference>
     <Reference Include="Snake, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Snake.dll</HintPath>
@@ -193,9 +196,11 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="bomb.cs" />
     <Compile Include="Command.cs" />
     <Compile Include="configs\Config.cs" />
     <Compile Include="configs\Translation.cs" />
+    <Compile Include="dude.cs" />
     <Compile Include="EventHandle.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="mysql.cs" />
@@ -203,8 +208,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SuperSCP.cs" />
     <Compile Include="testing\Command.cs" />
-    <Compile Include="testing\dude.cs" />
-    <Compile Include="testing\bomb.cs" />
     <Compile Include="vote\vote_command\Player_Vote.cs" />
     <Compile Include="vote\vote_command\ra_VoteControl.cs" />
   </ItemGroup>

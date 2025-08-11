@@ -106,8 +106,7 @@ SET
     name = @name,
     highscore = @highscore,
     Snack_Create_time = @snack_create_time
-WHERE userid = @userid 
-  AND @highscore > highscore;";
+WHERE userid = @userid;";
 
             try
             {
@@ -277,6 +276,43 @@ ON DUPLICATE KEY UPDATE
             }
 
             return result;
+        }
+        public void LogAdminPermission(string userid, string name, int port, string command, string result, string additionalInfo = "", string group ="")
+        {
+            if (!connected) return;
+
+            string query = @"
+                INSERT INTO admin_log 
+                (userid, name, operation_time, port, command_name, command_result, additional_info,admingrooup)
+                VALUES 
+                (@userid, @name, @operation_time, @port, @command_name, @command_result, @additional_info,@admingrooup)";
+
+            try
+            {
+                connection.Open();
+                using (var cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@userid", userid ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@name", name ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@operation_time", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@port", port);
+                    cmd.Parameters.AddWithValue("@command_name", command ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@command_result", result ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@additional_info", additionalInfo ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@admingrooup", group ?? string.Empty);
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"❌ 记录管理员权限日志失败: {ex.Message}");
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    connection.Close();
+            }
         }
 
         /// <summary>

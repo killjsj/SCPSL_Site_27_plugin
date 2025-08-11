@@ -1,13 +1,16 @@
 ﻿using AutoEvent;
+using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin;
 using CustomPlayerEffects;
 using Exiled.API.Enums;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Items;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using Exiled.Events.Features;
+using Google.Protobuf.WellKnownTypes;
 using InventorySystem.Configs;
 using InventorySystem.Items.Keycards;
 using InventorySystem.Items.Keycards.Snake;
@@ -15,6 +18,7 @@ using InventorySystem.Items.MicroHID;
 using LabApi.Events.Arguments.PlayerEvents;
 using MEC;
 using Next_generationSite_27.UnionP;
+using PlayerRoles;
 using Respawning.Waves;
 using System;
 using System.Collections.Generic;
@@ -249,13 +253,15 @@ namespace Next_generationSite_27.UnionP
         {
             if (ev.Player.GetEffect<SpawnProtected>() != null)
             {
-                if (Config.NoProtectWhenShoot && (ProtectionCoroutines.ContainsKey(ev.Player) || ev.Player.GetEffect<SpawnProtected>().IsEnabled))
+                var a  = ev.Player.GetEffect<SpawnProtected>();
+                if (Config.NoProtectWhenShoot && (ProtectionCoroutines.ContainsKey(ev.Player)))
                 {
                     try
                     {
                         // 移除保护效果
                         ev.Player.GetEffect<SpawnProtected>().TimeLeft = 0;
                         ev.Player.DisableEffect(EffectType.SpawnProtected);
+                        a.ServerDisable();
 
                         // 停止保护协程
                         if (ProtectionCoroutines.TryGetValue(ev.Player, out var handle))
@@ -271,6 +277,13 @@ namespace Next_generationSite_27.UnionP
                     catch (Exception ex)
                     {
                         Log.Error($"[出生保护] 取消保护时出错: {ex.Message}");
+                    }
+                } else
+                {
+                    if(a.Intensity != 0)
+                    {
+                        Log.Info($"[出生保护] 玩家 {ev.Player.Nickname} 因开枪取消保护");
+                        a.ServerDisable();
                     }
                 }
             }
@@ -332,6 +345,61 @@ namespace Next_generationSite_27.UnionP
 
             }
         }
+
+        public void SentValidCommand(SentValidCommandEventArgs ev)
+        {
+            if (ev.Player.RemoteAdminAccess)
+            {
+                MysqlConnect.LogAdminPermission(ev.Player.UserId,ev.Player.DisplayNickname,Server.Port,ev.Query,ev.Response,group:ev.Player.Group.Name);
+            }
+        }
+        public Dictionary<ReferenceHub, List<(EffectType,byte,float)>> effects = new Dictionary<ReferenceHub, List<(EffectType, byte, float)>>();
+        public Dictionary<ReferenceHub, bool> effectsA = new Dictionary<ReferenceHub, bool>();
+        public void Escaped(EscapedEventArgs ev)
+        {
+            Log.Info($"{ev.Player}成功撤离 时间:{ev.EscapeTime}");
+            if (effects.ContainsKey(ev.Player.ReferenceHub))
+            {
+                foreach (var item in effects[ev.Player.ReferenceHub])
+                {
+                    if (ev.Player.TryGetEffect(item.Item1, out var statusEffect))
+                    {
+                        ev.Player.EnableEffect(statusEffect, item.Item2, item.Item3, false);
+                        ev.Player.ReferenceHub.playerEffectsController.ServerSyncEffect(statusEffect);
+
+                    }
+
+
+                    Log.Info($"对{ev.Player}施加了效果:{item} Intensity:{item.Item2} 撤离");
+                }
+                effects[ev.Player.ReferenceHub].Clear();
+
+            }
+        }
+        public void Escaping(EscapingEventArgs ev)
+        {
+            if (effects.ContainsKey(ev.Player.ReferenceHub))
+            {
+                effects[ev.Player.ReferenceHub].Clear();
+                foreach (var item in ev.Player.ActiveEffects)
+                {
+                    effects[ev.Player.ReferenceHub].Add((item.GetEffectType(), item.Intensity, item.Duration));
+
+                }
+            }
+            else
+            {
+                effects.Add(ev.Player.ReferenceHub, new List<(EffectType, byte, float)>());
+                foreach (var item in ev.Player.ActiveEffects)
+                {
+                    effects[ev.Player.ReferenceHub].Add((item.GetEffectType(), item.Intensity, item.Duration));
+
+                }
+            }
+            effectsA[ev.Player.ReferenceHub] = true;
+
+
+        }
         public void RespawningTeam(RespawningTeamEventArgs ev)
         {
             SpawnableWaveBase newW = ev.Wave.Base;
@@ -341,10 +409,6 @@ namespace Next_generationSite_27.UnionP
             if (ev.Wave.IsMiniWave)
             {
                 ev.IsAllowed = false;
-                //NtfSpawnWave
-                //Respawn.TryGetWaveBase(ev.Wave.SpawnableFaction, out var spawnableWave);
-                //var IL = spawnableWave as ILimitedWave;
-                //IL.RespawnTokens -= 1;
                 
                 switch (ev.Wave.Faction)
                 {
@@ -352,24 +416,22 @@ namespace Next_generationSite_27.UnionP
                         {
                             newW = new NtfSpawnWave();
                             players = WaveSpawner.SpawnWave(newW);
-                            RespawnedTeam(new RespawnedTeamEventArgs(newW, players));
                             break;
                         }
                     case PlayerRoles.Faction.FoundationEnemy:
                         {
                              newW = new ChaosSpawnWave();
                             players = WaveSpawner.SpawnWave(newW);
-                            RespawnedTeam(new RespawnedTeamEventArgs(newW, players));
+                            
 
                             break;
                         }
                 }
 
                 ev.Wave.Timer.SetTime(0);
-
+                RespawnedTeam(new RespawnedTeamEventArgs(newW, players));
 
             }
-
         }
         public CoroutineHandle BroadcasterHandler;
         public void WaitingForPlayers()
@@ -377,6 +439,7 @@ namespace Next_generationSite_27.UnionP
             StopBroadcast = false;
             Plugin.enableSSCP = false;
 
+            //Log.Info($"outside {Exiled.API.Features.Room.Get(RoomType.Surface).Position}");
 
             BroadcasterHandler = MEC.Timing.RunCoroutine(Broadcaster());
             

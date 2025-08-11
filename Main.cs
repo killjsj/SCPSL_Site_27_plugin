@@ -31,6 +31,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -162,8 +163,12 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingMicroHIDState += eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
             ChaosKeycardItem.OnSnakeMovementDirChanged += eventhandle.OnSnakeMovementDirChanged;
-            //PlayerEvents.InspectedKeycard += eventhandle.InspectedKeycard;
-            
+            //PlayerEvents.InspectedKeycard += eventhandle.InspectedKeycard;+-
+            Exiled.Events.Handlers.Player.SentValidCommand += eventhandle.SentValidCommand;
+
+            //var a = ProjectMER.Features.MapUtils.GetSchematicDataByName("");
+            //ProjectMER.Features.ObjectSpawner.SpawnSchematic("",);
+
             Exiled.Events.Handlers.Server.RoundStarted += eventhandle.RoundStarted;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
@@ -173,6 +178,10 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
             Exiled.Events.Handlers.Scp914.UpgradingPickup += Bomb.OnUpgradingPickup;
             Exiled.Events.Handlers.Scp914.UpgradingInventoryItem += Bomb.OnUpgradingInventoryItem;
+
+            Exiled.Events.Handlers.Player.Escaped += eventhandle.Escaped;
+            Exiled.Events.Handlers.Player.Escaping += eventhandle.Escaping;
+            //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
 
             max_active_g = Config.maxbomb;
             harmony = new Harmony("Killjsj.plugin.site27plugin");
@@ -192,6 +201,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangedItem -= eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState -= eventhandle.ChangingMicroHIDState;
             Exiled.Events.Handlers.Scp939.PlacedAmnesticCloud -= superSCP.PlacedAmnesticCloud;
+            Exiled.Events.Handlers.Player.SentValidCommand -= eventhandle.SentValidCommand;
             Exiled.Events.Handlers.Scp939.Clawed -= superSCP.Clawed;
             //Exiled.Events.Handlers.Scp0492.TriggeringBloodlust -= superSCP.TriggeringBloodlust;
             //Exiled.Events.Handlers.P
@@ -208,6 +218,8 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Scp914.UpgradingPickup -= Bomb.OnUpgradingPickup;
             Exiled.Events.Handlers.Scp914.UpgradingInventoryItem -= Bomb.OnUpgradingInventoryItem;
 
+            Exiled.Events.Handlers.Player.Escaped -= eventhandle.Escaped;
+            Exiled.Events.Handlers.Player.Escaping -= eventhandle.Escaping;
             harmony.UnpatchAll();
             eventhandle.update();
             eventhandle.stopBroadcast();

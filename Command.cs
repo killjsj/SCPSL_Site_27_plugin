@@ -41,6 +41,7 @@ namespace Next_generationSite_27.UnionP
                 response = "未连接mysql服务器";
                 return false;
             }
+            //EffectCommand
             var serverHigh = plugin.connect.QueryHighest();
             if (player == null)
             {

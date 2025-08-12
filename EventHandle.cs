@@ -478,32 +478,63 @@ namespace Next_generationSite_27.UnionP
             }
             foreach (GameObject p in Plugin.SOB.AttachedBlocks)
             {
-                if (p.name == "DDP")
+                if (p.name == "SCP096P")
                 {
-                    SPC.Add(p);
-                    var dd = p.GetComponent<coH>();
-                    dd.PlayerEnter -= Dd_PlayerEnter;
+                    SPC.Remove(p);
+                    var SCP096 = p.GetComponent<coH>();
+                    if (SCP096 != null)
+                    {
+                        SCP096.PlayerEnter -= SCP096_PlayerEnter;
+                    }
                 }
-                if (p.name == "SCIP")
+                if (p.name == "SCP049P")
                 {
-                    SPC.Add(p);
-                    var SCI = p.GetComponent<coH>();
-                    SCI.PlayerEnter -= SCI_PlayerEnter;
+                    SPC.Remove(p);
+                    var SCP049 = p.GetComponent<coH>();
+                    if (SCP049 != null)
+                    {
+                        SCP049.PlayerEnter -= SCP049_PlayerEnter;
+                    }
                 }
-                if (p.name == "SCPP")
+                if (p.name == "SCP106P")
                 {
-                    SPC.Add(p);
-                    var SCP = p.GetComponent<coH>();
-                    SCP.PlayerEnter -= SCP_PlayerEnter;
+                    SPC.Remove(p);
+                    var SCP106 = p.GetComponent<coH>();
+                    if (SCP106 != null)
+                    {
+                        SCP106.PlayerEnter -= SCP106_PlayerEnter;
+                    }
                 }
-                if (p.name == "GRP")
+                if (p.name == "SCP939P")
                 {
-                    SPC.Add(p);
-                    var GR = p.GetComponent<coH>();
-                    GR.PlayerEnter -= GR_PlayerEnter;
+                    SPC.Remove(p);
+                    var SCP106 = p.GetComponent<coH>();
+                    if (SCP106 != null)
+                    {
+                        SCP106.PlayerEnter -= SCP939_PlayerEnter;
+                    }
+                }
+                if (p.name == "SCP173P")
+                {
+                    SPC.Remove(p);
+                    var SCP106 = p.GetComponent<coH>();
+                    if (SCP106 != null)
+                    {
+                        SCP106.PlayerEnter -= SCP173_PlayerEnter;
+                    }
+                }
+                if (p.name == "SCP079P")
+                {
+                    SPC.Remove(p);
+                    var SCP106 = p.GetComponent<coH>();
+                    if (SCP106 != null)
+                    {
+                        SCP106.PlayerEnter -= SCP079_PlayerEnter;
+                    }
                 }
             }
         }
+        GameObject SP;
         public void WaitingForPlayers()
         {
             StopBroadcast = false;
@@ -564,15 +595,6 @@ namespace Next_generationSite_27.UnionP
                             SCI.PlayerEnter += SCI_PlayerEnter;
                         }
                     }
-                    if (p.name == "SCPP")
-                    {
-                        SPC.Add(p);
-                        var SCP = p.AddComponent<coH>();
-                        if (SCP != null)
-                        {
-                            SCP.PlayerEnter += SCP_PlayerEnter;
-                        }
-                    }
                     if (p.name == "GRP")
                     {
                         SPC.Add(p);
@@ -582,6 +604,65 @@ namespace Next_generationSite_27.UnionP
                             GR.PlayerEnter += GR_PlayerEnter;
                         }
                     }
+                    if (p.name == "spawnpoint")
+                    {
+                        SP = p;
+                    }
+                    if (p.name == "SCP096P")
+                    {
+                        SPC.Add(p);
+                        var SCP096 = p.AddComponent<coH>();
+                        if (SCP096 != null)
+                        {
+                            SCP096.PlayerEnter += SCP096_PlayerEnter;
+                        }
+                    }
+                    if (p.name == "SCP049P")
+                    {
+                        SPC.Add(p);
+                        var SCP049 = p.AddComponent<coH>();
+                        if (SCP049 != null)
+                        {
+                            SCP049.PlayerEnter += SCP049_PlayerEnter;
+                        }
+                    }
+                    if (p.name == "SCP106P")
+                    {
+                        SPC.Add(p);
+                        var SCP106 = p.AddComponent<coH>();
+                        if (SCP106 != null)
+                        {
+                            SCP106.PlayerEnter += SCP106_PlayerEnter;
+                        }
+                    }
+                    if (p.name == "SCP939P")
+                    {
+                        SPC.Add(p);
+                        var SCP106 = p.AddComponent<coH>();
+                        if (SCP106 != null)
+                        {
+                            SCP106.PlayerEnter += SCP939_PlayerEnter;
+                        }
+                    }
+                    if (p.name == "SCP173P")
+                    {
+                        SPC.Add(p);
+                        var SCP106 = p.AddComponent<coH>();
+                        if (SCP106 != null)
+                        {
+                            SCP106.PlayerEnter += SCP173_PlayerEnter;
+                        }
+                    }
+                    if (p.name == "SCP079P")
+                    {
+                        SPC.Add(p);
+                        var SCP106 = p.AddComponent<coH>();
+                        if (SCP106 != null)
+                        {
+                            SCP106.PlayerEnter += SCP079_PlayerEnter;
+                        }
+                    }
+                    
                     if (p.name == "DD")
                     {
                         var r = DummyUtils.SpawnDummy("选择当DD");
@@ -602,14 +683,54 @@ namespace Next_generationSite_27.UnionP
                                                                         r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
                         SPD.Add(r);
                     }
-                    if (p.name == "SCP")
+                    if (p.name == "SCP096D")
+                    {
+                        var r = DummyUtils.SpawnDummy("选择当SCP");
+                        r.roleManager.ServerSetRole(RoleTypeId.Scp096, RoleChangeReason.RoundStart);
+                        var pl = Player.Get(r);
+                        pl.Position = p.transform.position;
+                        pl.Rotation = p.transform.rotation;
+                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
+                        SPD.Add(r);
+                    }
+                    if (p.name == "SCP049D")
+                    {
+                        var r = DummyUtils.SpawnDummy("选择当SCP");
+                        r.roleManager.ServerSetRole(RoleTypeId.Scp049, RoleChangeReason.RoundStart);
+                        var pl = Player.Get(r);
+                        pl.Position = p.transform.position;
+                        pl.Rotation = p.transform.rotation;
+                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
+                        SPD.Add(r);
+                    }
+                    if (p.name == "SCP939D")
                     {
                         var r = DummyUtils.SpawnDummy("选择当SCP");
                         r.roleManager.ServerSetRole(RoleTypeId.Scp939, RoleChangeReason.RoundStart);
                         var pl = Player.Get(r);
                         pl.Position = p.transform.position;
                         pl.Rotation = p.transform.rotation;
-                                                r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
+                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
+                        SPD.Add(r);
+                    }
+                    if (p.name == "SCP173D")
+                    {
+                        var r = DummyUtils.SpawnDummy("选择当SCP");
+                        r.roleManager.ServerSetRole(RoleTypeId.Scp173, RoleChangeReason.RoundStart);
+                        var pl = Player.Get(r);
+                        pl.Position = p.transform.position;
+                        pl.Rotation = p.transform.rotation;
+                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
+                        SPD.Add(r);
+                    }
+                    if (p.name == "SCP106D")
+                    {
+                        var r = DummyUtils.SpawnDummy("选择当SCP");
+                        r.roleManager.ServerSetRole(RoleTypeId.Scp106, RoleChangeReason.RoundStart);
+                        var pl = Player.Get(r);
+                        pl.Position = p.transform.position;
+                        pl.Rotation = p.transform.rotation;
+                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
                         SPD.Add(r);
                     }
                     if (p.name == "GR")
@@ -633,28 +754,38 @@ namespace Next_generationSite_27.UnionP
         }
         public Dictionary<RoleTypeId, List<ReferenceHub>> targetRole = new Dictionary<RoleTypeId, List<ReferenceHub>>() {
             {RoleTypeId.Scientist ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp079 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp049 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp096 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp173 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp106 ,new List<ReferenceHub>()},
             {RoleTypeId.Scp939 ,new List<ReferenceHub>()},
             {RoleTypeId.FacilityGuard ,new List<ReferenceHub>()},
             {RoleTypeId.ClassD ,new List<ReferenceHub>()}
         };
+        void hp(Player player,RoleTypeId typeId)
+        {
+            foreach (var item in targetRole)
+            {
+                item.Value.Remove(player.ReferenceHub);
+            }
+            targetRole[typeId].Add(player.ReferenceHub);
+        }
         void GR_PlayerEnter(Player pl)
         {
-            targetRole[RoleTypeId.FacilityGuard].Add(pl.ReferenceHub);
-            targetRole[RoleTypeId.Scp939].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.Scientist].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.ClassD].Remove(pl.ReferenceHub);
+            Log.Info($"{pl} choose GR");
+            hp(pl,RoleTypeId.FacilityGuard);
         }
 
         void SCP_PlayerEnter(Player pl)
         {
-            targetRole[RoleTypeId.Scp939].Add(pl.ReferenceHub);
-            targetRole[RoleTypeId.FacilityGuard].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.Scientist].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.ClassD].Remove(pl.ReferenceHub);
+            Log.Info($"{pl} choose SCP");
+            
         }
 
         void SCI_PlayerEnter(Player pl)
         {
+            Log.Info($"{pl} choose SCI");
             targetRole[RoleTypeId.Scientist].Add(pl.ReferenceHub);
             targetRole[RoleTypeId.Scp939].Remove(pl.ReferenceHub);
             targetRole[RoleTypeId.FacilityGuard].Remove(pl.ReferenceHub);
@@ -663,6 +794,7 @@ namespace Next_generationSite_27.UnionP
 
         void Dd_PlayerEnter(Player pl)
         {
+            Log.Info($"{pl} choose DD");
             targetRole[RoleTypeId.ClassD].Add(pl.ReferenceHub);
             targetRole[RoleTypeId.Scp939].Remove(pl.ReferenceHub);
             targetRole[RoleTypeId.FacilityGuard].Remove(pl.ReferenceHub);
@@ -742,6 +874,7 @@ namespace Next_generationSite_27.UnionP
             //ev.Player.ReferenceHub.characterClassManager.Start
             //MEC.Timing.RunCoroutine(u.SearchForNumberFive(ev.Player));
             ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial,RoleChangeReason.RemoteAdmin);
+            ev.Player.Position = SP.transform.position;
         }
     }
     public class coH : MonoBehaviour

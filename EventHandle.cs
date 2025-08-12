@@ -472,8 +472,6 @@ namespace Next_generationSite_27.UnionP
         public List<ReferenceHub> SPD = new List<ReferenceHub>();
         public void assing()
         {
-
-            if (true) { return; }
             foreach (ReferenceHub obj in SPD)
             {
                 NetworkServer.Destroy(obj.gameObject);
@@ -524,7 +522,7 @@ namespace Next_generationSite_27.UnionP
                 }
                 
             }
-            if (true)
+            if (false)
             {
                 goto NDebug;
             }

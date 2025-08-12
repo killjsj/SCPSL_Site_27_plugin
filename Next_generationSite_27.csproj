@@ -221,6 +221,7 @@
     <Compile Include="vote\vote_command\ra_VoteControl.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".editorconfig" />
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>

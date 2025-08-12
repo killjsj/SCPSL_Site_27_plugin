@@ -140,7 +140,6 @@ namespace Next_generationSite_27.UnionP
             return false;
         }
     }
-
     [HarmonyPatch(typeof(RoleAssigner))]
     public static class RoleAssignerPatch
     {
@@ -148,6 +147,7 @@ namespace Next_generationSite_27.UnionP
         [HarmonyPrefix]
         public static bool Prefix()
         {
+            Log.Info("ORSPRI");
             Plugin.plugin.eventhandle.assing();
             return true;
         }

@@ -1,5 +1,6 @@
 ﻿using AutoEvent;
 using AutoEvent.API.Enums;
+using AutoEvent.Events;
 using AutoEvent.Interfaces;
 using CommandSystem.Commands.RemoteAdmin;
 using CommandSystem.Commands.RemoteAdmin.Dummies;

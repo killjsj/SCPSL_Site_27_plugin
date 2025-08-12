@@ -14,17 +14,20 @@ using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using Exiled.Events.Features;
+using GameCore;
 using Google.Protobuf.WellKnownTypes;
 using InventorySystem.Configs;
 using InventorySystem.Items.Keycards;
 using InventorySystem.Items.Keycards.Snake;
 using InventorySystem.Items.MicroHID;
 using LabApi.Events.Arguments.PlayerEvents;
+using LiteNetLib;
 using MEC;
 using Mirror;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
 using PlayerRoles;
+using PlayerRoles.RoleAssign;
 using PlayerStatsSystem;
 using ProjectMER.Commands.Modifying.Position;
 using ProjectMER.Features;
@@ -35,11 +38,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using YamlDotNet.Core.Tokens;
 using static RoundSummary;
+using Log = Exiled.API.Features.Log;
 using Player = Exiled.API.Features.Player;
 namespace Next_generationSite_27.UnionP
 {
@@ -403,6 +408,10 @@ namespace Next_generationSite_27.UnionP
                     {
                         continue;
                     }
+                    if (item.GetEffectType() == EffectType.Invisible)
+                    {
+                        continue;
+                    }
                     effects[ev.Player.ReferenceHub].Add((item.GetEffectType(), item.Intensity, item.Duration));
 
                 }
@@ -413,6 +422,10 @@ namespace Next_generationSite_27.UnionP
                 foreach (var item in ev.Player.ActiveEffects)
                 {
                     if (item.GetEffectType() == EffectType.Scp1344)
+                    {
+                        continue;
+                    }
+                    if (item.GetEffectType() == EffectType.Invisible)
                     {
                         continue;
                     }
@@ -459,6 +472,8 @@ namespace Next_generationSite_27.UnionP
         public List<ReferenceHub> SPD = new List<ReferenceHub>();
         public void assing()
         {
+
+            if (true) { return; }
             foreach (ReferenceHub obj in SPD)
             {
                 NetworkServer.Destroy(obj.gameObject);
@@ -495,12 +510,31 @@ namespace Next_generationSite_27.UnionP
         {
             StopBroadcast = false;
             Plugin.enableSSCP = false;
+            var g = GameObject.FindObjectsByType<Canvas>(FindObjectsInactive.Exclude, FindObjectsSortMode.InstanceID);
+            if (g != null) {
+                foreach (Canvas c in g) { 
+                 if (c.name == "Player Canvas")
+                    {
+                        var t = c.gameObject.transform.Find("StartRound");
+                        if (t != null)
+                        {
+                            t.gameObject.SetActive(false);
+                        }
+                    }
+                }
+                
+            }
+            if (true)
+            {
+                goto NDebug;
+            }
             PrefabManager.RegisterPrefabs();
             var ss = new SerializableSchematic
             {
                 SchematicName = "SpawnRoom",
                 Position = new Vector3(0, 290, -90)
             };
+
             GameObject gameObject = ss.SpawnOrUpdateObject();
             Plugin.SOB = gameObject.GetComponent<SchematicObject>();
             //Log.Info($"outside {Exiled.API.Features.Room.Get(RoomType.Surface).Position}");
@@ -591,9 +625,11 @@ namespace Next_generationSite_27.UnionP
                         SPD.Add(r);
                     }
                 }
-
+                //RoundStart.singleton.NetworkTimer = -1;
+                //RoundStart.RoundStartTimer.Restart();
                 //Log.Info("3");
             }
+        NDebug:
             BroadcasterHandler = MEC.Timing.RunCoroutine(Broadcaster());
 
         }
@@ -704,7 +740,10 @@ namespace Next_generationSite_27.UnionP
         }
         public void Joined(JoinedEventArgs ev)
         {
-            //if(ev.Player.UserId)
+            //RoundStart.singleton.NetworkTimer = -1;
+            //ev.Player.ReferenceHub.characterClassManager.Start
+            //MEC.Timing.RunCoroutine(u.SearchForNumberFive(ev.Player));
+            ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial,RoleChangeReason.RemoteAdmin);
         }
     }
     public class coH : MonoBehaviour

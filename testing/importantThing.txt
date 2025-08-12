@@ -1,0 +1,56 @@
+[2025-08-12 14:19:46.630 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.645 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:46.660 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> Subtitles -> Categories -> Decontamination[TMP] -> ""
+[2025-08-12 14:19:46.676 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.691 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:46.707 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> Text Popups -> Hint Display[TMP] -> ""
+[2025-08-12 14:19:46.722 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.737 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: 'connected'
+[2025-08-12 14:19:46.754 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Background[Image] -> Loading[Image] -> Foreground[Image] -> Info[TMP] -> "connected"
+[2025-08-12 14:19:46.769 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.785 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:46.801 +08:00] [INFO] [UnionPlugin] 树状路径: Inventory Canvas[Canvas] -> ItemAlertPart -> Alert Text[TMP] -> ""
+[2025-08-12 14:19:46.816 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.832 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:46.848 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> Subtitles -> Categories -> SCP-127[TMP] -> ""
+[2025-08-12 14:19:46.863 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.878 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:46.894 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> Subtitles -> Categories -> Warhead[TMP] -> ""
+[2025-08-12 14:19:46.910 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.927 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: 'WAITING FOR PLAYERS'
+[2025-08-12 14:19:46.942 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Header[TMP] -> "WAITING FOR PLAYERS"
+[2025-08-12 14:19:46.957 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:46.974 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:46.989 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> Text Popups -> Medkit Cooldown Text[TMP] -> ""
+[2025-08-12 14:19:47.004 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.019 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: 'WAITING FOR PLAYERS'
+[2025-08-12 14:19:47.035 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Time Left[TMP] -> "WAITING FOR PLAYERS"
+[2025-08-12 14:19:47.050 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.066 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: 'Opt Out of Scp'
+[2025-08-12 14:19:47.082 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Scp Opt Out[Image] -> OptOutText[TMP] -> "Opt Out of Scp"
+[2025-08-12 14:19:47.097 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.113 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:47.129 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> Subtitles -> Categories -> Normal[TMP] -> ""
+[2025-08-12 14:19:47.145 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.160 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:47.177 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> Broadcast[TMP] -> ""
+[2025-08-12 14:19:47.191 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.208 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: '20'
+[2025-08-12 14:19:47.223 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Background[Image] -> Loading[Image] -> Foreground[Image] -> Players[TMP] -> "20"
+[2025-08-12 14:19:47.238 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.254 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:47.269 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> NTFlist[TMP] -> ""
+[2025-08-12 14:19:47.285 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.302 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:47.317 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> BodyInspection -> TextMeshPro Text[TMP] -> ""
+[2025-08-12 14:19:47.332 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.348 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: '?'
+[2025-08-12 14:19:47.364 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Scp Opt Out[Image] -> OptOutText[TMP] -> Help[Image] -> Text[TMP] -> "?"
+[2025-08-12 14:19:47.379 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.395 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: ''
+[2025-08-12 14:19:47.410 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Scp Opt Out[Image] -> OptOutText[TMP] -> Description[TMP] -> ""
+[2025-08-12 14:19:47.425 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.441 +08:00] [INFO] [UnionPlugin] 找到包含数字5的TMP文本: 'Mute pre-game lobby'
+[2025-08-12 14:19:47.456 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Muting -> Mute Lobby -> Text (TMP) (1)[TMP] -> "Mute pre-game lobby"
+[2025-08-12 14:19:47.471 +08:00] [INFO] [UnionPlugin] ---
+[2025-08-12 14:19:47.486 +08:00] [INFO] [UnionPlugin] === TMP搜索完成 ===

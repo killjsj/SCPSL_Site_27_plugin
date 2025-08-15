@@ -1,13 +1,16 @@
-﻿using CentralAuth;
+﻿using AutoEvent.Events;
+using CentralAuth;
 using Cmdbinding;
 using CommandSystem.Commands.RemoteAdmin;
 using CustomPlayerEffects;
 using Exiled.API.Features;
 using Exiled.API.Features.Pools;
 using Exiled.API.Features.Roles;
+using Exiled.Events.EventArgs.Player;
 using GameCore;
 using HarmonyLib;
 using Hazards;
+using InventorySystem.Items.Autosync;
 using InventorySystem.Items.MicroHID;
 using InventorySystem.Items.MicroHID.Modules;
 using LabApi.Events.Arguments.PlayerEvents;
@@ -19,7 +22,9 @@ using MySqlX.XDevAPI;
 using NorthwoodLib.Pools;
 using Org.BouncyCastle.Pkix;
 using PlayerRoles;
+using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.Scp049;
+using PlayerRoles.PlayableScps.Scp096;
 using PlayerRoles.PlayableScps.Scp173;
 using PlayerRoles.RoleAssign;
 using PlayerRoles.Subroutines;
@@ -80,7 +85,6 @@ namespace Next_generationSite_27.UnionP
             return newInstructions;
         }
     }
-
     [HarmonyPatch(typeof(Scp173BlinkTimer))]
     public static class Scp173BlinkTimerPatch
     {
@@ -98,17 +102,67 @@ namespace Next_generationSite_27.UnionP
             return true;
         }
     }
+    [HarmonyPatch(typeof(AutosyncModifiersCombiner))]
+    [HarmonyPatch(MethodType.Constructor)]
+    [HarmonyPatch(new[] { typeof(ModularAutosyncItem) })]
+    static class AutosyncModifiersCombinerPatch
+    {
+        private static readonly Type ExcludedType = typeof(MovementSpeedModule);
+        [HarmonyPostfix]
+        static void Postfix(AutosyncModifiersCombiner __instance)
+        {
+            try
+            {
+                // 使用 Traverse 获取私有字段 _movementSpeedModifiers
+                var field = Traverse.Create(__instance).Field("_movementSpeedModifiers");
+                var modifiers = field.GetValue<IMovementSpeedModifier[]>();
+
+                if (modifiers == null || modifiers.Length == 0) return;
+
+                // 过滤掉 MovementSpeedModule
+                var filtered = Array.FindAll(modifiers, m => m.GetType() != ExcludedType);
+
+                // 写回字段
+                field.SetValue(filtered);
+            }
+            catch (Exception e)
+            {
+                // 记录异常（可选）
+                // Plugin.Instance.Log.Warn("Failed to filter movement modifiers: " + e);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(MicroHIDItem))]
+    public static class MicroHIDItemPatch
+    {
+        [HarmonyPatch("get_Weight")]
+        [HarmonyPrefix]
+        public static bool Prefix(ref float __result)
+        {
+            __result = 0;
+            return false;
+        }
+    }
     [HarmonyPatch(typeof(MovementSpeedModule))]
     public static class MovementSpeedModulePatch
     {
+        static readonly System.Reflection.FieldInfo hubField =
+            AccessTools.Field(typeof(MovementSpeedModule), "_movementSpeedLimit");
+        [HarmonyPatch("get_MovementSpeedLimit")]
+        [HarmonyPostfix]
+        public static void HarmonyPostfix(MovementSpeedModule __instance, ref float __result)
+        {
+            hubField.SetValue(__instance, 255);
+            __result = 255;
+        }
         [HarmonyPatch("get_MovementSpeedLimit")]
         [HarmonyPrefix]
-        public static bool Prefix(MovementSpeedModule __instance, ref float __result)
+        public static bool HarmonyPrefix(MovementSpeedModule __instance, ref float __result)
         {
-            __result = 99999;
+            __result = 255;
             return false;
         }
-
     }
     [HarmonyPatch(typeof(ReferenceHub))]
     public static class MReferenceHubPatch
@@ -140,19 +194,126 @@ namespace Next_generationSite_27.UnionP
             return false;
         }
     }
-    [HarmonyPatch(typeof(RoleAssigner))]
-    public static class RoleAssignerPatch
+    [HarmonyPatch(typeof(CharacterClassManager))]
+    public static class CharacterClassManagerPatch
     {
-        [HarmonyPatch("OnRoundStarted")]
+        [HarmonyPatch("ForceRoundStart")]
         [HarmonyPrefix]
         public static bool Prefix()
         {
-            Log.Info("ORSPRI");
             Plugin.plugin.eventhandle.assing();
             return true;
         }
-
     }
+    //[HarmonyPatch(typeof(Scp096AudioPlayer))]
+    //public static class Scp096AudioPlayerPatch
+    //{
+    //    [HarmonyPatch("SetAudioState")]
+    //    [HarmonyPrefix]
+    //    public static bool Prefix(Scp096AudioPlayer __instance)
+    //    {
+    //        if (!Round.IsStarted)
+    //        {
+    //            if (Plugin.plugin.eventhandle.SPD.Count((x) => x.PlayerId == __instance.Owner.PlayerId) >= 1)
+    //            {
+    //                return false;
+    //            }
+    //        }
+    //        return true;
+    //    }
+    //}
+    //[HarmonyPatch(typeof(Scp173AudioPlayer))]
+    //public static class Scp173AudioPlayerPatch
+    //{
+    //    [HarmonyPatch("SetAudioState")]
+    //    [HarmonyPrefix]
+    //    public static bool Prefix(Scp173AudioPlayer __instance)
+    //    {
+    //        if (!Round.IsStarted)
+    //        {
+    //            if (__instance.Role.TryGetOwner(out var owner))
+    //            {
+    //                if (Plugin.plugin.eventhandle.SPD.Count((x) => x.PlayerId == owner.PlayerId) >= 1)
+    //                {
+    //                    return false;
+    //                }
+    //            }
+    //        }
+    //        return true;
+    //    }
+    //}
+
+    [HarmonyPatch(typeof(NicknameSync), nameof(NicknameSync.Network_displayName), MethodType.Setter)]
+    public static class Patch_Network_displayName
+    {
+        static readonly System.Reflection.FieldInfo hubField =
+            AccessTools.Field(typeof(NicknameSync), "_hub"); // 获取私有字段 _hub
+
+        static bool Prefix(NicknameSync __instance, string value)
+        {
+            // 通过反射读取 _hub
+            var hub = hubField.GetValue(__instance);
+            if (hub == null)
+            {
+                Debug.LogWarning("[Patch] NicknameSync._hub 为 null，跳过 DisplayName 设置");
+                return false; // 跳过原方法
+            }
+
+            // 这里可以用 hub 初始化你的 PlayerData
+            var player = Exiled.API.Features.Player.Get((ReferenceHub)hub);
+            if (player == null)
+            {
+                Debug.LogWarning($"[Patch] 无法通过 hub 获取 Player，name={value}");
+                return false; // 跳过原方法
+            }
+
+            return true; // 继续原方法
+        }
+    }
+    [HarmonyPatch(typeof(Exiled.Events.EventArgs.Player.ChangingNicknameEventArgs))]
+    [HarmonyPatch(MethodType.Constructor)]
+    [HarmonyPatch(new Type[] { typeof(Exiled.API.Features.Player), typeof(string) })]
+    public static class PatchChangingNicknameCtor
+    {
+        static bool Prefix(ref Exiled.API.Features.Player player, ref string newName)
+        {
+            if (player == null)
+            {
+                UnityEngine.Debug.LogError("[Patch] ChangingNicknameEventArgs 构造时 Player 为 null，跳过构造函数");
+                return false; // 跳过构造函数
+            }
+
+            return true; // 继续构造
+        }
+    }
+    //    [HarmonyPatch(typeof(RoleAssigner))]
+    //public static class RoleAssignerPatch
+    //{
+
+    //    //[HarmonyPatch("CheckPlayer")]
+    //    //[HarmonyPrefix]
+    //    //public static bool CheckPlayerPrefix(ReferenceHub hub,ref bool __result)
+    //    //{
+    //    //    if (Exiled.API.Features.Round.IsStarted) { return true; }
+    //    //    //Log.Info(Plugin.plugin.eventhandle.SPD.Count);
+    //    //    //foreach (var item in ReferenceHub.AllHubs)
+    //    //    //{
+    //    //        if (Plugin.plugin.eventhandle.SPD.Contains(hub))
+    //    //        {
+    //    //            //if (item == hub)
+    //    //            {
+    //    //                __result = false;
+    //    //                //Plugin.plugin.eventhandle.SPD.Remove(item);
+    //    //                //NetworkServer.Destroy(item.gameObject);
+    //    //                return false;
+    //    //            }
+    //    //        }
+    //    //    //}
+
+    //    //    return true;
+    //    //}
+
+    //}
 
     [HarmonyPatch(typeof(ScpPlayerPicker))]
     public class ScpPlayerPickerPatch

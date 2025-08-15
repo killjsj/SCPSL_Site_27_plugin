@@ -12,6 +12,7 @@ using Exiled.API.Interfaces;
 using Exiled.CustomRoles.Events;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
+using Exiled.Events.Features;
 using Exiled.Events.Handlers;
 using HarmonyLib;
 using InventorySystem.Configs;
@@ -23,10 +24,6 @@ using LabApi.Loader.Features.Plugins;
 using MEC;
 using Mirror;
 using PlayerRoles;
-using PlayerRoles.FirstPersonControl;
-using PlayerRoles.PlayableScps.Scp049;
-using PlayerRoles.PlayableScps.Scp173;
-using PlayerStatsSystem;
 using ProjectMER.Features.Objects;
 using Respawning.Waves;
 using System;
@@ -171,6 +168,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.SentValidCommand += eventhandle.SentValidCommand;
 
             Exiled.Events.Handlers.Server.RoundStarted += eventhandle.RoundStarted;
+            Exiled.Events.Handlers.Player.Verified += eventhandle.Verified;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
@@ -183,6 +181,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Escaped += eventhandle.Escaped;
             Exiled.Events.Handlers.Player.Escaping += eventhandle.Escaping;
 
+            Exiled.Events.Handlers.Player.Spawned += eventhandle.OnSpawned;
             //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
 
             max_active_g = Config.maxbomb;
@@ -194,23 +193,22 @@ namespace Next_generationSite_27.UnionP
         public override void OnDisabled()
         {
             Exiled.Events.Handlers.Map.Generated -= eventhandle.Generated;
-            Exiled.Events.Handlers.Server.WaitingForPlayers -= eventhandle.WaitingForPlayers;
+            Exiled.Events.Handlers.Player.Joined -= eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam -= eventhandle.RespawningTeam;
+            Exiled.Events.Handlers.Server.WaitingForPlayers -= eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Player.Shot -= eventhandle.Shot;
             Exiled.Events.Handlers.Player.Hurting -= superSCP.Hurting;
             Exiled.Events.Handlers.Player.Died -= superSCP.Died;
             Exiled.Events.Handlers.Server.RespawnedTeam -= eventhandle.RespawnedTeam;
             Exiled.Events.Handlers.Player.ChangedItem -= eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState -= eventhandle.ChangingMicroHIDState;
-            Exiled.Events.Handlers.Scp939.PlacedAmnesticCloud -= superSCP.PlacedAmnesticCloud;
-            Exiled.Events.Handlers.Player.SentValidCommand -= eventhandle.SentValidCommand;
-            Exiled.Events.Handlers.Scp939.Clawed -= superSCP.Clawed;
-            //Exiled.Events.Handlers.Scp0492.TriggeringBloodlust -= superSCP.TriggeringBloodlust;
             //Exiled.Events.Handlers.P
             ChaosKeycardItem.OnSnakeMovementDirChanged -= eventhandle.OnSnakeMovementDirChanged;
-            //PlayerEvents.InspectedKeycard -= eventhandle.InspectedKeycard;
+            //PlayerEvents.InspectedKeycard -= eventhandle.InspectedKeycard;+-
+            Exiled.Events.Handlers.Player.SentValidCommand -= eventhandle.SentValidCommand;
 
             Exiled.Events.Handlers.Server.RoundStarted -= eventhandle.RoundStarted;
+            Exiled.Events.Handlers.Player.Verified -= eventhandle.Verified;
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
@@ -222,6 +220,9 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Player.Escaped -= eventhandle.Escaped;
             Exiled.Events.Handlers.Player.Escaping -= eventhandle.Escaping;
+
+            Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
+
             harmony.UnpatchAll();
             eventhandle.update();
             eventhandle.stopBroadcast();
@@ -275,6 +276,8 @@ namespace Next_generationSite_27.UnionP
         public bool EnableChangeScp { get; set; } = true;
         [Description("最多炸弹数量")]
         public int maxbomb { get; set; } = 100;
+        [Description("启用回合大厅")]
+        public bool RoundSelfChoose { get; set; } = true;
 
         [Description("是否启用数据库")]
         public bool IsEnableDatabase

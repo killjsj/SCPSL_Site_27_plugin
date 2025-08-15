@@ -1,5 +1,7 @@
-﻿using AutoEvent;
+﻿using AdminToys;
+using AutoEvent;
 using AutoEvent.Commands;
+using CentralAuth;
 using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin;
 using CommandSystem.Commands.RemoteAdmin.Dummies;
@@ -7,29 +9,23 @@ using CustomPlayerEffects;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
-using Exiled.API.Features.Items;
-using Exiled.API.Features.Toys;
-using Exiled.Events.Commands.Reload;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using Exiled.Events.Features;
+using Exiled.Events.Handlers;
 using GameCore;
-using Google.Protobuf.WellKnownTypes;
 using InventorySystem.Configs;
 using InventorySystem.Items.Keycards;
-using InventorySystem.Items.Keycards.Snake;
-using InventorySystem.Items.MicroHID;
 using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Features.Wrappers;
 using LiteNetLib;
 using MEC;
 using Mirror;
+using Mysqlx.Notice;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
 using PlayerRoles;
-using PlayerRoles.RoleAssign;
-using PlayerStatsSystem;
-using ProjectMER.Commands.Modifying.Position;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
@@ -38,14 +34,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using YamlDotNet.Core.Tokens;
-using static RoundSummary;
+using Utils.NonAllocLINQ;
 using Log = Exiled.API.Features.Log;
+using Object = UnityEngine.Object;
 using Player = Exiled.API.Features.Player;
+using Exiled.API.Extensions;
+
+using Round = Exiled.API.Features.Round;
 namespace Next_generationSite_27.UnionP
 {
     class EventHandle
@@ -339,6 +335,14 @@ namespace Next_generationSite_27.UnionP
             {
                 BroadcastTimers.Remove(ev.Player);
             }
+            if (RoundStart.RoundStarted || RoundEnded)
+            {
+                return;
+            }
+            foreach (var item in targetRole.Values)
+            {
+                item.Remove(ev.Player.ReferenceHub);
+            }
         }
 
         // 在回合结束时清理所有保护
@@ -357,27 +361,332 @@ namespace Next_generationSite_27.UnionP
             // 清理计时器
             BroadcastTimers.Clear();
         }
+        private readonly System.Random random = new System.Random();
 
+        private readonly PConfig config = Plugin.Instance.Config;
         public void RoundStarted()
         {
-            if (Player.List.Count >= Config.EnableSuperScpCount && Config.EnableSuperScp)
+            // assing(); // 假设此方法存在
+
+            if (targetRole == null || targetRole.Count == 0) // 更标准的空检查
             {
-                Plugin.enableSSCP = true;
-                Plugin.plugin.superSCP.start();
-
+                Log.Debug("No target roles to assign. Skipping RoundStarted logic.");
+                return;
             }
-        }
 
+            Timing.CallDelayed(0.1f, delegate ()
+            {
+                try
+                {
+                    Log.Debug("Starting RoundStarted role assignment logic.");
+
+                    var readyPlayers = Player.List
+                        .Where(x => !x.ReferenceHub.IsDummy &&
+                                    x.Connection.GetType() == typeof(NetworkConnectionToClient) &&
+                                    x.ReferenceHub.authManager.InstanceMode != ClientInstanceMode.Unverified &&
+                                    x.ReferenceHub.nicknameSync.NickSet)
+                        .ToList();
+
+                    Log.Debug($"Ready players count: {readyPlayers.Count}");
+
+                    Dictionary<Player, RoleTypeId> initialRoles = readyPlayers.ToDictionary(p => p, p => p.Role.Type);
+                    Dictionary<Player, RoleTypeId> finalRoles = new Dictionary<Player, RoleTypeId>(initialRoles);
+
+                    // SCP替换不需要严格区分"未分配"，我们直接操作所有玩家
+                    // 但为了非SCP分配，保留 unassignedPlayers
+                    List<Player> unassignedPlayers = new List<Player>(readyPlayers);
+
+                    Log.Debug($"Initial player roles:\n- {string.Join("\n- ", initialRoles.Select(entry => $"{entry.Key.Nickname} ({entry.Key.UserId}): {entry.Value}"))}");
+
+                    // 4. 计算各阵营名额 (关键修复：提前计算)
+                    int scpSlots = 0;
+                    int mtfSlots = 0;
+                    int sciSlots = 0;
+                    int ddSlots = 0;
+                    List<RoleTypeId> scps = new List<RoleTypeId>();
+                    foreach (Player player in readyPlayers)
+                    {
+                        Team playerTeam = RoleExtensions.GetTeam(player.Role.Type);
+                        switch (playerTeam)
+                        {
+                            case Team.FoundationForces:
+                                mtfSlots++;
+                                break;
+                            case Team.SCPs:
+                                scpSlots++;
+                                scps.Add(player.Role.Type);
+                                break;
+                            case Team.Scientists:
+                                sciSlots++;
+                                break;
+                            case Team.ClassD:
+                                ddSlots++;
+                                break;
+                        }
+                    }
+                    var scpTargetRoles = targetRole
+            .Where(tr => RoleExtensions.GetTeam(tr.Key) == Team.SCPs)
+            .ToList();
+
+                    Log.Debug($"Target SCP roles to assign: {scpTargetRoles.Count}");
+
+                    foreach (var scpTarget in scpTargetRoles)
+                    {
+                        RoleTypeId targetScpRole = scpTarget.Key;
+                        List<ReferenceHub> preferredHubs = scpTarget.Value ?? new List<ReferenceHub>();
+
+                        Log.Debug($"--- Processing assignment for {targetScpRole} ---");
+
+                        if (scpSlots <= 0)
+                        {
+                            Log.Debug($"No more SCP slots available. Skipping assignment for {targetScpRole}.");
+                            continue;
+                        }
+                        Player alreadyScpPlayer = readyPlayers.FirstOrDefault(p => p.Role == targetScpRole && p.IsConnected);
+                        if (alreadyScpPlayer != null)
+                        {
+                            // 检查目标角色是否已分配给其他玩家
+                            if (finalRoles.Values.Contains(targetScpRole) && finalRoles[alreadyScpPlayer] != targetScpRole)
+                            {
+                                Log.Warn($"Player {alreadyScpPlayer.Nickname} is already assigned to a different role. Skipping replacement.");
+                                continue;
+                            }
+
+                            if (preferredHubs.Contains(alreadyScpPlayer.ReferenceHub))
+                            {
+                                finalRoles[alreadyScpPlayer] = targetScpRole;
+                                scpSlots--;
+                            }
+                            else if (scps.Contains(targetScpRole))
+                            {
+                                if (preferredHubs.Count > 0)
+                                {
+                                    var lucker = preferredHubs.RandomItem();
+                                    var p = Player.Get(lucker);
+                                    if (p != null && unassignedPlayers.Contains(p))
+                                    {
+                                        finalRoles[p] = targetScpRole;
+                                        finalRoles[alreadyScpPlayer] = p.Role.Type;
+                                        unassignedPlayers.Remove(alreadyScpPlayer);
+                                        scpSlots--;
+                                    }
+                                    else
+                                    {
+                                        Log.Warn($"Candidate {p?.Nickname} is not in unassignedPlayers. Skipping replacement.");
+                                    }
+                                }
+                                else
+                                {
+                                    // preferredHubs 为空时，仅保留已有玩家角色，不进行分配
+                                    finalRoles[alreadyScpPlayer] = targetScpRole;
+                                    scpSlots--;
+                                }
+                            }
+                            Log.Debug($"SCP slot used. Remaining SCP slots: {scpSlots}.");
+                        }
+                        else
+                        {
+                            if (scps.Contains(targetScpRole))
+                            {
+                                if (preferredHubs.Count > 0)
+                                {
+                                    var lucker = preferredHubs.RandomItem();
+                                    var p = Player.Get(lucker);
+                                    if (p != null && unassignedPlayers.Contains(p))
+                                    {
+                                        finalRoles[p] = targetScpRole;
+                                        unassignedPlayers.Remove(p);
+                                        scpSlots--;
+                                    }
+                                    else
+                                    {
+                                        Log.Warn($"Candidate {p?.Nickname} is not in unassignedPlayers. Skipping assignment.");
+                                    }
+                                }
+                                else
+                                {
+                                    Log.Warn($"No candidates for {targetScpRole}. Skipping assignment.");
+                                }
+                            }
+                        }
+                    }
+
+                    // 6. 分配其他预设角色 (非SCP) - 保持原有逻辑或根据需要调整
+                    if (targetRole != null)
+                    {
+                        var nonScpTargetRoles = targetRole.Where(tr => RoleExtensions.GetTeam(tr.Key) != Team.SCPs && tr.Key != RoleTypeId.None).ToList();
+                        foreach (var nonScpTarget in nonScpTargetRoles)
+                        {
+                            RoleTypeId targetRoleType = nonScpTarget.Key;
+                            List<ReferenceHub> candidates = nonScpTarget.Value ?? new List<ReferenceHub>();
+
+                            Log.Debug($"Processing target non-SCP role: {targetRoleType}. Candidates: {candidates.Count}.");
+
+                            int availableSlots = 0;
+                            Team targetTeam = RoleExtensions.GetTeam(targetRoleType);
+                            switch (targetTeam)
+                            {
+                                case Team.ClassD:
+                                    availableSlots = ddSlots;
+                                    break;
+                                case Team.Scientists:
+                                    availableSlots = sciSlots;
+                                    break;
+                                case Team.FoundationForces:
+                                    availableSlots = mtfSlots;
+                                    break;
+                            }
+
+                            if (availableSlots <= 0)
+                            {
+                                Log.Debug($"Skipping {targetRoleType} assignment, no slots available for its team.");
+                                continue;
+                            }
+
+                            // 创建候选人副本以避免在迭代时修改
+                            List<ReferenceHub> candidatesCopy = new List<ReferenceHub>(candidates);
+                            foreach (var candidateHub in candidatesCopy)
+                            {
+                                // 检查名额
+                                switch (targetTeam)
+                                {
+                                    case Team.ClassD:
+                                        if (ddSlots <= 0) continue;
+                                        break;
+                                    case Team.Scientists:
+                                        if (sciSlots <= 0) continue;
+                                        break;
+                                    case Team.FoundationForces:
+                                        if (mtfSlots <= 0) continue;
+                                        break;
+                                }
+
+                                Player candidatePlayer = Player.Get(candidateHub);
+                                // 关键修改：检查候选人是否仍在待分配列表中
+                                if (candidatePlayer != null && unassignedPlayers.Contains(candidatePlayer))
+                                {
+                                    finalRoles[candidatePlayer] = targetRoleType;
+                                    unassignedPlayers.Remove(candidatePlayer); // 分配后移除
+                                    Log.Debug($"Assigned {targetRoleType} to {candidatePlayer.Nickname}.");
+
+                                    switch (targetTeam)
+                                    {
+                                        case Team.ClassD:
+                                            ddSlots--;
+                                            break;
+                                        case Team.Scientists:
+                                            sciSlots--;
+                                            break;
+                                        case Team.FoundationForces:
+                                            mtfSlots--;
+                                            break;
+                                    }
+                                }
+                                else
+                                {
+                                    Log.Debug($"Candidate {candidatePlayer?.Nickname ?? "Unknown"} for {targetRoleType} is either null, disconnected, or already assigned.");
+                                }
+                            }
+                        }
+                    }
+
+
+                    // 7. 应用角色变更 (保持不变)
+                    Log.Debug("Applying final role changes...");
+                    int appliedChanges = 0;
+                    foreach (var entry in finalRoles)
+                    {
+                        if (entry.Value != initialRoles[entry.Key])
+                        {
+                            try
+                            {
+                                if (entry.Key != null && entry.Key.IsConnected)
+                                {
+                                    entry.Key.RoleManager.ServerSetRole(
+                                        entry.Value,
+                                        RoleChangeReason.RoundStart,
+                                        RoleSpawnFlags.All
+                                    );
+                                    appliedChanges++;
+                                    Log.Info($"Successfully assigned {entry.Value} to {entry.Key.Nickname}");
+                                }
+                                else
+                                {
+                                    Log.Debug($"Player {entry.Key?.Nickname ?? "Unknown"} disconnected before role could be applied.");
+                                }
+                            }
+                            catch (Exception applyEx)
+                            {
+                                Log.Error($"Failed to assign role {entry.Value} to {entry.Key?.Nickname ?? "Unknown Player"}: {applyEx}");
+                            }
+                        }
+                    }
+                    Log.Debug($"Applied {appliedChanges} role changes.");
+
+                    // 8. 清空目标角色列表 (保持不变)
+                    Log.Debug("Clearing targetRole lists...");
+                    if (targetRole != null)
+                    {
+                        foreach (var item in targetRole)
+                        {
+                            item.Value?.Clear();
+                        }
+                    }
+
+                    // 9. 记录最终角色状态 (保持不变)
+                    Log.Debug($"Final player roles:\n- {string.Join("\n- ", finalRoles.Select(entry => $"{entry.Key.Nickname} ({entry.Key.UserId}): {entry.Value}"))}");
+                    Log.Debug("Finished RoundStarted role assignment logic.");
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"Critical error in RoundStarted delegate: {ex}");
+                }
+            });
+
+
+            // 11. 启用 Super SCP (如果配置允许)
+            try
+            {
+                if (Player.List.Count() >= Config.EnableSuperScpCount && Config.EnableSuperScp)
+                {
+                    Plugin.enableSSCP = true;
+                    Plugin.plugin.superSCP.start();
+                    Log.Debug("Super SCP enabled and started.");
+                }
+            }
+            catch (Exception superScpEx)
+            {
+                Log.Error($"Error enabling/starting Super SCP: {superScpEx}");
+            }
+            
+        }
+        bool IsRoleAvailable(RoleTypeId role, Dictionary<Player, RoleTypeId> roles)
+        {
+            // 非唯一角色（如Class-D）总是可用
+            if (role != RoleTypeId.Scp049 &&
+                role != RoleTypeId.Scp079 &&
+                role != RoleTypeId.Scp096 &&
+                role != RoleTypeId.Scp106 &&
+                role != RoleTypeId.Scp173 &&
+                role != RoleTypeId.Scp939)
+            {
+                return true;
+            }
+
+            // 唯一角色检查：确保服务器中不存在该角色
+            return !roles.Values.Any(r => r == role);
+        }
         public void SentValidCommand(SentValidCommandEventArgs ev)
         {
             if (ev.Player.RemoteAdminAccess)
             {
-                MysqlConnect.LogAdminPermission(ev.Player.UserId, ev.Player.DisplayNickname, Server.Port, ev.Query, ev.Response, group: ev.Player.Group.Name);
+                MysqlConnect.LogAdminPermission(ev.Player.UserId, ev.Player.DisplayNickname, Exiled.API.Features.Server.Port, ev.Query, ev.Response, group: ev.Player.Group.Name);
             }
         }
         public Dictionary<ReferenceHub, List<(EffectType, byte, float)>> effects = new Dictionary<ReferenceHub, List<(EffectType, byte, float)>>();
         public void Escaped(EscapedEventArgs ev)
         {
+
             Log.Info($"{ev.Player}成功撤离 时间:{ev.EscapeTime}");
             if (effects.ContainsKey(ev.Player.ReferenceHub))
             {
@@ -397,8 +706,29 @@ namespace Next_generationSite_27.UnionP
 
             }
         }
+        public void OnSpawned(SpawnedEventArgs ev)
+        {
+            bool flag = ev.Player.Role.Type == RoleTypeId.ClassD;
+            if (flag)
+            {
+                KeycardJanitor(ev.Player);
+            }
+        }
+
+        // Token: 0x0600000F RID: 15 RVA: 0x0000221B File Offset: 0x0000041B
+        public static void KeycardJanitor(Player p)
+        {
+            p.AddItem(ItemType.KeycardJanitor, 1);
+        }
         public void Escaping(EscapingEventArgs ev)
         {
+            bool flag = ev.Player.Role.Type == RoleTypeId.FacilityGuard;
+            if (flag)
+            {
+                ev.EscapeScenario = EscapeScenario.CustomEscape;
+                ev.NewRole = RoleTypeId.NtfSergeant;
+                ev.IsAllowed = true;
+            }
             if (effects.ContainsKey(ev.Player.ReferenceHub))
             {
                 effects[ev.Player.ReferenceHub].Clear();
@@ -470,12 +800,35 @@ namespace Next_generationSite_27.UnionP
         public CoroutineHandle BroadcasterHandler;
         public List<GameObject> SPC = new List<GameObject>();
         public List<ReferenceHub> SPD = new List<ReferenceHub>();
+        public bool st = false;
         public void assing()
         {
-            foreach (ReferenceHub obj in SPD)
+            st = true;
+            foreach (var item in Player.List)
             {
-                NetworkServer.Destroy(obj.gameObject);
+                if (item.Role.Type != RoleTypeId.Overwatch)
+                {
+                    item.RoleManager.ServerSetRole(RoleTypeId.Spectator, RoleChangeReason.RoundStart);
+                }
+                if (SPD.Contains(item.ReferenceHub))
+                {
+                    item.RoleManager.ServerSetRole(RoleTypeId.Overwatch, RoleChangeReason.RoundStart);
+                    NetworkServer.Destroy(item.ReferenceHub.gameObject);
+                    SPD.Remove(item.ReferenceHub);
+
+                }
             }
+            foreach (ReferenceHub obj in ReferenceHub.AllHubs)
+            {
+                if (SPD.Contains(obj))
+                {
+                    //Log.Info("SPD C");
+                    //Log.Info(obj);
+                    NetworkServer.Destroy(obj.gameObject);
+                    SPD.Remove(obj);
+                }
+            }
+            SPD.Clear();
             foreach (GameObject p in Plugin.SOB.AttachedBlocks)
             {
                 if (p.name == "SCP096P")
@@ -533,16 +886,41 @@ namespace Next_generationSite_27.UnionP
                     }
                 }
             }
+            Cleaned = true;
         }
+        public bool Cleaned = false;
         GameObject SP;
+        AdminToys.TextToy textToy;
         public void WaitingForPlayers()
         {
+            st = false;
             StopBroadcast = false;
             Plugin.enableSSCP = false;
+            SPD.Clear();
+
+            SPD = new List<ReferenceHub>();
+            SPC = new List<GameObject>();
+            targetRole = new Dictionary<RoleTypeId, List<ReferenceHub>>() {
+            {RoleTypeId.Scientist ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp079 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp049 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp096 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp173 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp106 ,new List<ReferenceHub>()},
+            {RoleTypeId.Scp939 ,new List<ReferenceHub>()},
+            {RoleTypeId.FacilityGuard ,new List<ReferenceHub>()},
+            {RoleTypeId.ClassD ,new List<ReferenceHub>()}
+        };
+            if (!Config.RoundSelfChoose)
+            {
+                goto No;
+            }
             var g = GameObject.FindObjectsByType<Canvas>(FindObjectsInactive.Exclude, FindObjectsSortMode.InstanceID);
-            if (g != null) {
-                foreach (Canvas c in g) { 
-                 if (c.name == "Player Canvas")
+            if (g != null)
+            {
+                foreach (Canvas c in g)
+                {
+                    if (c.name == "Player Canvas")
                     {
                         var t = c.gameObject.transform.Find("StartRound");
                         if (t != null)
@@ -551,12 +929,10 @@ namespace Next_generationSite_27.UnionP
                         }
                     }
                 }
-                
+
             }
-            if (false)
-            {
-                goto NDebug;
-            }
+
+
             PrefabManager.RegisterPrefabs();
             var ss = new SerializableSchematic
             {
@@ -569,18 +945,32 @@ namespace Next_generationSite_27.UnionP
             //Log.Info($"outside {Exiled.API.Features.Room.Get(RoomType.Surface).Position}");
             foreach (GameObject p in Plugin.SOB.AttachedBlocks)
             {
-                //Log.Info("2.3");
-
-                //var p = tp.gameObject;
-                //Log.Info("2.4");
 
                 if (p != null && p.name != null)
                 {
-                    Log.Info(p.name);
+                    //Log.Info(p.name);
                     if (p.name == "DDP")
                     {
                         SPC.Add(p);
-                        var dd = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var dd = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (dd != null)
                         {
                             dd.PlayerEnter += Dd_PlayerEnter;
@@ -589,7 +979,25 @@ namespace Next_generationSite_27.UnionP
                     if (p.name == "SCIP")
                     {
                         SPC.Add(p);
-                        var SCI = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var SCI = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (SCI != null)
                         {
                             SCI.PlayerEnter += SCI_PlayerEnter;
@@ -598,7 +1006,25 @@ namespace Next_generationSite_27.UnionP
                     if (p.name == "GRP")
                     {
                         SPC.Add(p);
-                        var GR = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var GR = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (GR != null)
                         {
                             GR.PlayerEnter += GR_PlayerEnter;
@@ -608,10 +1034,38 @@ namespace Next_generationSite_27.UnionP
                     {
                         SP = p;
                     }
+                    if (p.name == "roundtext")
+                    {
+                        var b = LabApi.Features.Wrappers.TextToy.Create(p.transform.position, p.transform.rotation, p.transform.localScale);
+                        textToy = b.Base;
+                    }
+                    if (p.name == "SCP079-Text")
+                    {
+                        var b = LabApi.Features.Wrappers.TextToy.Create(p.transform.position, p.transform.rotation, p.transform.localScale);
+                        b.TextFormat = "<color=red>SCP079";
+                    }
                     if (p.name == "SCP096P")
                     {
                         SPC.Add(p);
-                        var SCP096 = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var SCP096 = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (SCP096 != null)
                         {
                             SCP096.PlayerEnter += SCP096_PlayerEnter;
@@ -620,7 +1074,26 @@ namespace Next_generationSite_27.UnionP
                     if (p.name == "SCP049P")
                     {
                         SPC.Add(p);
-                        var SCP049 = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var SCP049 = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
+
                         if (SCP049 != null)
                         {
                             SCP049.PlayerEnter += SCP049_PlayerEnter;
@@ -629,7 +1102,25 @@ namespace Next_generationSite_27.UnionP
                     if (p.name == "SCP106P")
                     {
                         SPC.Add(p);
-                        var SCP106 = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var SCP106 = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (SCP106 != null)
                         {
                             SCP106.PlayerEnter += SCP106_PlayerEnter;
@@ -638,7 +1129,25 @@ namespace Next_generationSite_27.UnionP
                     if (p.name == "SCP939P")
                     {
                         SPC.Add(p);
-                        var SCP106 = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var SCP106 = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (SCP106 != null)
                         {
                             SCP106.PlayerEnter += SCP939_PlayerEnter;
@@ -647,7 +1156,25 @@ namespace Next_generationSite_27.UnionP
                     if (p.name == "SCP173P")
                     {
                         SPC.Add(p);
-                        var SCP106 = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var SCP106 = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (SCP106 != null)
                         {
                             SCP106.PlayerEnter += SCP173_PlayerEnter;
@@ -656,99 +1183,182 @@ namespace Next_generationSite_27.UnionP
                     if (p.name == "SCP079P")
                     {
                         SPC.Add(p);
-                        var SCP106 = p.AddComponent<coH>();
+                        GameObject gO = new GameObject("SCPP");
+
+                        //if (!gameObject.TryGetComponent(out BoxCollider boxCollider))
+                        //{
+                        //    boxCollider = gameObject.AddComponent<BoxCollider>();
+                        //}
+                        Vector3 position = p.transform.position;
+                        Quaternion rotation = p.transform.rotation;
+                        gO.transform.SetLocalPositionAndRotation(position, rotation);
+                        var SCP106 = gO.AddComponent<coH>();
+
+                        if (!gO.TryGetComponent(out BoxCollider boxCollider))
+                            boxCollider = gO.AddComponent<BoxCollider>();
+
+                        boxCollider.isTrigger = true;
+                        boxCollider.size = p.transform.localScale;
+                        //boxCollider.isTrigger = true; 
+                        boxCollider.enabled = true; NetworkServer.UnSpawn(p); NetworkServer.Spawn(p);
+
                         if (SCP106 != null)
                         {
                             SCP106.PlayerEnter += SCP079_PlayerEnter;
                         }
                     }
-                    
+
                     if (p.name == "DD")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当DD");
-                        r.roleManager.ServerSetRole(RoleTypeId.ClassD, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                                                                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当DD");
+                            r.roleManager.ServerSetRole(RoleTypeId.ClassD, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+
+                        });
                     }
                     if (p.name == "SCI")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当科学");
-                        r.roleManager.ServerSetRole(RoleTypeId.Scientist, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                                                                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当科学");
+                            r.roleManager.ServerSetRole(RoleTypeId.Scientist, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+
+                        });
+
                     }
                     if (p.name == "SCP096D")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当SCP");
-                        r.roleManager.ServerSetRole(RoleTypeId.Scp096, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当SCP");
+                            r.roleManager.ServerSetRole(RoleTypeId.Scp096, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+                        });
                     }
                     if (p.name == "SCP049D")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当SCP");
-                        r.roleManager.ServerSetRole(RoleTypeId.Scp049, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当SCP");
+                            r.roleManager.ServerSetRole(RoleTypeId.Scp049, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+                        });
+
                     }
                     if (p.name == "SCP939D")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当SCP");
-                        r.roleManager.ServerSetRole(RoleTypeId.Scp939, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当SCP");
+                            r.roleManager.ServerSetRole(RoleTypeId.Scp939, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+                        });
                     }
                     if (p.name == "SCP173D")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当SCP");
-                        r.roleManager.ServerSetRole(RoleTypeId.Scp173, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当SCP");
+                            r.roleManager.ServerSetRole(RoleTypeId.Scp173, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+
+                        });
                     }
                     if (p.name == "SCP106D")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当SCP");
-                        r.roleManager.ServerSetRole(RoleTypeId.Scp106, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当SCP");
+                            r.roleManager.ServerSetRole(RoleTypeId.Scp106, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+
+                        });
                     }
                     if (p.name == "GR")
                     {
-                        var r = DummyUtils.SpawnDummy("选择当保安");
-                        r.roleManager.ServerSetRole(RoleTypeId.FacilityGuard, RoleChangeReason.RoundStart);
-                        var pl = Player.Get(r);
-                        pl.Position = p.transform.position;
-                        pl.Rotation = p.transform.rotation;
-                        r.playerStats.GetModule<AdminFlagsStat>().SetFlag(AdminFlags.GodMode, true);
-                        SPD.Add(r);
+                        Timing.CallDelayed(1, () =>
+                        {
+                            var r = DummyUtils.SpawnDummy("选择当保安");
+                            r.roleManager.ServerSetRole(RoleTypeId.FacilityGuard, RoleChangeReason.RoundStart);
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var pl = Player.Get(r);
+                                pl.Position = p.transform.position + Vector3.up;
+                                pl.Rotation = p.transform.rotation;
+                                pl.Heal(99999, true);
+                                pl.IsGodModeEnabled = true;
+                                SPD.Add(r);
+                            });
+                        });
                     }
                 }
                 //RoundStart.singleton.NetworkTimer = -1;
                 //RoundStart.RoundStartTimer.Restart();
                 //Log.Info("3");
             }
-        NDebug:
+            Cleaned = false;
+            GC.Collect();
+            MEC.Timing.RunCoroutine(rounder());
+        No:
             BroadcasterHandler = MEC.Timing.RunCoroutine(Broadcaster());
 
         }
@@ -763,42 +1373,70 @@ namespace Next_generationSite_27.UnionP
             {RoleTypeId.FacilityGuard ,new List<ReferenceHub>()},
             {RoleTypeId.ClassD ,new List<ReferenceHub>()}
         };
-        void hp(Player player,RoleTypeId typeId)
+        void hp(Player player, RoleTypeId typeId)
         {
             foreach (var item in targetRole)
             {
                 item.Value.Remove(player.ReferenceHub);
             }
             targetRole[typeId].Add(player.ReferenceHub);
+            player.Broadcast(2, $"你选择当{typeId}", Broadcast.BroadcastFlags.Normal, true);
         }
         void GR_PlayerEnter(Player pl)
         {
             Log.Info($"{pl} choose GR");
-            hp(pl,RoleTypeId.FacilityGuard);
+            hp(pl, RoleTypeId.FacilityGuard);
         }
 
-        void SCP_PlayerEnter(Player pl)
+        void SCP106_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCP");
-            
+            Log.Info($"{pl} choose SCP106");
+            hp(pl, RoleTypeId.Scp106);
+
+        }
+        void SCP049_PlayerEnter(Player pl)
+        {
+            Log.Info($"{pl} choose SCP049");
+            hp(pl, RoleTypeId.Scp049);
+
+        }
+        void SCP939_PlayerEnter(Player pl)
+        {
+            Log.Info($"{pl} choose SCP939");
+
+            hp(pl, RoleTypeId.Scp939);
+        }
+        void SCP079_PlayerEnter(Player pl)
+        {
+            Log.Info($"{pl} choose SCP079");
+            hp(pl, RoleTypeId.Scp079);
+
+        }
+        void SCP096_PlayerEnter(Player pl)
+        {
+            Log.Info($"{pl} choose SCP096");
+            hp(pl, RoleTypeId.Scp096);
+
+        }
+        void SCP173_PlayerEnter(Player pl)
+        {
+            Log.Info($"{pl} choose SCP173");
+            hp(pl, RoleTypeId.Scp173);
+
         }
 
         void SCI_PlayerEnter(Player pl)
         {
             Log.Info($"{pl} choose SCI");
-            targetRole[RoleTypeId.Scientist].Add(pl.ReferenceHub);
-            targetRole[RoleTypeId.Scp939].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.FacilityGuard].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.ClassD].Remove(pl.ReferenceHub);
+            hp(pl, RoleTypeId.Scientist);
+
         }
 
         void Dd_PlayerEnter(Player pl)
         {
             Log.Info($"{pl} choose DD");
-            targetRole[RoleTypeId.ClassD].Add(pl.ReferenceHub);
-            targetRole[RoleTypeId.Scp939].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.FacilityGuard].Remove(pl.ReferenceHub);
-            targetRole[RoleTypeId.ClassD].Remove(pl.ReferenceHub);
+            hp(pl, RoleTypeId.ClassD);
+
         }
 
         public void stopBroadcast()
@@ -841,6 +1479,35 @@ namespace Next_generationSite_27.UnionP
 
             }
         }
+        public string Waiting = "";
+        public IEnumerator<float> rounder()
+        {
+            while (true)
+            {
+                if (Round.IsLobbyLocked)
+                {
+                    Waiting = $"回合已锁定";
+                }
+                
+                else if (Round.IsLobby)
+                {
+                    Waiting = $"还有{RoundStart.singleton.NetworkTimer}秒回合开始";
+                    if (RoundStart.singleton.NetworkTimer == -2)
+                    {
+                        Waiting = $"回合不够人";
+
+                    }
+                }
+                else
+                {
+                    Waiting = $"回合已开始{Round.ElapsedTime.TotalSeconds}秒";
+                }
+                textToy.TextFormat = Waiting;
+                yield return Timing.WaitForSeconds(1f);
+            }
+
+
+        }
         public void ChangingRole(ChangingRoleEventArgs ev)
         {
             if (cs.TryGetValue(ev.Player, out var CH))
@@ -852,6 +1519,13 @@ namespace Next_generationSite_27.UnionP
             if (Plugin.plugin.superSCP.PatchedPlayers.Contains(ev.Player))
             {
                 Plugin.plugin.superSCP.PatchedPlayers.Remove(ev.Player);
+            }
+            if (ev.NewRole == RoleTypeId.Overwatch)
+            {
+                foreach (var item in targetRole.Values)
+                {
+                    item.Remove(ev.Player.ReferenceHub);
+                }
             }
         }
         public void EndingRound(EndingRoundEventArgs ev)
@@ -870,50 +1544,45 @@ namespace Next_generationSite_27.UnionP
         }
         public void Joined(JoinedEventArgs ev)
         {
-            //RoundStart.singleton.NetworkTimer = -1;
-            //ev.Player.ReferenceHub.characterClassManager.Start
-            //MEC.Timing.RunCoroutine(u.SearchForNumberFive(ev.Player));
-            ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial,RoleChangeReason.RemoteAdmin);
-            ev.Player.Position = SP.transform.position;
+        }
+        public void Verified(VerifiedEventArgs ev)
+        {
+            if (!Round.IsStarted)
+            {
+                if (!SPD.Contains(ev.Player.ReferenceHub))
+                {
+                    ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin);
+                    ev.Player.Position = SP.transform.position + Vector3.up * 3;
+                    Timing.CallDelayed(2f, () =>
+                    {
+                        if (!Round.IsStarted)
+                        {
+                            if (ev.Player.Position == SP.transform.position + Vector3.up * 3)
+                            {
+                                ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin);
+                                ev.Player.Broadcast(3, "出现bug了!已将你传回高塔,请联系管理");
+                            }
+                        }
+                    });
+                }
+            }
+            if (st)
+            {
+                ev.Player.RoleManager.ServerSetRole(RoleTypeId.Spectator, RoleChangeReason.RemoteAdmin);
+            }
         }
     }
     public class coH : MonoBehaviour
     {
         public delegate void onplayerenter(Player pl);
         public event onplayerenter PlayerEnter;
-
-        void OnCollisionEnter(Collision collision)
+        public void OnTriggerEnter(Collider other)
         {
-            try
-            {
+            Player player = Player.Get(other.gameObject);
+            if (player is null)
+                return;
+            PlayerEnter.Invoke(player);
 
-                if (collision == null)
-                {
-                    Log.Error("wat");
-                }
-
-                if (!collision.collider)
-                {
-                    Log.Error("water");
-                }
-
-                if (collision.collider.gameObject == null)
-                {
-                    Log.Error("pepehm");
-                }
-
-                if (Player.Get(collision.collider) != null)
-                {
-                    PlayerEnter.Invoke(Player.Get(collision.collider));
-                }
-
-
-            }
-            catch (Exception arg)
-            {
-                Log.Error(string.Format("{0} error:\n{1}", "OnCollisionEnter", arg));
-                UnityEngine.Object.Destroy(this);
-            }
         }
     }
 }

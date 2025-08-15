@@ -308,8 +308,6 @@ namespace Next_generationSite_27.UnionP
 
                 foreach (var item in WaitForChange)
                 {
-
-
                     var PrePos = item.From.Position;
                     var PreHealth = item.From.Health;
                     var PreShiled = item.From.HumeShield;

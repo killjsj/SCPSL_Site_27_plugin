@@ -215,7 +215,6 @@
     <Compile Include="patch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SuperSCP.cs" />
-    <Compile Include="testing\5.cs" />
     <Compile Include="testing\Command.cs" />
     <Compile Include="vote\vote_command\Player_Vote.cs" />
     <Compile Include="vote\vote_command\ra_VoteControl.cs" />

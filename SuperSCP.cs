@@ -232,8 +232,32 @@ namespace Next_generationSite_27.UnionP
                 }
             }
         }
+        public static void OnHurting(HurtingEventArgs ev)
+        {
+
+        }
+
+        // Token: 0x0600000E RID: 14 RVA: 0x000021E8 File Offset: 0x000003E8
+
+
+        // Token: 0x06000010 RID: 16 RVA: 0x00002228 File Offset: 0x00000428
         public void Hurting(HurtingEventArgs ev)
-        {   
+        {
+
+            bool flag = ev.DamageHandler == null;
+            if (!flag)
+            {
+                bool flag2 = ev.DamageHandler.Type == DamageType.Scp207;
+                if (flag2)
+                {
+                    ev.IsAllowed = false;
+                }
+                bool flag3 = ev.DamageHandler.Type == DamageType.Poison;
+                if (flag3)
+                {
+                    ev.IsAllowed = false;
+                }
+            }
             if (Plugin.enableSSCP)
             {
                 if (ev.DamageHandler.Base is Scp939DamageHandler Doghandler)

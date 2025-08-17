@@ -169,6 +169,7 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Server.RoundStarted += eventhandle.RoundStarted;
             Exiled.Events.Handlers.Player.Verified += eventhandle.Verified;
+            //Exiled.Events.Handlers.Player.DroppedItem += eventhandle.DroppedItem;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
@@ -182,6 +183,8 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Escaping += eventhandle.Escaping;
 
             Exiled.Events.Handlers.Player.Spawned += eventhandle.OnSpawned;
+            Exiled.Events.Handlers.Scp079.GainingExperience += superSCP.GainingExperience;
+            Exiled.Events.Handlers.Item.DisruptorFiring += eventhandle.DisruptorFiring;
             //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
 
             max_active_g = Config.maxbomb;
@@ -197,6 +200,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RespawningTeam -= eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers -= eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Player.Shot -= eventhandle.Shot;
+            //Exiled.Events.Handlers.Player.DroppedItem -= eventhandle.DroppedItem;
             Exiled.Events.Handlers.Player.Hurting -= superSCP.Hurting;
             Exiled.Events.Handlers.Player.Died -= superSCP.Died;
             Exiled.Events.Handlers.Server.RespawnedTeam -= eventhandle.RespawnedTeam;
@@ -209,6 +213,7 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Server.RoundStarted -= eventhandle.RoundStarted;
             Exiled.Events.Handlers.Player.Verified -= eventhandle.Verified;
+            Exiled.Events.Handlers.Scp079.GainingExperience -= superSCP.GainingExperience;
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
@@ -221,6 +226,8 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Escaped -= eventhandle.Escaped;
             Exiled.Events.Handlers.Player.Escaping -= eventhandle.Escaping;
 
+
+            Exiled.Events.Handlers.Item.DisruptorFiring-= eventhandle.DisruptorFiring;
             Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
 
             harmony.UnpatchAll();
@@ -267,18 +274,32 @@ namespace Next_generationSite_27.UnionP
         [Description("播报颜色 具体见https://docs.unity.cn/cn/2020.3/Manual/StyledText.html#ColorTag 如果是十六进制rgb应在前面加 '#'号 如 #114514 ")]
         public string BroadcastColor { get; set; } = "yellow";
         [Description("播报文字")]
-        public List<string> BroadcastContext { get; set; } = new List<string>() {"示范用1", "示范用2" };
+        public List<string> BroadcastContext { get; set; } = new List<string>() { "示范用1", "示范用2" };
+        [Description("CASSIE欢迎文字 不要删去{player}")]
+        public string WelcomeContext { get; set; } = "Welcome {player} 加入服务器";
         [Description("启用scp加强")]
         public bool EnableSuperScp { get; set; } = true;
         [Description("启用scp加强人数")]
         public int EnableSuperScpCount { get; set; } = 1;
+        [Description("启用scp加强播报")]
+        public string EnableSuperScpBroadcast { get; set; } = "已启用scp加强";
         [Description("启用scp替换")]
         public bool EnableChangeScp { get; set; } = true;
         [Description("最多炸弹数量")]
         public int maxbomb { get; set; } = 100;
         [Description("启用回合大厅")]
         public bool RoundSelfChoose { get; set; } = true;
+        
+        public float Showtime { get; set; } = 30f;
 
+        public int Showduration { get; set; } = 5;
+
+        public string FirstColorHex { get; set; } = "#FFFFFF";
+
+        public string SecondColorHex { get; set; } = "#ff0000";
+
+        public string MainColorHex { get; set; } = "#ff0000";
+        public string TextShow { get; set; } = "Alive SCPs:";
         [Description("是否启用数据库")]
         public bool IsEnableDatabase
         {
@@ -330,7 +351,7 @@ namespace Next_generationSite_27.UnionP
         public MapInfo MapInfo { get; set; } = new MapInfo()
         {
             MapName = "RunningMan",
-            Position = new Vector3(0, 0, 0),
+            Position = new Vector3(213, 20, 320),
             IsStatic = true
         };
         public SoundInfo SoundInfo { get; set; } = new SoundInfo()
@@ -352,13 +373,13 @@ namespace Next_generationSite_27.UnionP
         {
             _eventHandler = new GwangjuRunningManLoader.EventHandler(this);
             Exiled.Events.Handlers.Item.ChargingJailbird += _eventHandler.OnChargingJailbird;
-            Exiled.Events.Handlers.Player.Died += _eventHandler.died;
+            Exiled.Events.Handlers.Player.Dying += _eventHandler.died;
         }
 
         protected override void UnregisterEvents()
         {
             Exiled.Events.Handlers.Item.ChargingJailbird -= _eventHandler.OnChargingJailbird;
-            Exiled.Events.Handlers.Player.Died -= _eventHandler.died;
+            Exiled.Events.Handlers.Player.Dying -= _eventHandler.died;
 
             _eventHandler = null;
         }

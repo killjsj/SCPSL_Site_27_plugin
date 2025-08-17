@@ -5,18 +5,32 @@ using CentralAuth;
 using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin;
 using CommandSystem.Commands.RemoteAdmin.Dummies;
+using CommandSystem.Commands.RemoteAdmin.Inventory;
 using CustomPlayerEffects;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
+using Exiled.API.Features.Items;
+using Exiled.API.Features.Pickups;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
+using Exiled.Events.EventArgs.Scp914;
 using Exiled.Events.EventArgs.Server;
 using Exiled.Events.Features;
 using Exiled.Events.Handlers;
 using GameCore;
+using Google.Protobuf.WellKnownTypes;
+using Interactables.Interobjects.DoorUtils;
+using InventorySystem;
 using InventorySystem.Configs;
+using InventorySystem.Items;
+using InventorySystem.Items.Firearms;
+using InventorySystem.Items.Firearms.Extensions;
+using InventorySystem.Items.Firearms.Modules;
+using InventorySystem.Items.Firearms.ShotEvents;
 using InventorySystem.Items.Keycards;
+using InventorySystem.Items.Pickups;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
 using LiteNetLib;
@@ -25,7 +39,9 @@ using Mirror;
 using Mysqlx.Notice;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
+using Org.BouncyCastle.Asn1.Ocsp;
 using PlayerRoles;
+using ProjectMER.Commands.Utility;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
@@ -34,13 +50,16 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using UnityEngine;
+using UnityEngine.DedicatedServer;
 using Utils.NonAllocLINQ;
+using Enum = System.Enum;
+using KeycardItem = InventorySystem.Items.Keycards.KeycardItem;
 using Log = Exiled.API.Features.Log;
 using Object = UnityEngine.Object;
+using Pickup = LabApi.Features.Wrappers.Pickup;
 using Player = Exiled.API.Features.Player;
-using Exiled.API.Extensions;
-
 using Round = Exiled.API.Features.Round;
 namespace Next_generationSite_27.UnionP
 {
@@ -54,13 +73,201 @@ namespace Next_generationSite_27.UnionP
         public Dictionary<Player, int> cachedHighestPairs = new Dictionary<Player, int>();
         MySQLConnect MysqlConnect = Plugin.plugin.connect;
         public (string userid, string name, int? highscore, DateTime? time) cachedHighest = (string.Empty, string.Empty, null, DateTime.MinValue);
+        public Dictionary<string, (bool enable, string card, string text, string holder, string color, string permColor, int? RankLevel, bool? applytoAll)> cachedcard =
+            new Dictionary<string, (bool enable, string card, string text, string holder, string color, string permColor, int? RankLevel, bool? applytoAll)>();
+        public Dictionary<ushort,ItemType> cachedCards = new Dictionary<ushort, ItemType>();
         public void ChangedItem(ChangedItemEventArgs ev)
         {
             if (ev.OldItem != null)
             {
                 snakepairs.Remove(ev.OldItem.Serial);
             }
+            if (ev.Item == null)
+            {
+            }
+            else if (ev.Item.IsKeycard && !cachedCards.ContainsKey(ev.Item.Serial))
+            {
+                if (ev.Item is Keycard oc)
+                {
+                    
+                    if (!cachedcard.TryGetValue(ev.Player.UserId, out var card))
+                    {
+                        var re = MysqlConnect.QueryCard(ev.Player.UserId);
+                        card = (re.enabled,re.card, re.Text, re.holder, re.color,re.permColor,re.rankLevel,re.ApplytoAll);
+                        cachedcard.Add(ev.Player.UserId, card);
+                    }
+                    string Toc = card.card;
+                    string Tc = card.card;
+                    if (card.applytoAll.GetValueOrDefault(false))
+                    {
+                        if (ev.Item.Type == ItemType.KeycardChaosInsurgency)
+                        {
+                            Toc = "KeycardCustomSite02";
+                        }
+                    } else if(ev.Item.Type == ItemType.KeycardChaosInsurgency)
+                    {
+                        return;
+                    }
+                    else {
+                        switch (oc.Identifier.TypeId)
+                        {
+                            case ItemType.KeycardJanitor:
+                            case ItemType.KeycardZoneManager:
+                            //case ItemType.KeycardO5:
+                            case ItemType.KeycardScientist:
+                            case ItemType.KeycardResearchCoordinator:
+                                {
+                                    Toc = "KeycardCustomSite02";
+                                    break;
+                                }
+                            case ItemType.KeycardGuard:
+                                {
+                                    Toc = "KeycardCustomMetalCase";
+                                    break;
+                                }
+                            case ItemType.KeycardMTFCaptain:
+                            case ItemType.KeycardMTFPrivate:
+                            case ItemType.KeycardMTFOperative:
+                                {
+                                    Toc = "KeycardCustomTaskForce";
+                                    break;
+                                }
+                            case ItemType.KeycardFacilityManager:
+                            case ItemType.KeycardContainmentEngineer:
+                            case ItemType.KeycardO5:
+                                {
+                                    Toc = "KeycardCustomManagement";
+                                    break;
+                                }
 
+                        }
+                    }
+                    if(Toc == Tc) {
+                        if (card.enable)
+                        {
+                            KeycardItem keycardItem;
+                            if (!TryParseKeycard(Toc, out keycardItem))
+                            {
+                                Log.Warn($"无法获取{card.card}");
+                                return;
+                                //response += ".";
+                                //return false;
+                            }
+                            Color32 color = Color.cyan;
+                            Color32 Raankcolor = Color.cyan;
+                            Misc.TryParseColor(card.color, out color);
+                            Misc.TryParseColor(card.permColor, out Raankcolor);
+
+                            foreach (DetailBase detailBase in keycardItem.Details)
+                            {
+                                ICustomizableDetail customizableDetail2 = detailBase as ICustomizableDetail;
+                                if (customizableDetail2 != null)
+                                {
+                                    if (customizableDetail2 is CustomItemNameDetail IN)
+                                    {
+                                        IN.SetArguments(new ArraySegment<object>(new object[1] { "site27 自定义权限卡" }));
+                                    }
+                                    if (customizableDetail2 is CustomLabelDetail LD)
+                                    {
+
+                                        LD.SetArguments(new ArraySegment<object>(new object[] { card.text, color }));
+                                    }
+                                    if (customizableDetail2 is NametagDetail ND)
+                                    {
+                                        ND.SetArguments(new ArraySegment<object>(new object[] { card.holder }));
+
+                                    }
+                                    if (customizableDetail2 is CustomWearDetail WD)
+                                    {
+                                        WD.SetArguments(new ArraySegment<object>(new object[] { (byte)card.RankLevel }));
+
+                                    }
+                                    if (customizableDetail2 is CustomTintDetail TD)
+                                    {
+                                        TD.SetArguments(new ArraySegment<object>(new object[] { color }));
+                                    }
+                                    if (customizableDetail2 is CustomRankDetail RD)
+                                    {
+                                        RD.SetArguments(new ArraySegment<object>(new object[] { card.RankLevel }));
+                                    }
+                                    if (customizableDetail2 is CustomPermsDetail PD)
+                                    {
+
+                                        var b = new KeycardLevels(oc.Base.GetPermissions(null));
+                                        PD.SetArguments(new ArraySegment<object>(new object[] { b, Raankcolor }));
+
+
+                                    }
+                                }
+                            }
+                            Timing.CallDelayed(0.1f, () =>
+                            {
+                                var i = oc.Identifier.TypeId;
+                                ev.Player.RemoveItem(oc);
+                                AddItem(ev.Player.ReferenceHub, keycardItem.ItemTypeId, i);
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        public Pickup OnUpgradingPickup(ItemPickupBase pickup) {
+            if (cachedCards.ContainsKey(pickup.Info.Serial))
+            {
+                var temp = Pickup.Create(cachedCards[pickup.Info.Serial],pickup.Position);
+                cachedCards.Remove(pickup.Info.Serial);
+                return temp;
+            }
+            return null;
+        }
+        //public void DroppedItem(DroppedItemEventArgs ev)
+        //{
+        //    if (cachedCards.ContainsKey(ev.Pickup.Info.Serial))
+        //    {
+        //        var temp = Pickup.Create(cachedCards[ev.Pickup.Info.Serial], ev.Pickup.Position);
+        //        cachedCards.Remove(ev.Pickup.Info.Serial);
+        //        ev.Pickup.Destroy();
+        //    }
+        //}
+        public void OnUpgradingInventoryItem(ReferenceHub ev) {
+            Player player = Player.Get(ev);
+            var Item = player.CurrentItem;
+            if (Item != null)
+            {
+                if (cachedCards.ContainsKey(Item.Serial))
+                {
+
+                    player.RemoveHeldItem();
+                    var temp = player.AddItem(cachedCards[Item.Serial]);
+                    cachedCards.Add(temp.Serial, temp.Identifier.TypeId);
+                    player.CurrentItem = temp;
+                    cachedCards.Remove(temp.Serial);
+                    cachedCards.Remove(Item.Serial);
+                }
+            }
+        }
+        private void AddItem(ReferenceHub ply, ItemType id, ItemType oc)
+        {
+
+            var x = ply.inventory.ServerAddItem(id, ItemAddReason.AdminCommand, 0, null);
+            cachedCards.Add(x.ItemSerial,oc);
+
+            Log.Info($"已给予玩家{ply.nicknameSync.DisplayName} 自定义卡");
+            ply.inventory.ServerSelectItem(x.ItemSerial);
+            if (x == null)
+            {
+                throw new NullReferenceException(string.Format("Could not add {0}. Inventory is full or the item is not defined.", id));
+            }
+        }
+        private static bool TryParseKeycard(string arg, out KeycardItem keycard)
+        {
+            ItemType itemType;
+            if (!Enum.TryParse<ItemType>(arg, true, out itemType))
+            {
+                keycard = null;
+                return false;
+            }
+            return itemType.TryGetTemplate(out keycard) && keycard.Customizable;
         }
         public void InspectedKeycard(PlayerInspectedKeycardEventArgs ev)
         {
@@ -265,9 +472,34 @@ namespace Next_generationSite_27.UnionP
             Log.Info($"[出生保护] 玩家 {player?.Nickname ?? "Unknown"} 保护结束");
         }
 
-
+        public void TemplateSimulateShot(DisruptorShotEvent data, BarrelTipExtension barrelTip)
+        {
+            ItemIdentifier identifier = data.ItemId;
+            ParticleDisruptor template = identifier.TypeId.GetTemplate<ParticleDisruptor>();
+            MagazineModule magazineModule;
+            if (!template.TryGetModule(out magazineModule, true))
+            {
+                Log.Debug(111);
+                return;
+            }
+            magazineModule.ServerSetInstanceAmmo(identifier.SerialNumber, 6);
+            magazineModule.ServerResyncData();
+        }
         public void Shot(ShotEventArgs ev)
         {
+            if(ev.Item.Type == ItemType.ParticleDisruptor)
+            {
+                ItemIdentifier identifier = ev.Item.Base.ItemId;
+                ParticleDisruptor template = ev.Item.Base as ParticleDisruptor;
+                MagazineModule magazineModule;
+                if (!template.TryGetModule(out magazineModule, true))
+                {
+                    Log.Debug(111);
+                    return;
+                }
+                magazineModule.ServerSetInstanceAmmo(identifier.SerialNumber, 6);
+                magazineModule.ServerResyncData();
+            }
             if (ev.Player.GetEffect<SpawnProtected>() != null)
             {
                 var a = ev.Player.GetEffect<SpawnProtected>();
@@ -645,6 +877,7 @@ namespace Next_generationSite_27.UnionP
 
 
             // 11. 启用 Super SCP (如果配置允许)
+            updateInfo = Timing.RunCoroutine(this.UpdateInfo());
             try
             {
                 if (Player.List.Count() >= Config.EnableSuperScpCount && Config.EnableSuperScp)
@@ -676,6 +909,7 @@ namespace Next_generationSite_27.UnionP
             // 唯一角色检查：确保服务器中不存在该角色
             return !roles.Values.Any(r => r == role);
         }
+        CoroutineHandle updateInfo;
         public void SentValidCommand(SentValidCommandEventArgs ev)
         {
             if (ev.Player.RemoteAdminAccess)
@@ -897,7 +1131,7 @@ namespace Next_generationSite_27.UnionP
             StopBroadcast = false;
             Plugin.enableSSCP = false;
             SPD.Clear();
-
+            cachedCards = new Dictionary<ushort, ItemType>();
             SPD = new List<ReferenceHub>();
             SPC = new List<GameObject>();
             targetRole = new Dictionary<RoleTypeId, List<ReferenceHub>>() {
@@ -1384,57 +1618,57 @@ namespace Next_generationSite_27.UnionP
         }
         void GR_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose GR");
+            //Log.Info($"{pl} choose GR");
             hp(pl, RoleTypeId.FacilityGuard);
         }
 
         void SCP106_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCP106");
+            //Log.Info($"{pl} choose SCP106");
             hp(pl, RoleTypeId.Scp106);
 
         }
         void SCP049_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCP049");
+            //Log.Info($"{pl} choose SCP049");
             hp(pl, RoleTypeId.Scp049);
 
         }
         void SCP939_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCP939");
+            //Log.Info($"{pl} choose SCP939");
 
             hp(pl, RoleTypeId.Scp939);
         }
         void SCP079_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCP079");
+            //Log.Info($"{pl} choose SCP079");
             hp(pl, RoleTypeId.Scp079);
 
         }
         void SCP096_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCP096");
+            //Log.Info($"{pl} choose SCP096");
             hp(pl, RoleTypeId.Scp096);
 
         }
         void SCP173_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCP173");
+            //Log.Info($"{pl} choose SCP173");
             hp(pl, RoleTypeId.Scp173);
 
         }
 
         void SCI_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose SCI");
+            //Log.Info($"{pl} choose SCI");
             hp(pl, RoleTypeId.Scientist);
 
         }
 
         void Dd_PlayerEnter(Player pl)
         {
-            Log.Info($"{pl} choose DD");
+            //Log.Info($"{pl} choose DD");
             hp(pl, RoleTypeId.ClassD);
 
         }
@@ -1484,23 +1718,28 @@ namespace Next_generationSite_27.UnionP
         {
             while (true)
             {
+                Waiting = $"目前有{ReferenceHub.AllHubs.Count - Plugin.plugin.eventhandle.SPD.Count -1}个玩家\n";
                 if (Round.IsLobbyLocked)
                 {
-                    Waiting = $"回合已锁定";
+                    Waiting += $"回合已锁定";
                 }
                 
                 else if (Round.IsLobby)
                 {
-                    Waiting = $"还有{RoundStart.singleton.NetworkTimer}秒回合开始";
                     if (RoundStart.singleton.NetworkTimer == -2)
                     {
-                        Waiting = $"回合不够人";
+                        Waiting += $"回合不够人";
+
+                    } else
+                    {
+                        Waiting += $"还有{RoundStart.singleton.NetworkTimer}秒回合开始";
 
                     }
                 }
                 else
                 {
-                    Waiting = $"回合已开始{Round.ElapsedTime.TotalSeconds}秒";
+                    Waiting += $"";
+                    yield break;
                 }
                 textToy.TextFormat = Waiting;
                 yield return Timing.WaitForSeconds(1f);
@@ -1508,11 +1747,72 @@ namespace Next_generationSite_27.UnionP
 
 
         }
+        public IEnumerator<float> UpdateInfo()
+        {
+            while (Round.IsStarted)
+            {
+                string FirstColorHex = Config.FirstColorHex;
+                string SecondColorHex =Config.SecondColorHex;
+                string MainColorHex = Config.MainColorHex;
+                string TextVar = Config.TextShow;
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine(string.Concat(new string[]
+                {
+                    "<color=",
+                    MainColorHex,
+                    ">",
+                    TextVar,
+                    "</color>"
+                }));
+                foreach (Exiled.API.Features.Player player in Enumerable.Where<Exiled.API.Features.Player>(Exiled.API.Features.Player.List, (Exiled.API.Features.Player p) => p.Role.Team == Team.SCPs && p.IsAlive))
+                {
+                    sb.Append(string.Format("|<size=32><color={0}>{1} </color> :  <color={2}>{3}HP</color></size>| ", new object[]
+                    {
+                        FirstColorHex,
+                        player.Role.Name,
+                        SecondColorHex,
+                        Convert.ToInt32(player.Health)
+                    }));
+                }
+                string scpInfo = sb.ToString();
+                float Showtime = Config.Showtime;
+                int Showduration = Config.Showduration;
+                Exiled.API.Features.Map.Broadcast((ushort)Showduration, scpInfo, global::Broadcast.BroadcastFlags.Normal, false);
+                yield return Timing.WaitForSeconds(Showtime);
+                FirstColorHex = null;
+                SecondColorHex = null;
+                MainColorHex = null;
+                TextVar = null;
+                sb = null;
+                scpInfo = null;
+            }
+            yield break;
+        }
+        public List<ushort> x3itemid = new List<ushort>();
+        public void DisruptorFiring(DisruptorFiringEventArgs ev)
+        {
+            if (Plugin.enableSSCP)
+            {
+                if (!x3itemid.Contains(ev.Pickup.Serial))
+                {
+                    ItemIdentifier identifier = ev.Pickup.Base.ItemId;
+                    ParticleDisruptor template = identifier.TypeId.GetTemplate<ParticleDisruptor>();
+                    MagazineModule magazineModule;
+                    if (!template.TryGetModule(out magazineModule, true))
+                    {
+                        return;
+                    }
+                    magazineModule.ServerSetInstanceAmmo(identifier.SerialNumber, 10);
+                    magazineModule.ServerResyncData();
+                    x3itemid.Add(identifier.SerialNumber);
+                }
+            }
+        }
         public void ChangingRole(ChangingRoleEventArgs ev)
         {
+            ev.Player.DisableEffect(EffectType.SpawnProtected);
             if (cs.TryGetValue(ev.Player, out var CH))
             {
-                ev.Player.DisableEffect(EffectType.SpawnProtected);
                 MEC.Timing.KillCoroutines(CH);
                 cs.Remove(ev.Player);
             }
@@ -1537,6 +1837,10 @@ namespace Next_generationSite_27.UnionP
                 MEC.Timing.KillCoroutines(item.Value);
                 cs.Remove(item.Key);
             }
+            Timing.KillCoroutines(new CoroutineHandle[]
+            {
+                            this.updateInfo
+            });
         }
 
         public void ChangingMicroHIDState(ChangingMicroHIDStateEventArgs ev)
@@ -1544,6 +1848,29 @@ namespace Next_generationSite_27.UnionP
         }
         public void Joined(JoinedEventArgs ev)
         {
+        }
+        string ColorToHex(Color color)
+        {
+            int r = Mathf.RoundToInt(color.r * 255);
+            int g = Mathf.RoundToInt(color.g * 255);
+            int b = Mathf.RoundToInt(color.b * 255);
+            return $"#{r:X2}{g:X2}{b:X2}";
+        }
+        public string rainbowtime(string text)
+        {
+            string newtext = "";
+            for (int i = 0; i < text.Length; i++)
+            {
+                // 在 0~1 之间均匀分布 Hue（色相）
+                float hue = i / (float)Mathf.Max(1, text.Length - 1);
+                Color color = Color.HSVToRGB(hue, 1f, 1f); // 饱和度和亮度最大
+
+                // 转为 HEX 格式
+                string hex = ColorToHex(color);
+
+                newtext += $"<color={hex}>{text[i]}</color>";
+            }
+            return newtext;
         }
         public void Verified(VerifiedEventArgs ev)
         {
@@ -1559,16 +1886,58 @@ namespace Next_generationSite_27.UnionP
                         {
                             if (ev.Player.Position == SP.transform.position + Vector3.up * 3)
                             {
-                                ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin);
+                                ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin,RoleSpawnFlags.All);
                                 ev.Player.Broadcast(3, "出现bug了!已将你传回高塔,请联系管理");
                             }
                         }
                     });
                 }
             }
+            if (!cachedcard.TryGetValue(ev.Player.UserId, out var card))
+            {
+                var re = MysqlConnect.QueryCard(ev.Player.UserId);
+                card = (re.enabled, re.card, re.Text, re.holder, re.color, re.permColor, re.rankLevel, re.ApplytoAll);
+
+                cachedcard.Add(ev.Player.UserId, card);
+            }
+            else
+            {
+                    cachedcard.Remove(ev.Player.UserId);
+                    var re = MysqlConnect.QueryCard(ev.Player.UserId);
+                card = (re.enabled, re.card, re.Text, re.holder, re.color, re.permColor, re.rankLevel, re.ApplytoAll);
+
+                cachedcard.Add(ev.Player.UserId, card);
+                
+            }
             if (st)
             {
                 ev.Player.RoleManager.ServerSetRole(RoleTypeId.Spectator, RoleChangeReason.RemoteAdmin);
+            }
+            var CS = MysqlConnect.QueryCassieWelcome(ev.Player.UserId);
+            if (CS.enabled)
+            {
+                Exiled.API.Features.Cassie.Message("Welcome", isNoisy: false, isSubtitles: false);
+                if(string.IsNullOrEmpty(CS.welcomeText))
+                {
+                    if (CS.color != "rainbow"){ 
+                    Exiled.API.Features.Cassie.Message($"<color={CS.color}>{config.WelcomeContext.Replace("{player}", ev.Player.Nickname)}</color>", isNoisy: false, isSubtitles: true); 
+                    } else 
+                    {
+                        Exiled.API.Features.Cassie.Message(rainbowtime(config.WelcomeContext.Replace("{player}", ev.Player.Nickname)), isNoisy: false, isSubtitles: true);
+                    }
+                } else
+                {
+                    if (CS.color != "rainbow")
+                    {
+                        Exiled.API.Features.Cassie.Message($"<color={CS.color}>{CS.welcomeText}</color>", isNoisy: false, isSubtitles: true);
+                    }
+                    else
+                    {
+                        Exiled.API.Features.Cassie.Message(rainbowtime(CS.welcomeText), isNoisy: false, isSubtitles: true);
+                    }
+
+                }
+
             }
         }
     }
@@ -1595,9 +1964,9 @@ namespace GwangjuRunningManLoader
         {
             _plugin = plugin;
         }
-        public void died(DiedEventArgs ev)
+        public void died(DyingEventArgs ev)
         {
-            if (ev.TargetOldRole == PlayerRoles.RoleTypeId.NtfCaptain || _plugin.Jailor.Contains(ev.Player))
+            if (ev.Player.Role == PlayerRoles.RoleTypeId.NtfCaptain || _plugin.Jailor.Contains(ev.Player))
             {
                 return;
             }
@@ -1616,6 +1985,8 @@ namespace GwangjuRunningManLoader
             {
                 _plugin.Deaths[ev.Player] = 1;
             }
+            ev.IsAllowed = false;
+            ev.Player.RoleManager.ServerSetRole(RoleTypeId.ClassD,RoleChangeReason.Respawn);
             ev.Player.GiveLoadout(_plugin.Config.PrisonerLoadouts);
             ev.Player.Position = _plugin.SpawnPoints.Where(r => r.name == "Spawnpoint").ToList().RandomItem().transform.position;
             ev.Player.Health = 100;

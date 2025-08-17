@@ -171,6 +171,11 @@ namespace Next_generationSite_27.UnionP
                 response = "Failed to find sender";
                 return false;
             }
+            if (!player.IsScp)
+            {
+                response = "你不是scp";
+                return false;
+            }
             if(arguments.Count < 1)
             {
                 response = "缺少目标scp参数!";
@@ -391,8 +396,9 @@ namespace Next_generationSite_27.UnionP
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            var runner  = Player.Get(sender);
-            if (runner.KickPower < 12) {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
                 response = "你没权 （player.KickPower < 12）";
                 return false;
             }
@@ -425,11 +431,65 @@ namespace Next_generationSite_27.UnionP
                 var player = Player.Get(item);
                 if (player.CurrentItem == null) continue;
                 player.CurrentItem.Scale = new UnityEngine.Vector3(x, y, z);
-                var p = player.CurrentItem.CreatePickup(player.Position, player.Rotation,false);
+                var p = player.CurrentItem.CreatePickup(player.Position, player.Rotation, false);
 
                 player.RemoveItem(player.CurrentItem);
                 p.Transform.localScale = new UnityEngine.Vector3(x, y, z);
                 p.Spawn();
+            }
+            response = "done!";
+            return true;
+
+        }
+
+
+    }
+    [CommandSystem.CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class izeCommand : ICommand
+    {
+        string ICommand.Command { get; } = "Size";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "修改player大小 size id, x y z";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            if (arguments.Count < 4)
+            {
+                response = "To execute this command provide at least 4 arguments!";
+                return false;
+            }
+
+            string[] newargs;
+            List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out newargs);
+            if (list == null)
+            {
+                response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                return false;
+            }
+
+            if (newargs == null)
+            {
+                response = "An error occured while processing this command.";
+                return false;
+            }
+
+            var x = float.Parse(newargs[0]);
+            var y = float.Parse(newargs[1]);
+            var z = float.Parse(newargs[2]);
+            foreach (var item in list)
+            {
+
+                var player = Player.Get(item);
+                if (player == null) continue;
+                player.Scale = new UnityEngine.Vector3(x, y, z); 
             }
             response = "done!";
             return true;

@@ -89,6 +89,109 @@ namespace Next_generationSite_27
             // 用户不存在或无数据
             return (string.Empty, 0, null);
         }
+        public(string name, string welcomeText, string color,bool enabled) QueryCassieWelcome(string userid)
+        {
+            if (!connected)
+                return (string.Empty, null, null,false);
+
+            string query = @"
+        SELECT 
+            name, 
+            welcomeText, 
+            color 
+        FROM cassie_welcome 
+        WHERE userID = @userid";
+
+            try
+            {
+                connection.Open();
+                using (var cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@userid", userid);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            string name = reader["name"].ToString();
+                            string welcomeText = reader["welcomeText"] as string; // 可为 null
+                            string color = reader["color"] as string;           // 可为 null
+                            string displayColor = string.IsNullOrEmpty(color) ? "white" : color;
+                            return (name, welcomeText, displayColor, true);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"❌ 查询用户 {userid} 的卡西欢迎配置失败: {ex.Message}");
+
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    connection.Close();
+            }
+
+            // 用户未在 cassie_welcome 表中，视为【未启用】卡西播报
+            return (string.Empty, null, null, false);
+        }
+        public (string name, string card, string Text, string holder, string color, string permColor,byte? rankLevel,bool? ApplytoAll, bool enabled) QueryCard(string userid)
+        {
+            if (!connected)
+                return (string.Empty,null, null,null,null,null, null,null, false);
+
+            string query = @"
+        SELECT 
+            name, 
+            card,
+            Text, 
+            holder,
+            color,
+            rankLevel,
+            permColor,
+            applytoAll
+        FROM card 
+        WHERE userID = @userid";
+
+            try
+            {
+                connection.Open();
+                using (var cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@userid", userid);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            string name = reader["name"].ToString();
+                            string holder = reader["holder"] as string; // 可为 null
+                            string Text = reader["Text"] as string; // 可为 null
+                            string card = reader["card"] as string; // 可为 null
+                            string color = reader["color"] as string;           // 可为 null
+                            string permColor = reader["permColor"] as string;           // 可为 null
+                            byte? rankLevel = reader["rankLevel"] as byte?;           // 可为 null
+                            bool? ApplytoAll = reader["applytoAll"] as bool?;           // 可为 null
+                            string displayColor = string.IsNullOrEmpty(color) ? "white" : color;
+                            string displayPermColor = string.IsNullOrEmpty(permColor) ? "white" : color;
+                            return (name, card,Text,holder, displayColor, displayPermColor, rankLevel,ApplytoAll, true);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"❌ 查询用户 {userid} 的卡失败: {ex.Message}");
+
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    connection.Close();
+            }
+
+            return (string.Empty, null, null, null, null, null, null, null, false);
+
+        }
         /// 更新用户在 user 表中的最高分记录（仅当新分数更高时）
         /// </summary>
         /// <param name="userid">用户ID</param>

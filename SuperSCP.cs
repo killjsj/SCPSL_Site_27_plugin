@@ -4,6 +4,7 @@ using Exiled.API.Features.Roles;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Scp049;
 using Exiled.Events.EventArgs.Scp0492;
+using Exiled.Events.EventArgs.Scp079;
 using Exiled.Events.EventArgs.Scp939;
 using HarmonyLib;
 using Hazards;
@@ -48,9 +49,17 @@ namespace Next_generationSite_27.UnionP
             }
         }
         public List<Player> PatchedPlayers = new List<Player>();
+        public void GainingExperience(GainingExperienceEventArgs ev)
+        {
+            if (Plugin.enableSSCP)
+            {
+                //ev.Amount *= 2;
+            }
+        }
         public IEnumerator<float> update()
         {
             Log.Info("SuperSCP Start!");
+            Cassie.Message(Plugin.plugin.Config.EnableSuperScpBroadcast,isSubtitles:true);
             for (; ; )
             {
                 if (!Plugin.enableSSCP) { break; }
@@ -84,16 +93,23 @@ namespace Next_generationSite_27.UnionP
                         Log.Info($"Patched Player:{item}");
                         PatchedPlayers.Add(item);
                     }
-                    if(item.Role is Scp0492Role scp0492Role)
+                    if (item.Role is Scp0492Role scp0492Role)
                     {
                         if (scp0492Role.BloodlustAbility.AnyTargets(item.ReferenceHub, item.ReferenceHub.PlayerCameraReference))
                         {
-                            item.EnableEffect(EffectType.DamageReduction, 40,1);
+                            item.EnableEffect(EffectType.DamageReduction, 40, 1);
                         }
                         else
                         {
                             item.DisableEffect(Exiled.API.Enums.EffectType.DamageReduction);
                         }
+                    }
+                    else if (item.Role is Scp079Role SR)
+                    {
+                        //if (SR.Level == 5)
+                        //{
+                        //    SR.Energy = SR.MaxEnergy;
+                        //}
                     }
                 }
                 yield return MEC.Timing.WaitForSeconds(0.2f);
@@ -135,7 +151,7 @@ namespace Next_generationSite_27.UnionP
 
         public void stop()
         {
-           MEC.Timing.KillCoroutines(coroutineHandle);
+            MEC.Timing.KillCoroutines(coroutineHandle);
             Plugin.enableSSCP = false;
             try
             {
@@ -188,7 +204,7 @@ namespace Next_generationSite_27.UnionP
             }
         }
 
-        
+
         public Dictionary<Player, CoroutineHandle> cs = new Dictionary<Player, CoroutineHandle>();
         public void ChangingRole(ChangingRoleEventArgs ev)
         {
@@ -196,14 +212,14 @@ namespace Next_generationSite_27.UnionP
             {
                 PatchedPlayers.Remove(ev.Player);
             }
-            if(cs.ContainsKey(ev.Player))
+            if (cs.ContainsKey(ev.Player))
             {
                 Timing.KillCoroutines(cs[ev.Player]);
                 cs.Remove(ev.Player);
             }
 
         }
-        public IEnumerator<float> CooldownTextUpdate(Scp173TantrumAbility TB,Player player)
+        public IEnumerator<float> CooldownTextUpdate(Scp173TantrumAbility TB, Player player)
         {
             for (; ; )
             {

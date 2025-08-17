@@ -170,7 +170,8 @@ namespace Next_generationSite_27
                             string color = reader["color"] as string;           // 可为 null
                             string permColor = reader["permColor"] as string;           // 可为 null
                             byte? rankLevel = reader["rankLevel"] as byte?;           // 可为 null
-                            bool? ApplytoAll = reader["applytoAll"] as bool?;           // 可为 null
+                            int? applytoAll = reader["applytoAll"] as int?;           // 可为 null
+                            bool ApplytoAll = applytoAll.GetValueOrDefault(0) == 1;
                             string displayColor = string.IsNullOrEmpty(color) ? "white" : color;
                             string displayPermColor = string.IsNullOrEmpty(permColor) ? "white" : color;
                             return (name, card,Text,holder, displayColor, displayPermColor, rankLevel,ApplytoAll, true);

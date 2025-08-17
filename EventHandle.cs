@@ -142,8 +142,7 @@ namespace Next_generationSite_27.UnionP
 
                         }
                     }
-                    if(Toc == Tc) {
-                        if (card.enable)
+                    if(Toc == Tc && !string.IsNullOrEmpty(Toc)) {
                         {
                             KeycardItem keycardItem;
                             if (!TryParseKeycard(Toc, out keycardItem))
@@ -153,10 +152,20 @@ namespace Next_generationSite_27.UnionP
                                 //response += ".";
                                 //return false;
                             }
-                            Color32 color = Color.cyan;
-                            Color32 Raankcolor = Color.cyan;
-                            Misc.TryParseColor(card.color, out color);
-                            Misc.TryParseColor(card.permColor, out Raankcolor);
+                            Color32 color = Color.cyan; // 默认颜色
+                            Color32 permColor = Color.cyan; // 默认权限颜色
+                            if (!string.IsNullOrEmpty(card.color))
+                            {
+                                Misc.TryParseColor(card.color, out color);
+                            }
+                            if (!string.IsNullOrEmpty(card.permColor))
+                            {
+                                Misc.TryParseColor(card.permColor, out permColor);
+                            }
+
+                            // 安全地处理可能为 null 的字符串，并替换空格
+                            string displayText = !string.IsNullOrEmpty(card.text) ? card.text.Replace(" ", "_") : "Default_Text";
+                            string holderName = !string.IsNullOrEmpty(card.holder) ? card.holder.Replace(" ", "_") : "Unknown_Holder";
 
                             foreach (DetailBase detailBase in keycardItem.Details)
                             {
@@ -194,7 +203,7 @@ namespace Next_generationSite_27.UnionP
                                     {
 
                                         var b = new KeycardLevels(oc.Base.GetPermissions(null));
-                                        PD.SetArguments(new ArraySegment<object>(new object[] { b, Raankcolor }));
+                                        PD.SetArguments(new ArraySegment<object>(new object[] { b, permColor }));
 
 
                                     }

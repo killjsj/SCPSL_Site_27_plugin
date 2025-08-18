@@ -73,8 +73,8 @@ namespace Next_generationSite_27.UnionP
         public Dictionary<Player, int> cachedHighestPairs = new Dictionary<Player, int>();
         MySQLConnect MysqlConnect = Plugin.plugin.connect;
         public (string userid, string name, int? highscore, DateTime? time) cachedHighest = (string.Empty, string.Empty, null, DateTime.MinValue);
-        public Dictionary<string, (bool enable, string card, string text, string holder, string color, string permColor, int? RankLevel, bool? applytoAll)> cachedcard =
-            new Dictionary<string, (bool enable, string card, string text, string holder, string color, string permColor, int? RankLevel, bool? applytoAll)>();
+        public Dictionary<string, List<(bool enable, string card, string text, string holder, string color, string permColor, string displayCardname, int? RankLevel, bool applytoAll)>> cachedcard =
+            new Dictionary<string, List<(bool enable, string card, string text, string holder, string color, string permColor, string displayCardname, int? RankLevel, bool applytoAll)>>();
         public Dictionary<ushort,ItemType> cachedCards = new Dictionary<ushort, ItemType>();
         public void ChangedItem(ChangedItemEventArgs ev)
         {
@@ -89,134 +89,158 @@ namespace Next_generationSite_27.UnionP
             {
                 if (ev.Item is Keycard oc)
                 {
+
+                    if (!cachedcard.TryGetValue(ev.Player.UserId, out var cards))
+                    {
+                        var res = MysqlConnect.QueryCard(ev.Player.UserId);
+                        cards = new List<(bool enable, string card, string text, string holder, string color, string permColor, string displayCardname, int? RankLevel, bool applytoAll)>();
+                           
+                        foreach (var re in res)
+                        {
+                            cards.Add((re.enabled, re.card, re.Text, re.holder, re.color, re.permColor, re.CardName, re.rankLevel, re.ApplytoAll));
+                        }
+                        cachedcard.Add(ev.Player.UserId, cards);
+                    }
                     
-                    if (!cachedcard.TryGetValue(ev.Player.UserId, out var card))
+                    foreach (var card in cards)
                     {
-                        var re = MysqlConnect.QueryCard(ev.Player.UserId);
-                        card = (re.enabled,re.card, re.Text, re.holder, re.color,re.permColor,re.rankLevel,re.ApplytoAll);
-                        cachedcard.Add(ev.Player.UserId, card);
-                    }
-                    string Toc = card.card;
-                    string Tc = card.card;
-                    if (card.applytoAll.GetValueOrDefault(false))
-                    {
-                        if (ev.Item.Type == ItemType.KeycardChaosInsurgency)
+                        string Toc = "";
+                        if (card.applytoAll)
                         {
-                            Toc = "KeycardCustomSite02";
+                            
+                                Toc = card.card;
+                            
                         }
-                    } else if(ev.Item.Type == ItemType.KeycardChaosInsurgency)
-                    {
-                        return;
-                    }
-                    else {
-                        switch (oc.Identifier.TypeId)
+                        else if (ev.Item.Type == ItemType.KeycardChaosInsurgency)
                         {
-                            case ItemType.KeycardJanitor:
-                            case ItemType.KeycardZoneManager:
-                            //case ItemType.KeycardO5:
-                            case ItemType.KeycardScientist:
-                            case ItemType.KeycardResearchCoordinator:
-                                {
-                                    Toc = "KeycardCustomSite02";
-                                    break;
-                                }
-                            case ItemType.KeycardGuard:
-                                {
-                                    Toc = "KeycardCustomMetalCase";
-                                    break;
-                                }
-                            case ItemType.KeycardMTFCaptain:
-                            case ItemType.KeycardMTFPrivate:
-                            case ItemType.KeycardMTFOperative:
-                                {
-                                    Toc = "KeycardCustomTaskForce";
-                                    break;
-                                }
-                            case ItemType.KeycardFacilityManager:
-                            case ItemType.KeycardContainmentEngineer:
-                            case ItemType.KeycardO5:
-                                {
-                                    Toc = "KeycardCustomManagement";
-                                    break;
-                                }
-
+                            continue;
                         }
-                    }
-                    if(Toc == Tc && !string.IsNullOrEmpty(Toc)) {
+                        else
                         {
-                            KeycardItem keycardItem;
-                            if (!TryParseKeycard(Toc, out keycardItem))
+                            switch (oc.Identifier.TypeId)
                             {
-                                Log.Warn($"无法获取{card.card}");
-                                return;
-                                //response += ".";
-                                //return false;
-                            }
-                            Color32 color = Color.cyan; // 默认颜色
-                            Color32 permColor = Color.cyan; // 默认权限颜色
-                            if (!string.IsNullOrEmpty(card.color))
-                            {
-                                Misc.TryParseColor(card.color, out color);
-                            }
-                            if (!string.IsNullOrEmpty(card.permColor))
-                            {
-                                Misc.TryParseColor(card.permColor, out permColor);
-                            }
+                                case ItemType.KeycardJanitor:
+                                //case ItemType.KeycardO5:
+                                case ItemType.KeycardContainmentEngineer:
+                                case ItemType.KeycardScientist:
+                                case ItemType.KeycardResearchCoordinator:
+                                    {
+                                        Toc = "KeycardCustomSite02";
+                                        break;
+                                    }
+                                case ItemType.KeycardGuard:
+                                    {
+                                        Toc = "KeycardCustomMetalCase";
+                                        break;
+                                    }
+                                case ItemType.KeycardMTFCaptain:
+                                case ItemType.KeycardMTFPrivate:
+                                case ItemType.KeycardMTFOperative:
+                                    {
+                                        Toc = "KeycardCustomTaskForce";
+                                        break;
+                                    }
+                                case ItemType.KeycardFacilityManager:
+                                case ItemType.KeycardZoneManager:
+                                case ItemType.KeycardO5:
+                                    {
+                                        Toc = "KeycardCustomManagement";
+                                        break;
+                                    }
 
-                            // 安全地处理可能为 null 的字符串，并替换空格
-                            string displayText = !string.IsNullOrEmpty(card.text) ? card.text.Replace(" ", "_") : "Default_Text";
-                            string holderName = !string.IsNullOrEmpty(card.holder) ? card.holder.Replace(" ", "_") : "Unknown_Holder";
-
-                            foreach (DetailBase detailBase in keycardItem.Details)
+                            }
+                        }
+                        if ((card.enable && !string.IsNullOrEmpty(Toc) && Toc == card.card)|| card.applytoAll)
+                        {
                             {
-                                ICustomizableDetail customizableDetail2 = detailBase as ICustomizableDetail;
-                                if (customizableDetail2 != null)
+                                KeycardItem keycardItem;
+                                if (!TryParseKeycard(Toc, out keycardItem))
                                 {
-                                    if (customizableDetail2 is CustomItemNameDetail IN)
-                                    {
-                                        IN.SetArguments(new ArraySegment<object>(new object[1] { "site27 自定义权限卡" }));
-                                    }
-                                    if (customizableDetail2 is CustomLabelDetail LD)
-                                    {
+                                    Log.Warn($"无法获取{card.card}");
+                                    return;
+                                    //response += ".";
+                                    //return false;
+                                }
+                                Color32 color = Color.cyan; // 默认颜色
+                                string permColor = card.permColor; // 默认权限颜色
+                                if (!string.IsNullOrEmpty(card.color))
+                                {
+                                    Misc.TryParseColor(card.color, out color);
+                                }
+                                if( string.IsNullOrEmpty(card.permColor))
+                                {
+                                   permColor = "cyan";
+                                }
 
-                                        LD.SetArguments(new ArraySegment<object>(new object[] { card.text, color }));
-                                    }
-                                    if (customizableDetail2 is NametagDetail ND)
-                                    {
-                                        ND.SetArguments(new ArraySegment<object>(new object[] { card.holder }));
+                                // 安全地处理可能为 null 的字符串，并替换空格
+                                string displayText = !string.IsNullOrEmpty(card.text) ? card.text.Replace(" ", "_") : "Default_Text";
+                                string holderName = !string.IsNullOrEmpty(card.holder) ? card.holder.Replace(" ", "_") : "Unknown_Holder";
 
-                                    }
-                                    if (customizableDetail2 is CustomWearDetail WD)
+                                foreach (DetailBase detailBase in keycardItem.Details)
+                                {
+                                    ICustomizableDetail customizableDetail2 = detailBase as ICustomizableDetail;
+                                    if (customizableDetail2 != null)
                                     {
-                                        WD.SetArguments(new ArraySegment<object>(new object[] { (byte)card.RankLevel }));
+                                        if (customizableDetail2 is CustomItemNameDetail IN)
+                                        {
+                                            IN.SetArguments(new ArraySegment<object>(new object[1] { displayText }));
+                                        }
+                                        if (customizableDetail2 is CustomLabelDetail LD)
+                                        {
 
-                                    }
-                                    if (customizableDetail2 is CustomTintDetail TD)
-                                    {
-                                        TD.SetArguments(new ArraySegment<object>(new object[] { color }));
-                                    }
-                                    if (customizableDetail2 is CustomRankDetail RD)
-                                    {
-                                        RD.SetArguments(new ArraySegment<object>(new object[] { card.RankLevel }));
-                                    }
-                                    if (customizableDetail2 is CustomPermsDetail PD)
-                                    {
+                                            LD.SetArguments(new ArraySegment<object>(new object[] { displayText, color }));
+                                        }
+                                        if (customizableDetail2 is NametagDetail ND)
+                                        {
+                                            if (Toc == "KeycardCustomTaskForce")
+                                            {
+                                                ND.SetArguments(new ArraySegment<object>(new object[] { displayText }));
+                                            }
+                                            else { 
+                                                ND.SetArguments(new ArraySegment<object>(new object[] { holderName }));
 
-                                        var b = new KeycardLevels(oc.Base.GetPermissions(null));
-                                        PD.SetArguments(new ArraySegment<object>(new object[] { b, permColor }));
+                                            }
+
+                                        }
+                                        if (customizableDetail2 is CustomSerialNumberDetail SND)
+                                        {
+                                            SND.SetArguments(new ArraySegment<object>(new object[] { holderName }));
+
+                                        }
+                                        if (customizableDetail2 is CustomWearDetail WD)
+                                        {
+                                            WD.SetArguments(new ArraySegment<object>(new object[] { (byte)card.RankLevel.GetValueOrDefault(2) }));
+
+                                        }
+                                        if (customizableDetail2 is CustomTintDetail TD)
+                                        {
+                                            TD.SetArguments(new ArraySegment<object>(new object[] { color }));
+                                        }
+                                        if (customizableDetail2 is CustomRankDetail RD)
+                                        {
+                                            RD.SetArguments(new ArraySegment<object>(new object[] { card.RankLevel.GetValueOrDefault(2) }));
+                                        }
+                                        if (customizableDetail2 is CustomPermsDetail PD)
+                                        {
+
+                                            var b = new KeycardLevels(oc.Base.GetPermissions(null));
+                                            PD.ParseArguments(new ArraySegment<string>(new string[] { b.Containment.ToString(), b.Armory.ToString(), b.Admin.ToString(), permColor }));
 
 
+                                        }
                                     }
                                 }
+                                Timing.CallDelayed(0.1f, () =>
+                                {
+                                    var i = oc.Identifier.TypeId;
+                                    ev.Player.RemoveItem(oc);
+                                    AddItem(ev.Player.ReferenceHub, keycardItem.ItemTypeId, i);
+                                });
+                                break;
                             }
-                            Timing.CallDelayed(0.1f, () =>
-                            {
-                                var i = oc.Identifier.TypeId;
-                                ev.Player.RemoveItem(oc);
-                                AddItem(ev.Player.ReferenceHub, keycardItem.ItemTypeId, i);
-                            });
                         }
                     }
+                
                 }
             }
         }
@@ -1902,20 +1926,28 @@ namespace Next_generationSite_27.UnionP
                     });
                 }
             }
-            if (!cachedcard.TryGetValue(ev.Player.UserId, out var card))
+            if (!cachedcard.TryGetValue(ev.Player.UserId, out var cards))
             {
-                var re = MysqlConnect.QueryCard(ev.Player.UserId);
-                card = (re.enabled, re.card, re.Text, re.holder, re.color, re.permColor, re.rankLevel, re.ApplytoAll);
-
-                cachedcard.Add(ev.Player.UserId, card);
+                
+                var res = MysqlConnect.QueryCard(ev.Player.UserId);
+                        cards = new List<(bool enable, string card, string text, string holder, string color, string permColor, string displayCardname, int? RankLevel, bool applytoAll)>();
+                foreach (var re in res)
+                {
+                    cards.Add((re.enabled, re.card, re.Text, re.holder, re.color, re.permColor, re.CardName, re.rankLevel, re.ApplytoAll));
+                }
+                cachedcard.Add(ev.Player.UserId, cards);
             }
             else
             {
                     cachedcard.Remove(ev.Player.UserId);
-                    var re = MysqlConnect.QueryCard(ev.Player.UserId);
-                card = (re.enabled, re.card, re.Text, re.holder, re.color, re.permColor, re.rankLevel, re.ApplytoAll);
+                var res = MysqlConnect.QueryCard(ev.Player.UserId);
+                        cards = new List<(bool enable, string card, string text, string holder, string color, string permColor, string displayCardname, int? RankLevel,     bool applytoAll)>();
+                foreach (var re in res)
+                {
+                    cards.Add((re.enabled, re.card, re.Text, re.holder, re.color, re.permColor, re.CardName, re.rankLevel, re.ApplytoAll));
+                }
 
-                cachedcard.Add(ev.Player.UserId, card);
+                cachedcard.Add(ev.Player.UserId, cards);
                 
             }
             if (st)

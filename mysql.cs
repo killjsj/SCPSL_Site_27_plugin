@@ -135,10 +135,11 @@ namespace Next_generationSite_27
             // 用户未在 cassie_welcome 表中，视为【未启用】卡西播报
             return (string.Empty, null, null, false);
         }
-        public (string name, string card, string Text, string holder, string color, string permColor,byte? rankLevel,bool? ApplytoAll, bool enabled) QueryCard(string userid)
+        public List<(string name, string card, string Text, string holder, string color, string permColor,byte? rankLevel, string CardName,bool ApplytoAll, bool enabled)> QueryCard(string userid)
         {
+            var l = new List<(string name, string card, string Text, string holder, string color, string permColor, byte? rankLevel, string CardName, bool ApplytoAll, bool enabled)>();
             if (!connected)
-                return (string.Empty,null, null,null,null,null, null,null, false);
+                return l;
 
             string query = @"
         SELECT 
@@ -149,9 +150,11 @@ namespace Next_generationSite_27
             color,
             rankLevel,
             permColor,
-            applytoAll
+            applytoAll,
+            Cardname
         FROM card 
-        WHERE userID = @userid";
+        WHERE userID = @userid
+        ORDER BY id DESC";
 
             try
             {
@@ -161,7 +164,7 @@ namespace Next_generationSite_27
                     cmd.Parameters.AddWithValue("@userid", userid);
                     using (var reader = cmd.ExecuteReader())
                     {
-                        if (reader.Read())
+                        while (reader.Read())
                         {
                             string name = reader["name"].ToString();
                             string holder = reader["holder"] as string; // 可为 null
@@ -171,12 +174,15 @@ namespace Next_generationSite_27
                             string permColor = reader["permColor"] as string;           // 可为 null
                             byte? rankLevel = reader["rankLevel"] as byte?;           // 可为 null
                             int? applytoAll = reader["applytoAll"] as int?;           // 可为 null
+                            string Cardname = reader["Cardname"] as string;           // 可为 null
                             bool ApplytoAll = applytoAll.GetValueOrDefault(0) == 1;
                             string displayColor = string.IsNullOrEmpty(color) ? "white" : color;
-                            string displayPermColor = string.IsNullOrEmpty(permColor) ? "white" : color;
-                            return (name, card,Text,holder, displayColor, displayPermColor, rankLevel,ApplytoAll, true);
+                            string displayPermColor = string.IsNullOrEmpty(permColor) ? "white" : permColor;
+                            string displayCardname = string.IsNullOrEmpty(Cardname) ? "site27 自定义权限卡" : Cardname;
+                            l.Add( (name, card,Text,holder, displayColor, displayPermColor, rankLevel, displayCardname, ApplytoAll, true));
                         }
                     }
+                    return l;
                 }
             }
             catch (Exception ex)
@@ -189,8 +195,7 @@ namespace Next_generationSite_27
                 if (connection.State == ConnectionState.Open)
                     connection.Close();
             }
-
-            return (string.Empty, null, null, null, null, null, null, null, false);
+            return l;
 
         }
         /// 更新用户在 user 表中的最高分记录（仅当新分数更高时）

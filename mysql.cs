@@ -89,7 +89,57 @@ namespace Next_generationSite_27
             // 用户不存在或无数据
             return (string.Empty, 0, null);
         }
-        public(string name, string welcomeText, string color,bool enabled) QueryCassieWelcome(string userid)
+        //public (string name,int level, int exp) QueryUser(string userid)
+        //{
+        //    if (!connected)
+        //        return (string.Empty, 0, null);
+
+        //    // 从 user 表直接读取 highscore 和 Snack_Create_time
+        //    string query = @"
+        //        SELECT 
+        //            name, 
+        //            highscore, 
+        //            Snack_Create_time 
+        //        FROM user 
+        //        WHERE userid = @userid";
+
+        //    try
+        //    {
+        //        connection.Open();
+        //        using (var cmd = new MySqlCommand(query, connection))
+        //        {
+        //            cmd.Parameters.AddWithValue("@userid", userid);
+        //            using (var reader = cmd.ExecuteReader())
+        //            {
+        //                if (reader.Read())
+        //                {
+        //                    int timeOrdinal = reader.GetOrdinal("Snack_Create_time");
+
+        //                    string name = reader["name"].ToString();
+        //                    int highscore = reader.GetInt32("highscore");
+        //                    DateTime? time = reader.IsDBNull(timeOrdinal)
+        //                        ? (DateTime?)null
+        //                        : reader.GetDateTime(timeOrdinal);
+
+        //                    return (name, highscore, time);
+        //                }
+        //            }
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Log.Error($"❌ 查询用户 {userid} 的 Snack 分数失败: {ex.Message}");
+        //    }
+        //    finally
+        //    {
+        //        if (connection.State == ConnectionState.Open)
+        //            connection.Close();
+        //    }
+
+        //    // 用户不存在或无数据
+        //    return (string.Empty, 0, null);
+        //}
+        public (string name, string welcomeText, string color,bool enabled) QueryCassieWelcome(string userid)
         {
             if (!connected)
                 return (string.Empty, null, null,false);

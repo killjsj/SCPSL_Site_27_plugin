@@ -208,6 +208,7 @@
     <Compile Include="Command.cs" />
     <Compile Include="configs\Config.cs" />
     <Compile Include="configs\Translation.cs" />
+    <Compile Include="customWeapon.cs" />
     <Compile Include="dude.cs" />
     <Compile Include="EventHandle.cs" />
     <Compile Include="Main.cs" />

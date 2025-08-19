@@ -45,6 +45,7 @@ using ProjectMER.Commands.Utility;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
+using Respawning.Objectives;
 using Respawning.Waves;
 using System;
 using System.Collections.Generic;
@@ -248,6 +249,7 @@ namespace Next_generationSite_27.UnionP
             if (cachedCards.ContainsKey(pickup.Info.Serial))
             {
                 var temp = Pickup.Create(cachedCards[pickup.Info.Serial],pickup.Position);
+                temp.Spawn();
                 cachedCards.Remove(pickup.Info.Serial);
                 return temp;
             }
@@ -285,7 +287,7 @@ namespace Next_generationSite_27.UnionP
             var x = ply.inventory.ServerAddItem(id, ItemAddReason.AdminCommand, 0, null);
             cachedCards.Add(x.ItemSerial,oc);
 
-            Log.Info($"已给予玩家{ply.nicknameSync.DisplayName} 自定义卡");
+            Log.Info($"已给予玩家{ply.GetNickname()} 自定义卡");
             ply.inventory.ServerSelectItem(x.ItemSerial);
             if (x == null)
             {

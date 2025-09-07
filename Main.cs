@@ -47,19 +47,6 @@ using Player = Exiled.API.Features.Player;
 
 namespace Next_generationSite_27.UnionP
 {
-    public static class Scp079PingExtension
-    {
-        private static readonly FieldInfo IndexField = typeof(Scp079PingAbility).GetField("_syncProcessorIndex", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo PosField = typeof(Scp079PingAbility).GetField("_syncPos", BindingFlags.NonPublic | BindingFlags.Instance);
-        private static readonly FieldInfo NormalField = typeof(Scp079PingAbility).GetField("_syncNormal", BindingFlags.NonPublic | BindingFlags.Instance);
-
-        public static void SetPingData(this Scp079PingAbility ability, byte type, Vector3 position, Vector3 normal)
-        {
-            if (IndexField != null) IndexField.SetValue(ability, type);
-            if (PosField != null) PosField.SetValue(ability, new RelativePosition(position));
-            if (NormalField != null) NormalField.SetValue(ability, normal);
-        }
-    }
     public struct ScpChangeReq
     {
         public Player From;
@@ -130,16 +117,18 @@ namespace Next_generationSite_27.UnionP
             is_voting = false;
             if (vote_control.Count > 0)
             {
-                foreach (var item in vote_control[0])
-                {
-                    yes++;
-                }
-                foreach (var item in vote_control[1])
-                {
-                    no++;
-                }
+                //foreach (var item in vote_control[0])
+                //{
+                //    yes++;
+                //}
+                //foreach (var item in vote_control[1])
+                //{
+                //    no++;
+                //}
+                yes = vote_control[0].Count;
+                no = vote_control[1].Count;
             }
-            double percentage = (yes / Math.Min(1,no)) * 100;
+            double percentage = (yes / Math.Min(1,(yes+no))) * 100;
             Exiled.API.Features.Map.Broadcast((ushort)8f, "投票:" + vote_name + " 结果: 同意率:" + percentage.ToString("F2") + "% 同意:" + yes.ToString() + " 不同意:" + no);
             Log.Info("投票:" + vote_name + " 结果: 同意率:" + percentage.ToString("F2") + "% 同意:" + yes.ToString() + " 不同意:" + no);
             vote_control = new List<List<Player>>(); // 清空投票列表

@@ -1,4 +1,5 @@
-﻿using Exiled.API.Enums;
+﻿using CustomPlayerEffects;
+using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Features.Roles;
 using Exiled.Events.EventArgs.Player;
@@ -13,6 +14,8 @@ using LabApi.Events.Arguments.Scp173Events;
 using LabApi.Events.Handlers;
 using MEC;
 using PlayerRoles;
+using PlayerRoles.FirstPersonControl;
+using PlayerRoles.PlayableScps;
 using PlayerRoles.PlayableScps.Scp049;
 using PlayerRoles.PlayableScps.Scp173;
 using PlayerRoles.PlayableScps.Scp939;
@@ -95,7 +98,7 @@ namespace Next_generationSite_27.UnionP
                     }
                     if (item.Role is Scp0492Role scp0492Role)
                     {
-                        if (scp0492Role.BloodlustAbility.AnyTargets(item.ReferenceHub, item.ReferenceHub.PlayerCameraReference))
+                        if (AnyTargets(item.ReferenceHub, item.ReferenceHub.PlayerCameraReference))
                         {
                             item.EnableEffect(EffectType.DamageReduction, 40, 1);
                         }
@@ -115,7 +118,21 @@ namespace Next_generationSite_27.UnionP
                 yield return MEC.Timing.WaitForSeconds(0.2f);
             }
         }
-
+        bool AnyTargets(ReferenceHub owner, Transform camera)
+        {
+            foreach (ReferenceHub referenceHub in ReferenceHub.AllHubs)
+            {
+                if (referenceHub.IsHuman() && !referenceHub.playerEffectsController.GetEffect<Invisible>().IsEnabled)
+                {
+                    IFpcRole fpcRole = referenceHub.roleManager.CurrentRole as IFpcRole;
+                    if (fpcRole != null && VisionInformation.GetVisionInformation(owner, camera, fpcRole.FpcModule.Position, fpcRole.FpcModule.CharacterControllerSettings.Radius,45, true, true, 0, false).IsLooking)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
         //public void AttackAbility_OnServerHit(ReferenceHub hub)
         //{
         //    var player = Player.Get(hub);

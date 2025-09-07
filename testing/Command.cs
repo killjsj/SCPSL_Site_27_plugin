@@ -26,6 +26,7 @@ using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp079.Pinging;
 using PlayerRoles.PlayableScps.Scp3114;
 using PlayerRoles.PlayableScps.Scp939;
+using PlayerRoles.Subroutines;
 using PlayerStatsSystem;
 using RelativePositioning;
 using RemoteAdmin;
@@ -179,9 +180,23 @@ namespace Next_generationSite_27.UnionP
             syncPosField.SetValue(PingAbility, new RelativePosition(position));
             syncNormalField.SetValue(PingAbility, position); // 或 Vector3.up 等方向
 
-
-            PingAbility.ServerSendRpc(x => ServerCheckReceiver(x, PingAbility._syncPos.Position, (int)pingType));
-
+            MethodInfo serverSendRpcMethod = typeof(Scp079PingAbility).GetMethod(
+    "ServerSendRpc",
+    BindingFlags.NonPublic | BindingFlags.Instance,
+    null,
+    new Type[] { typeof(Func<ReferenceHub, bool>) },
+    null
+);
+            if (serverSendRpcMethod != null)
+            {
+                // 构造委托参数
+                Func<ReferenceHub, bool> condition = x => ServerCheckReceiver(x, ((RelativePosition)syncPosField.GetValue(PingAbility)).Position, (int)pingType);
+                serverSendRpcMethod.Invoke(PingAbility, new object[] { condition });
+            }
+            else
+            {
+                Log.Error("Failed to find ServerSendRpc method via reflection.");
+            }
 
             //PingAbility._rateLimiter.RegisterInput();
         }

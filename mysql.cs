@@ -3,6 +3,8 @@ using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Xml.Linq;
+using static Mysqlx.Notice.Warning.Types;
 
 namespace Next_generationSite_27
 {
@@ -39,7 +41,7 @@ namespace Next_generationSite_27
         /// </summary>
         /// <param name="userid">用户ID</param>
         /// <returns>(name, highscore, Snack_Create_time)</returns>
-        public (string name, int? highscore, DateTime? time) Query(string userid)
+        public (string name, int? highscore, DateTime? time) QuerySnake(string userid)
         {
             if (!connected)
                 return (string.Empty, 0, null);
@@ -88,6 +90,71 @@ namespace Next_generationSite_27
 
             // 用户不存在或无数据
             return (string.Empty, 0, null);
+        }
+        public (string name, int level, int experience, double? experience_multiplier, string ip, DateTime? last_time, TimeSpan? total_duration, TimeSpan? today_duration) QueryUser(string userid)
+        {
+            if (!connected)
+                return ("", 0, 0, 1, "1.1.1.1", null, null, null);
+
+            string query = @"
+        SELECT 
+            uid,
+            name,
+            userid,
+            level,
+            experience,
+            experience_multiplier,
+            ip,
+            today_duration,
+            total_duration,
+            last_time
+        FROM user 
+        WHERE userid = @userid";
+
+            try
+            {
+                connection.Open();
+                using (var cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@userid", userid);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            int nameOrdinal = reader.GetOrdinal("name");
+                            int levelOrdinal = reader.GetOrdinal("level");
+                            int experienceOrdinal = reader.GetOrdinal("experience");
+                            int experience_multiplierOrdinal = reader.GetOrdinal("experience_multiplier");
+                            int ipOrdinal = reader.GetOrdinal("ip");
+                            int today_durationOrdinal = reader.GetOrdinal("today_duration");
+                            int total_durationOrdinal = reader.GetOrdinal("total_duration");
+                            int last_timeOrdinal = reader.GetOrdinal("last_time");
+
+                            string name = reader.IsDBNull(nameOrdinal) ? null : reader.GetString(nameOrdinal);
+                            int level = reader.IsDBNull(levelOrdinal) ? 0 : reader.GetInt32(levelOrdinal);
+                            int experience = reader.IsDBNull(experienceOrdinal) ? 0 : reader.GetInt32(experienceOrdinal);
+                            double? experience_multiplier = reader.IsDBNull(experience_multiplierOrdinal) ? (double?)null : reader.GetDouble(experience_multiplierOrdinal);
+                            string ip = reader.IsDBNull(ipOrdinal) ? "1.1.1.1" : reader.GetString(ipOrdinal);
+                            DateTime? last_time = reader.IsDBNull(last_timeOrdinal) ? (DateTime?)null : reader.GetDateTime(last_timeOrdinal);
+                            TimeSpan? today_duration = reader.IsDBNull(today_durationOrdinal) ? (TimeSpan?)null : reader.GetTimeSpan(today_durationOrdinal);
+                            TimeSpan? total_duration = reader.IsDBNull(total_durationOrdinal) ? (TimeSpan?)null : reader.GetTimeSpan(total_durationOrdinal);
+
+                            return (name, level, experience, experience_multiplier, ip, last_time, total_duration, today_duration);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"❌ 查询用户 {userid} 失败: {ex.Message}");
+            }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    connection.Close();
+            }
+
+            return ("", 0, 0, 1, "1.1.1.1", null, null, null);
         }
         //public (string name,int level, int exp) QueryUser(string userid)
         //{

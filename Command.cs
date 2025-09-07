@@ -1,4 +1,5 @@
-﻿using CommandSystem;
+﻿using AdminToys;
+using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
@@ -68,7 +69,7 @@ namespace Next_generationSite_27.UnionP
                 return true;
             }
             response = "";
-            var persHigh = plugin.connect.Query(player.UserId);
+            var persHigh = plugin.connect.QuerySnake(player.UserId);
 
             if (!persHigh.highscore.HasValue)
             {
@@ -378,8 +379,8 @@ namespace Next_generationSite_27.UnionP
                 response = "Failed to find sender";
                 return false;
             }
-            var dm = new PlayerStatsSystem.CustomReasonDamageHandler("你为什么要自杀");
-            player.Kill(dm);
+            var dm = new PlayerStatsSystem.UniversalDamageHandler(-1,DeathTranslations.Unknown);
+            player.Hurt(dm); 
             response = "成功";
             return true;
 
@@ -498,4 +499,5 @@ namespace Next_generationSite_27.UnionP
 
 
     }
+
 }

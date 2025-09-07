@@ -24,7 +24,9 @@ using LabApi.Loader.Features.Plugins;
 using MEC;
 using Mirror;
 using PlayerRoles;
+using PlayerRoles.PlayableScps.Scp079.Pinging;
 using ProjectMER.Features.Objects;
+using RelativePositioning;
 using Respawning.Waves;
 using System;
 using System.Collections.Generic;
@@ -32,6 +34,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Unity.Jobs;
@@ -44,6 +47,19 @@ using Player = Exiled.API.Features.Player;
 
 namespace Next_generationSite_27.UnionP
 {
+    public static class Scp079PingExtension
+    {
+        private static readonly FieldInfo IndexField = typeof(Scp079PingAbility).GetField("_syncProcessorIndex", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo PosField = typeof(Scp079PingAbility).GetField("_syncPos", BindingFlags.NonPublic | BindingFlags.Instance);
+        private static readonly FieldInfo NormalField = typeof(Scp079PingAbility).GetField("_syncNormal", BindingFlags.NonPublic | BindingFlags.Instance);
+
+        public static void SetPingData(this Scp079PingAbility ability, byte type, Vector3 position, Vector3 normal)
+        {
+            if (IndexField != null) IndexField.SetValue(ability, type);
+            if (PosField != null) PosField.SetValue(ability, new RelativePosition(position));
+            if (NormalField != null) NormalField.SetValue(ability, normal);
+        }
+    }
     public struct ScpChangeReq
     {
         public Player From;
@@ -172,6 +188,7 @@ namespace Next_generationSite_27.UnionP
             //Exiled.Events.Handlers.Player.DroppedItem += eventhandle.DroppedItem;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
+            Exiled.Events.Handlers.Player.ChangingRole += LevelSCP.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
             Exiled.Events.Handlers.Server.EndingRound += eventhandle.EndingRound;
 
@@ -185,6 +202,10 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Spawned += eventhandle.OnSpawned;
             Exiled.Events.Handlers.Scp079.GainingExperience += superSCP.GainingExperience;
             Exiled.Events.Handlers.Item.DisruptorFiring += eventhandle.DisruptorFiring;
+
+            Exiled.Events.Handlers.Warhead.Starting += LevelSCP.Starting;
+            Exiled.Events.Handlers.Warhead.Stopping += LevelSCP.Stopping;
+
             //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
 
             max_active_g = Config.maxbomb;
@@ -215,6 +236,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Verified -= eventhandle.Verified;
             Exiled.Events.Handlers.Scp079.GainingExperience -= superSCP.GainingExperience;
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
+            Exiled.Events.Handlers.Player.ChangingRole -= LevelSCP.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
             Exiled.Events.Handlers.Server.EndingRound -= eventhandle.EndingRound;
@@ -300,6 +322,15 @@ namespace Next_generationSite_27.UnionP
 
         public string MainColorHex { get; set; } = "#ff0000";
         public string TextShow { get; set; } = "Alive SCPs:";
+        [Description("100级以上 等级奖励")]
+        public bool Level { get; set; } = true;
+        [Description("Button setting ids of features")]
+        public Dictionary<Features, int> SettingIds { get; set; } = new Dictionary<Features, int>
+        {
+            { Features.Header, 114 },
+            { Features.Scp079NukeKey, 514 },
+        };
+
         [Description("是否启用数据库")]
         public bool IsEnableDatabase
         {
@@ -338,6 +369,12 @@ namespace Next_generationSite_27.UnionP
             get;
             set;
         }
+    }
+
+    public enum Features
+    {
+        Header,
+        Scp079NukeKey,
     }
     public class RunningMan : Event<GwangjuRunningManLoader.RunningManConfig, RunningManTranslation>, IEventMap, IEventSound
     {

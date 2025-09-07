@@ -219,23 +219,6 @@ namespace Next_generationSite_27.UnionP
             }
 
         }
-        public IEnumerator<float> CooldownTextUpdate(Scp173TantrumAbility TB, Player player)
-        {
-            for (; ; )
-            {
-                var Text = $"<size=27><color=red>拉屎当前处于冷却{TB.Cooldown.Remaining.ToString("F0")}秒";
-                if (TB.Cooldown.IsReady)
-                {
-                    break;
-                }
-                player.Broadcast(new Exiled.API.Features.Broadcast()
-                {
-                    Content = Text,
-                    Duration = 1
-                }, true);
-                yield return MEC.Timing.WaitForSeconds(1);
-            }
-        }
         public void Died(DiedEventArgs ev)
         {
             if (Plugin.enableSSCP)

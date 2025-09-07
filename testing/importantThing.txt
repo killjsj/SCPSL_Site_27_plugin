@@ -54,3 +54,70 @@
 [2025-08-12 14:19:47.456 +08:00] [INFO] [UnionPlugin] 树状路径: Player Canvas[Canvas] -> StartRound -> Content -> Muting -> Mute Lobby -> Text (TMP) (1)[TMP] -> "Mute pre-game lobby"
 [2025-08-12 14:19:47.471 +08:00] [INFO] [UnionPlugin] ---
 [2025-08-12 14:19:47.486 +08:00] [INFO] [UnionPlugin] === TMP搜索完成 ===
+
+
+[2025-08-31 12:14:35.254 +08:00] [DEBUG] [UnionPlugin] Starting RoundStarted role assignment logic.
+[2025-08-31 12:14:35.265 +08:00] [DEBUG] [UnionPlugin] Ready players count: 15
+[2025-08-31 12:14:35.276 +08:00] [DEBUG] [UnionPlugin] Initial player roles:
+                                 - L1 Y0NG (76561199491616502@steam): ClassD
+                                 - 圣园未花 (76561199428765747@steam): Scientist
+                                 - 我先玩原擌 (76561199635741734@steam): Scp173
+                                 - StarDust (76561199270310768@steam): FacilityGuard
+                                 - emergency (76561199485907670@steam): Scp049
+                                 - saiai (76561199794804937@steam): ClassD
+                                 - Grage (76561199840183754@steam): FacilityGuard
+                                 - Noliang (76561199608907928@steam): ClassD
+                                 - 高智商电脑079 (76561199688352413@steam): FacilityGuard
+                                 - XIANZONG (76561199563404726@steam): ClassD
+                                 - 我没有造反倾向 (76561199549723872@steam): Scientist
+                                 - 粤东首席画饼大师 (76561199733451924@steam): FacilityGuard
+                                 - edwardbautista0742 (76561199692744700@steam): ClassD
+                                 - 天童爱丽丝 (76561199465909820@steam): ClassD
+                                 - awer2024 (76561199372316544@steam): Scp939
+[2025-08-31 12:14:35.291 +08:00] [DEBUG] [UnionPlugin] Target SCP roles to assign: 6
+[2025-08-31 12:14:35.302 +08:00] [DEBUG] [UnionPlugin] --- Processing assignment for Scp079 ---
+[2025-08-31 12:14:35.313 +08:00] [DEBUG] [UnionPlugin] SCP role Scp079 not assigned. Skipping.
+[2025-08-31 12:14:35.325 +08:00] [DEBUG] [UnionPlugin] --- Processing assignment for Scp049 ---
+[2025-08-31 12:14:35.336 +08:00] [DEBUG] [UnionPlugin] Player:34 (awer2024) [76561199372316544@steam] *Scp SCPs Scp939 True* ticket:10
+[2025-08-31 12:14:35.348 +08:00] [DEBUG] [UnionPlugin] Replaced emergency (Scp049) with preferred player awer2024 as Scp049.
+[2025-08-31 12:14:35.360 +08:00] [DEBUG] [UnionPlugin] SCP slot processing finished for Scp049. Remaining SCP slots: 2.
+[2025-08-31 12:14:35.372 +08:00] [DEBUG] [UnionPlugin] --- Processing assignment for Scp096 ---
+[2025-08-31 12:14:35.382 +08:00] [DEBUG] [UnionPlugin] SCP role Scp096 not assigned. Skipping.
+[2025-08-31 12:14:35.393 +08:00] [DEBUG] [UnionPlugin] --- Processing assignment for Scp173 ---
+[2025-08-31 12:14:35.404 +08:00] [DEBUG] [UnionPlugin] Player:27 (Noliang) [76561199608907928@steam] *ChaosInsurgency ClassD ClassD True* ticket:12
+[2025-08-31 12:14:35.416 +08:00] [DEBUG] [UnionPlugin] Replaced 我先玩原擌 (Scp173) with preferred player Noliang as Scp173.
+[2025-08-31 12:14:35.428 +08:00] [DEBUG] [UnionPlugin] SCP slot processing finished for Scp173. Remaining SCP slots: 1.
+[2025-08-31 12:14:35.440 +08:00] [DEBUG] [UnionPlugin] --- Processing assignment for Scp106 ---
+[2025-08-31 12:14:35.451 +08:00] [DEBUG] [UnionPlugin] SCP role Scp106 not assigned. Skipping.
+[2025-08-31 12:14:35.463 +08:00] [DEBUG] [UnionPlugin] --- Processing assignment for Scp939 ---
+[2025-08-31 12:14:35.474 +08:00] [DEBUG] [UnionPlugin] Player:26 (Grage) [76561199840183754@steam] *Mtf FoundationForces FacilityGuard True* ticket:16
+[2025-08-31 12:14:35.486 +08:00] [DEBUG] [UnionPlugin] Replaced awer2024 (Scp939) with preferred player Grage as Scp939.
+[2025-08-31 12:14:35.498 +08:00] [DEBUG] [UnionPlugin] SCP slot processing finished for Scp939. Remaining SCP slots: 0.
+[2025-08-31 12:14:35.509 +08:00] [DEBUG] [UnionPlugin] Processing target non-SCP role: Scientist. Candidates: 0.
+[2025-08-31 12:14:35.521 +08:00] [DEBUG] [UnionPlugin] Processing target non-SCP role: FacilityGuard. Candidates: 1.
+[2025-08-31 12:14:35.532 +08:00] [DEBUG] [UnionPlugin] Processing target non-SCP role: ClassD. Candidates: 2.
+[2025-08-31 12:14:35.543 +08:00] [DEBUG] [UnionPlugin] Applying final role changes...
+[2025-08-31 12:14:35.554 +08:00] [INFO] [UnionPlugin] Successfully assigned ClassD to 我先玩原擌
+[2025-08-31 12:14:35.565 +08:00] [INFO] [UnionPlugin] Successfully assigned Scp939 to emergency
+[2025-08-31 12:14:35.576 +08:00] [INFO] [UnionPlugin] Successfully assigned Scp939 to Grage
+[2025-08-31 12:14:35.587 +08:00] [INFO] [UnionPlugin] Successfully assigned Scp173 to Noliang
+[2025-08-31 12:14:35.599 +08:00] [INFO] [UnionPlugin] Successfully assigned FacilityGuard to awer2024
+[2025-08-31 12:14:35.609 +08:00] [DEBUG] [UnionPlugin] Applied 5 role changes.
+[2025-08-31 12:14:35.620 +08:00] [DEBUG] [UnionPlugin] Clearing targetRole lists...
+[2025-08-31 12:14:35.631 +08:00] [DEBUG] [UnionPlugin] Final player roles:
+                                 - L1 Y0NG (76561199491616502@steam): ClassD
+                                 - 圣园未花 (76561199428765747@steam): Scientist
+                                 - 我先玩原擌 (76561199635741734@steam): ClassD
+                                 - StarDust (76561199270310768@steam): FacilityGuard
+                                 - emergency (76561199485907670@steam): Scp939
+                                 - saiai (76561199794804937@steam): ClassD
+                                 - Grage (76561199840183754@steam): Scp939
+                                 - Noliang (76561199608907928@steam): Scp173
+                                 - 高智商电脑079 (76561199688352413@steam): FacilityGuard
+                                 - XIANZONG (76561199563404726@steam): ClassD
+                                 - 我没有造反倾向 (76561199549723872@steam): Scientist
+                                 - 粤东首席画饼大师 (76561199733451924@steam): FacilityGuard
+                                 - edwardbautista0742 (76561199692744700@steam): ClassD
+                                 - 天童爱丽丝 (76561199465909820@steam): ClassD
+                                 - awer2024 (76561199372316544@steam): FacilityGuard
+[2025-08-31 12:14:35.646 +08:00] [DEBUG] [UnionPlugin] Finished RoundStarted role assignment logic.

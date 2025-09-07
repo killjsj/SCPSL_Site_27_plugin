@@ -182,8 +182,6 @@ namespace Next_generationSite_27.UnionP
 
             PingAbility.ServerSendRpc(x => ServerCheckReceiver(x, PingAbility._syncPos.Position, (int)pingType));
 
-            if (consumeEnergy)
-                PingAbility.AuxManager.CurrentAux -= PingAbility._cost;
 
             //PingAbility._rateLimiter.RegisterInput();
         }

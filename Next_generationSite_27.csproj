@@ -205,12 +205,14 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="bomb.cs" />
+    <Compile Include="scp5k.cs" />
     <Compile Include="Command.cs" />
     <Compile Include="configs\Config.cs" />
     <Compile Include="configs\Translation.cs" />
     <Compile Include="customWeapon.cs" />
     <Compile Include="dude.cs" />
-    <Compile Include="EventHandle.cs" />
+    <Compile Include="SpawnProject.cs" />
+    <Compile Include="EV.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="mysql.cs" />
     <Compile Include="patch.cs" />

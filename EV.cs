@@ -80,7 +80,6 @@ namespace Next_generationSite_27.UnionP
     {
 
         PConfig Config => Plugin.Instance.Config;
-        public Dictionary<Player, CoroutineHandle> cs = new Dictionary<Player, CoroutineHandle>();
         public Dictionary<Player, Stopwatch> BroadcastTime = new Dictionary<Player, Stopwatch>();
         public Dictionary<ushort, Player> snakepairs = new Dictionary<ushort, Player>();
         public Dictionary<Player, int> cachedHighestPairs = new Dictionary<Player, int>();
@@ -415,8 +414,6 @@ namespace Next_generationSite_27.UnionP
             InventoryLimits.StandardCategoryLimits[ItemCategory.SpecialWeapon] = (sbyte)Config.MaxSpecialWeaponLimit;
             ServerConfigSynchronizer.Singleton.RefreshCategoryLimits();
         }
-        // 添加字段来跟踪受保护的玩家
-        public Dictionary<Player, CoroutineHandle> ProtectionCoroutines = new Dictionary<Player, CoroutineHandle>();
         public Dictionary<Player, Stopwatch> BroadcastTimers = new Dictionary<Player, Stopwatch>();
         public bool RoundEnded
         {
@@ -425,98 +422,6 @@ namespace Next_generationSite_27.UnionP
 
                 return Round.IsEnded;
             }
-        }
-        public void RespawnedTeam(RespawnedTeamEventArgs ev)
-        {
-            if (RoundEnded) return;
-
-            if (ev.Wave is NtfMiniWave || ev.Wave is NtfSpawnWave ||
-                ev.Wave is ChaosMiniWave || ev.Wave is ChaosSpawnWave)
-            {
-                foreach (var player in ev.Players)
-                {
-                    ApplySpawnProtection(player);
-                }
-            }
-        }
-
-        private void ApplySpawnProtection(Player player)
-        {
-            try
-            {
-                // 先清理旧的保护
-                if (ProtectionCoroutines.ContainsKey(player))
-                {
-                    Timing.KillCoroutines(ProtectionCoroutines[player]);
-                    ProtectionCoroutines.Remove(player);
-                }
-
-                // 应用保护效果
-                player.EnableEffect(EffectType.SpawnProtected, SpawnProtected.SpawnDuration);
-
-                // 启动保护文本更新协程
-                var coroutine = ProtectTextUpdate(player);
-                var handle = MEC.Timing.RunCoroutine(coroutine);
-
-                ProtectionCoroutines[player] = handle;
-
-                Log.Info($"[出生保护] 为玩家 {player.Nickname} 应用保护，持续 {SpawnProtected.SpawnDuration} 秒");
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"[出生保护] 为玩家 {player.Nickname} 应用保护时出错: {ex.Message}");
-            }
-        }
-
-        public IEnumerator<float> ProtectTextUpdate(Player player) // AI太好用了你们知道吗
-        {
-
-            // 检查玩家有效性
-            if (player == null || !player.IsConnected)
-                yield break;
-
-            var spawnProtectedEffect = player.GetEffect(EffectType.SpawnProtected);
-            if (spawnProtectedEffect == null)
-                yield break;
-            //Log.Info(spawnProtectedEffect.TimeLeft);
-            while (spawnProtectedEffect.TimeLeft > 0)
-            {
-                try
-                {
-                    // 检查玩家是否仍然有效
-                    if (player == null || !player.IsConnected || !player.IsAlive)
-                    {
-                        if (!player.IsAlive)
-                        {
-                            player.DisableEffect(EffectType.SpawnProtected);
-
-                        }
-                        break;
-                    }
-                    var remainingTime = spawnProtectedEffect.TimeLeft;
-                    var text = $"<size=27><color=#{Config.InProtectColor}>🔰刷新保护剩余 {remainingTime:F0} 秒🔰\n开枪将取消保护</color></size>";
-
-                    player.Broadcast(new Exiled.API.Features.Broadcast()
-                    {
-                        Content = text,
-                        Duration = 1
-                    }, true);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error($"[出生保护] 文本更新出错: {ex.Message}");
-                }
-
-                yield return MEC.Timing.WaitForSeconds(1f);
-            }
-
-            // 保护结束，清理字典
-            if (player != null && ProtectionCoroutines.ContainsKey(player))
-            {
-                ProtectionCoroutines.Remove(player);
-            }
-
-            Log.Info($"[出生保护] 玩家 {player?.Nickname ?? "Unknown"} 保护结束");
         }
 
         public void TemplateSimulateShot(DisruptorShotEvent data, BarrelTipExtension barrelTip)
@@ -547,68 +452,12 @@ namespace Next_generationSite_27.UnionP
                 magazineModule.ServerSetInstanceAmmo(identifier.SerialNumber, 6);
                 magazineModule.ServerResyncData();
             }
-            if (ev.Player.GetEffect<SpawnProtected>() != null)
-            {
-                var a = ev.Player.GetEffect<SpawnProtected>();
-                if (Config.NoProtectWhenShoot && (ProtectionCoroutines.ContainsKey(ev.Player)))
-                {
-                    try
-                    {
-                        // 移除保护效果
-                        ev.Player.GetEffect<SpawnProtected>().TimeLeft = 0;
-                        ev.Player.DisableEffect(EffectType.SpawnProtected);
-                        a.ServerDisable();
-
-                        // 停止保护协程
-                        if (ProtectionCoroutines.TryGetValue(ev.Player, out var handle))
-                        {
-                            Timing.KillCoroutines(handle);
-                            ProtectionCoroutines.Remove(ev.Player);
-                        }
-
-                        // 显示取消保护提示
-                        ShowProtectionCancelledMessage(ev.Player);
-                        Log.Info($"[出生保护] 玩家 {ev.Player.Nickname} 因开枪取消保护");
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"[出生保护] 取消保护时出错: {ex.Message}");
-                    }
-                }
-                else
-                {
-                    if (a.Intensity != 0)
-                    {
-                        Log.Info($"[出生保护] 玩家 {ev.Player.Nickname} 因开枪取消保护");
-                        a.ServerDisable();
-                    }
-                }
-            }
-        }
-
-        private void ShowProtectionCancelledMessage(Player player)
-        {
-            var text = $"<size=27><color=#{Config.OutProtectColor}>保护已取消 - 因开枪</color></size>";
-            player.Broadcast(new Exiled.API.Features.Broadcast()
-            {
-                Content = text,
-                Duration = 3
-            }, true);
-            if (ProtectionCoroutines.ContainsKey(player))
-            {
-                Timing.KillCoroutines(ProtectionCoroutines[player]);
-                ProtectionCoroutines.Remove(player);
-            }
+            
         }
 
         // 在玩家断开连接时清理资源
         public void OnPlayerLeave(LeftEventArgs ev)
         {
-            if (ProtectionCoroutines.ContainsKey(ev.Player))
-            {
-                Timing.KillCoroutines(ProtectionCoroutines[ev.Player]);
-                ProtectionCoroutines.Remove(ev.Player);
-            }
 
             if (BroadcastTimers.ContainsKey(ev.Player))
             {
@@ -628,14 +477,8 @@ namespace Next_generationSite_27.UnionP
         }
 
         // 在回合结束时清理所有保护
-        public void OnRoundEnd(RoundEndedEventArgs ev)
+        public void OnRoundEnd(EndingRoundEventArgs ev)
         {
-            // 清理所有保护协程
-            foreach (var handle in ProtectionCoroutines.Values)
-            {
-                Timing.KillCoroutines(handle);
-            }
-            ProtectionCoroutines.Clear();
             Plugin.plugin.scpChangeReqs = new List<ScpChangeReq>();
 
             Plugin.plugin.superSCP.stop();
@@ -1126,7 +969,7 @@ namespace Next_generationSite_27.UnionP
                 }
 
                 ev.Wave.Timer.SetTime(0);
-                RespawnedTeam(new RespawnedTeamEventArgs(newW, players));
+                //RespawnedTeam(new RespawnedTeamEventArgs(newW, players));
 
             }
         }
@@ -1923,18 +1766,6 @@ namespace Next_generationSite_27.UnionP
         }
         public void ChangingRole(ChangingRoleEventArgs ev)
         {
-            ev.Player.DisableEffect(EffectType.SpawnProtected);
-            if (cs.TryGetValue(ev.Player, out var CH))
-            {
-                MEC.Timing.KillCoroutines(CH);
-                cs.Remove(ev.Player);
-            }
-            if (ProtectionCoroutines.ContainsKey(ev.Player))
-            {
-                Timing.KillCoroutines(ProtectionCoroutines[ev.Player]);
-                ProtectionCoroutines.Remove(ev.Player);
-            }
-
             if (Plugin.plugin.superSCP.PatchedPlayers.Contains(ev.Player))
             {
                 Plugin.plugin.superSCP.PatchedPlayers.Remove(ev.Player);
@@ -1952,13 +1783,6 @@ namespace Next_generationSite_27.UnionP
         }
         public void EndingRound(EndingRoundEventArgs ev)
         {
-
-            foreach (var item in cs)
-            {
-                item.Key.DisableEffect(EffectType.SpawnProtected);
-                MEC.Timing.KillCoroutines(item.Value);
-                cs.Remove(item.Key);
-            }
             Timing.KillCoroutines(new CoroutineHandle[]
             {
                             this.updateInfo

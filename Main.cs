@@ -65,6 +65,8 @@ namespace Next_generationSite_27.UnionP
         public static Plugin Instance { get { return plugin; } }
         public static List<ReferenceHub> ScpPlayer = new List<ReferenceHub>();
         public EventHandle eventhandle;
+        private SpawnPorject.EventHandle SPeventhandle;
+
         public override PluginPriority Priority => PluginPriority.Lower;
         public static Harmony harmony { get; private set; }
         // --- bomb gun ---
@@ -157,14 +159,16 @@ namespace Next_generationSite_27.UnionP
                               "Connection Timeout=30;";
             connect.Connect(connectionString);
             eventhandle = new EventHandle(Config);
+            SPeventhandle = new UnionP.SpawnPorject.EventHandle();
             Exiled.Events.Handlers.Map.Generated += eventhandle.Generated;
             Exiled.Events.Handlers.Player.Joined += eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam += eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers += eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Player.Shot += eventhandle.Shot;
+            Exiled.Events.Handlers.Player.Shot += SPeventhandle.Shot;
             Exiled.Events.Handlers.Player.Hurting += superSCP.Hurting;
             Exiled.Events.Handlers.Player.Died += superSCP.Died;
-            Exiled.Events.Handlers.Server.RespawnedTeam += eventhandle.RespawnedTeam;
+            Exiled.Events.Handlers.Server.RespawnedTeam += SPeventhandle.RespawnedTeam;
             Exiled.Events.Handlers.Player.ChangedItem += eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState += eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
@@ -179,14 +183,20 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole += LevelSCP.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
+            Exiled.Events.Handlers.Player.ChangingRole += SPeventhandle.ChangingRole;
             Exiled.Events.Handlers.Server.EndingRound += eventhandle.EndingRound;
+            //Exiled.Events.Handlers.Server.OnEndingRound += SPeventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
+            //Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
             Exiled.Events.Handlers.Scp914.UpgradingPickup += Bomb.OnUpgradingPickup;
             Exiled.Events.Handlers.Scp914.UpgradingInventoryItem += Bomb.OnUpgradingInventoryItem;
 
             Exiled.Events.Handlers.Player.Escaped += eventhandle.Escaped;
             Exiled.Events.Handlers.Player.Escaping += eventhandle.Escaping;
+
+            Exiled.Events.Handlers.Player.Left += eventhandle.OnPlayerLeave;
+            Exiled.Events.Handlers.Player.Left += SPeventhandle.OnPlayerLeave;
 
             Exiled.Events.Handlers.Player.Spawned += eventhandle.OnSpawned;
             Exiled.Events.Handlers.Scp079.GainingExperience += superSCP.GainingExperience;
@@ -194,7 +204,8 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Warhead.Starting += LevelSCP.Starting;
             Exiled.Events.Handlers.Warhead.Stopping += LevelSCP.Stopping;
-
+            Exiled.Events.Handlers.Server.EndingRound += eventhandle.OnRoundEnd;
+            Exiled.Events.Handlers.Server.EndingRound += SPeventhandle.OnRoundEnd;
             //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
 
             max_active_g = Config.maxbomb;
@@ -212,8 +223,9 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Shot -= eventhandle.Shot;
             //Exiled.Events.Handlers.Player.DroppedItem -= eventhandle.DroppedItem;
             Exiled.Events.Handlers.Player.Hurting -= superSCP.Hurting;
+            Exiled.Events.Handlers.Player.Shot -= SPeventhandle.Shot;
             Exiled.Events.Handlers.Player.Died -= superSCP.Died;
-            Exiled.Events.Handlers.Server.RespawnedTeam -= eventhandle.RespawnedTeam;
+            Exiled.Events.Handlers.Server.RespawnedTeam -= SPeventhandle.RespawnedTeam;
             Exiled.Events.Handlers.Player.ChangedItem -= eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState -= eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
@@ -225,10 +237,13 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Verified -= eventhandle.Verified;
             Exiled.Events.Handlers.Scp079.GainingExperience -= superSCP.GainingExperience;
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
+            Exiled.Events.Handlers.Player.ChangingRole -= SPeventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= LevelSCP.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
             Exiled.Events.Handlers.Server.EndingRound -= eventhandle.EndingRound;
+            Exiled.Events.Handlers.Server.EndingRound -= eventhandle.OnRoundEnd;
+            Exiled.Events.Handlers.Server.EndingRound -= SPeventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Shot -= Bomb.OnPlayerShotWeapon;
             Exiled.Events.Handlers.Scp914.UpgradingPickup -= Bomb.OnUpgradingPickup;
@@ -236,6 +251,9 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Player.Escaped -= eventhandle.Escaped;
             Exiled.Events.Handlers.Player.Escaping -= eventhandle.Escaping;
+            
+            Exiled.Events.Handlers.Player.Left -= eventhandle.OnPlayerLeave;
+            Exiled.Events.Handlers.Player.Left -= SPeventhandle.OnPlayerLeave;
 
 
             Exiled.Events.Handlers.Item.DisruptorFiring-= eventhandle.DisruptorFiring;

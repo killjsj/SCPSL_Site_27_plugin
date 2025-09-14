@@ -65,13 +65,12 @@ namespace Next_generationSite_27.UnionP
                 yield return Timing.WaitForSeconds(0.2f);
             }
         }
-        public static List<SettingBase> MenuCache = Menu();
         public static List<SettingBase> Menu()
         {
             List<SettingBase> settings = new List<SettingBase>();
             if (Plugin.Instance.Config.Level)
             {
-                settings.Add(new HeaderSetting(Plugin.Instance.Config.SettingIds[Features.Header], "等级插件"));
+                settings.Add(new HeaderSetting(Plugin.Instance.Config.SettingIds[Features.LevelHeader], "等级插件"));
 
                 settings.Add(new ButtonSetting(Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey], "一键开关核", "开核", 0.2f, "(Scp079 设施等级为5 且 游戏等级大于211级)\n使用后消耗全部电力开关核，使用后18秒内不会回复电力值",
                     onChanged: (player, SB) =>
@@ -159,7 +158,7 @@ namespace Next_generationSite_27.UnionP
             {
                 Timing.CallDelayed(0.2f, () =>
                 {
-                    var nuke = MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
+                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
                     var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
                     nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
 
@@ -172,7 +171,7 @@ namespace Next_generationSite_27.UnionP
             {
                 Timing.CallDelayed(0.2f, () =>
                 {
-                    var nuke = MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
+                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
                     var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
                     nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
                 });
@@ -185,7 +184,7 @@ namespace Next_generationSite_27.UnionP
             {
                 if (Plugin.Instance.Config.Level)
                 {
-                    SettingBase.Unregister(ev.Player, MenuCache.Where((a) => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
+                    SettingBase.Unregister(ev.Player, Plugin.MenuCache.Where((a) => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
                     var CandyList = Enum.GetValues(typeof(CandyKindID))
         .Cast<CandyKindID>()
         .Where(x => x != CandyKindID.None)
@@ -352,8 +351,8 @@ namespace Next_generationSite_27.UnionP
                                     float original = (float)field.GetValue(r.DoorLockChanger);
                                     float adjusted = PU.level >= 220 ? original * 0.75f : original;
                                     field.SetValue(r.DoorLockChanger, adjusted);
-                                    SettingBase.Unregister(player, MenuCache);
-                                    SettingBase.Register(player, MenuCache);
+                                    SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
+                                    SettingBase.Register(player, Plugin.MenuCache);
                                     break;
                                 }
                         }

@@ -7,8 +7,11 @@ using CommandSystem.Commands.RemoteAdmin.Dummies;
 using CustomPlayerEffects;
 using Exiled.API.Enums;
 using Exiled.API.Features;
+using Exiled.API.Features.Core.UserSettings;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Interfaces;
+using Exiled.CustomItems.API.Features;
+using Exiled.CustomRoles.API.Features;
 using Exiled.CustomRoles.Events;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
@@ -23,6 +26,7 @@ using LabApi.Events.Handlers;
 using LabApi.Loader.Features.Plugins;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.Scp5k;
 using PlayerRoles;
 using PlayerRoles.PlayableScps.Scp079.Pinging;
 using ProjectMER.Features.Objects;
@@ -56,6 +60,8 @@ namespace Next_generationSite_27.UnionP
     
     class Plugin : Exiled.API.Features.Plugin<PConfig>
     {
+        public static List<SettingBase> MenuCache = new List<SettingBase>();
+
         public List<ScpChangeReq> scpChangeReqs = new List<ScpChangeReq>();
         public Stopwatch RoundTime = new Stopwatch();
         public override string Name => "UnionPlugin";
@@ -150,6 +156,7 @@ namespace Next_generationSite_27.UnionP
         public override void OnEnabled()
         {
             plugin = this;
+            MenuCache = LevelSCP.Menu();
             var connectionString = $"Server={Config.IpAddress};" +
                               $"Port={Config.Port};" +
                               $"Database={Config.Database};" +
@@ -206,8 +213,15 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Warhead.Stopping += LevelSCP.Stopping;
             Exiled.Events.Handlers.Server.EndingRound += eventhandle.OnRoundEnd;
             Exiled.Events.Handlers.Server.EndingRound += SPeventhandle.OnRoundEnd;
-            //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
 
+            Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
+            Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
+            Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
+            Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
+
+            //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
+            CustomRole.RegisterRoles(assembly:Assembly);
+            CustomItem.RegisterItems();
             max_active_g = Config.maxbomb;
             harmony = new Harmony("Killjsj.plugin.site27plugin");
             harmony.PatchAll();
@@ -258,6 +272,13 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Item.DisruptorFiring-= eventhandle.DisruptorFiring;
             Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
+
+            //5k
+            Exiled.Events.Handlers.Warhead.Detonating -= Scp5k_Control.WarheadDetonated;
+            Exiled.Events.Handlers.Server.EndingRound -= Scp5k_Control.RoundEnding;
+            Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
+            Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
+
 
             harmony.UnpatchAll();
             eventhandle.update();
@@ -334,10 +355,40 @@ namespace Next_generationSite_27.UnionP
         [Description("Button setting ids of features")]
         public Dictionary<Features, int> SettingIds { get; set; } = new Dictionary<Features, int>
         {
-            { Features.Header, 114 },
+            { Features.LevelHeader, 114 },
             { Features.Scp079NukeKey, 514 },
+            { Features.Scp5kHeader, 5000 },
+            { Features.AEHKey, 5141 },
         };
+        [Description("以下与5k相关 Goc开始刷新时间(s)")]
+        public int GocStartSpawnTime { get; set; } = 18 * 60;
+        [Description("Goc间隔刷新时间(s)")]
+        public int GocSpawnTime { get; set; } = 90;
+        [Description("Goc刷新最高人数")]
+        public int GocMaxCount { get; set; } = 8;
+        [Description("uiu刷新时间(具体:第一波刷新时间+(该配置-UiUSpawnFloatTime+random(UiUSpawnTime*2)) 单位:s)")]
+        public int UiUSpawnTime { get; set; } = 135;
+        [Description("uiu刷新浮动时间(具体:第一波刷新时间+(UiUSpawnTime-UiUSpawnFloatTime+random(UiUSpawnFloatTime*2)) 单位:s)")]
 
+        public int UiUSpawnFloatTime { get; set; } = 45;
+        [Description("uiu刷新最高人数")]
+        public int UiuMaxCount { get; set; } = 9;
+        [Description("安德森刷新时间(具体:(AndSpawnTime-AndSpawnFloatTime+random(AndSpawnFloatTime*2)) 单位:s)")]
+        public int AndSpawnTime { get; set; } = 350;
+        [Description("安德森浮动刷新时间(具体:(AndSpawnTime-AndSpawnFloatTime+random(AndSpawnFloatTime*2)) 单位:s)")]
+
+        public int AndSpawnFloatTime { get; set; } = 45;
+
+        [Description("安德森单人生命数")]
+        public int AndLives { get; set; } = 5;
+        [Description("安德森最高人数")]
+        public int AndMaxCount { get; set; } = 3;
+        [Description("落锤开始刷新时间(s)")]
+        public int HammerStartSpawnTime { get; set; } = 6 * 60;
+        [Description("刷新落锤需要的数量(Scp+基金会人员 < 其他)")]
+        public int HammerSpawnCount { get; set; } = 5;
+        [Description("落锤最高人数")]
+        public int HammerMaxCount { get; set; } = 6;
         [Description("是否启用数据库")]
         public bool IsEnableDatabase
         {
@@ -380,8 +431,10 @@ namespace Next_generationSite_27.UnionP
 
     public enum Features
     {
-        Header,
+        LevelHeader,
         Scp079NukeKey,
+        Scp5kHeader,
+        AEHKey,
     }
     public class RunningMan : Event<GwangjuRunningManLoader.RunningManConfig, RunningManTranslation>, IEventMap, IEventSound
     {
@@ -395,7 +448,7 @@ namespace Next_generationSite_27.UnionP
         public MapInfo MapInfo { get; set; } = new MapInfo()
         {
             MapName = "RunningMan",
-            Position = new Vector3(213, 20, 320),
+            Position = new Vector3(0, 0, 0),
             IsStatic = true
         };
         public SoundInfo SoundInfo { get; set; } = new SoundInfo()
@@ -451,7 +504,9 @@ namespace Next_generationSite_27.UnionP
             foreach (Player player in Player.List)
             {
                 player.GiveLoadout(Config.PrisonerLoadouts);
-                player.Position = SpawnPoints.Where(r => r.name == "Spawnpoint").ToList().RandomItem().transform.position;
+                var p = SpawnPoints.Where(r => r.name == "Spawnpoint").ToList().RandomItem().transform;
+                p.GetPositionAndRotation(out Vector3 pos, out Quaternion rot);
+                player.Position = pos;
             }
 
             foreach (Player ply in Config.JailorRoleCount.GetPlayers(true))
@@ -462,8 +517,11 @@ namespace Next_generationSite_27.UnionP
                 ply.AddItem(ItemType.Jailbird);
                 ply.AddItem(ItemType.Jailbird);
                 ply.AddItem(ItemType.Jailbird);
+                ply.AddItem(ItemType.Jailbird);
                 Jailor.Add(ply);
-                ply.Position = SpawnPoints.Where(r => r.name == "SpawnpointMtf").ToList().RandomItem().transform.position;
+                var p = SpawnPoints.Where(r => r.name == "SpawnpointMtf").ToList().RandomItem().transform;
+                p.GetPositionAndRotation(out Vector3 pos, out Quaternion rot);
+                ply.Position = pos;
             }
 
         }

@@ -8,8 +8,8 @@ using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Roles;
 using Exiled.API.Features.Toys;
+using Exiled.CustomRoles.API.Features;
 using GameObjectPools;
-using HintServiceMeow.UI.Utilities;
 using InventorySystem;
 using InventorySystem.Items;
 using LabApi.Events.Arguments.PlayerEvents;
@@ -18,6 +18,8 @@ using MEC;
 using Microsoft.Win32;
 using Mirror;
 using NetworkManagerUtils.Dummies;
+using Next_generationSite_27.Enums;
+using Next_generationSite_27.UnionP.Scp5k;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.FirstPersonControl.Thirdperson;
@@ -77,6 +79,39 @@ namespace Next_generationSite_27.UnionP
         }
     }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class MessageTestCommand : ICommand
+    {
+        string ICommand.Command { get; } = "MT";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "MT messageid text time loc";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (arguments.Count < 4)
+            {
+                response = "To execute this command provide at least 4 arguments!" + string.Join("\n- ", Enum.GetNames(typeof(ScreenLocation)));
+                return false;
+            }
+
+            List<string> newargs = arguments.ToList();
+            response = $"done! op:{runner.Position}";
+
+            var messid = newargs[0];
+            var text = newargs[1];
+            var time = float.Parse(newargs[2]);
+            var loc = newargs[3];
+            var p = LabApi.Features.Wrappers.Player.Get(runner.ReferenceHub);
+            Next_generationSite_27.Features.PlayerHuds.PlayerHud.TryGet(p, out var hud);
+            
+            hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage(messid, text, time, (ScreenLocation)Enum.Parse(typeof(ScreenLocation), loc)));
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class POSCommand : ICommand
     {
         string ICommand.Command { get; } = "GPs";
@@ -88,7 +123,7 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            response = $"done! op:{runner.Position.ToString()}";
+            response = $"done! op:{runner.Position.ToString()} {runner.CurrentRoom} {runner.CurrentRoom.RoomName} {runner.CurrentRoom.Identifier.Shape}";
             return true;
 
         }
@@ -111,48 +146,48 @@ namespace Next_generationSite_27.UnionP
                 return false;
             }
             var r = DummyUtils.SpawnDummy("temp 079");
-                    var p = Player.Get(r);
-                    r.roleManager.ServerSetRole(RoleTypeId.Scp079, RoleChangeReason.RemoteAdmin);
+            var p = Player.Get(r);
+            r.roleManager.ServerSetRole(RoleTypeId.Scp079, RoleChangeReason.RemoteAdmin);
             Timing.CallDelayed(0.4f, () =>
+            {
+                try
                 {
-                    try
+                    var rol = p.Role as Exiled.API.Features.Roles.Scp079Role;
+
+                    foreach (var item in Player.List.Where((x) => !x.IsScp))
                     {
-                        var rol = p.Role as Exiled.API.Features.Roles.Scp079Role;
-                        
-                        foreach (var item in Player.List.Where((x)=>!x.IsScp))
+                        //PingAbility._syncPos = new RelativePosition(item.Position);
+                        //PingAbility._syncNormal = item.Position;
+                        //PingAbility._syncProcessorIndex = (byte)PingType.Human;
+
+                        //PingAbility.ServerSendRpc(x => ServerCheckReceiver(x, PingAbility._syncPos.Position, (int)PingType.Human));
+
+
+                        //PingAbility._rateLimiter.RegisterInput();
+                        if (item.Items.Count((x) => x.Type == ItemType.MicroHID) >= 1)
                         {
-                            //PingAbility._syncPos = new RelativePosition(item.Position);
-                            //PingAbility._syncNormal = item.Position;
-                            //PingAbility._syncProcessorIndex = (byte)PingType.Human;
+                            Ping(rol, item.Position, PingType.MicroHid, false);
 
-                            //PingAbility.ServerSendRpc(x => ServerCheckReceiver(x, PingAbility._syncPos.Position, (int)PingType.Human));
-
-
-                            //PingAbility._rateLimiter.RegisterInput();
-                            if (item.Items.Count((x) => x.Type == ItemType.MicroHID) >= 1)
-                            {
-                                Ping(rol, item.Position, PingType.MicroHid, false);
-
-                            }
-                            else
-                            {
-                                Ping(rol, item.Position, PingType.Human, false);
-                            }
-                            //rol.Ping(item.Position, PingType.Human, false);
                         }
+                        else
+                        {
+                            Ping(rol, item.Position, PingType.Human, false);
+                        }
+                        //rol.Ping(item.Position, PingType.Human, false);
+                    }
 
-                        NetworkServer.Destroy(r.gameObject);
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error(ex.ToString());
-                    }
-                });
+                    NetworkServer.Destroy(r.gameObject);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex.ToString());
+                }
+            });
             response = $"done! op:{runner.Position.ToString()}";
             return true;
 
         }
-        public void Ping(Exiled.API.Features.Roles.Scp079Role role,Vector3 position, PingType pingType = PingType.Default, bool consumeEnergy = true)
+        public void Ping(Exiled.API.Features.Roles.Scp079Role role, Vector3 position, PingType pingType = PingType.Default, bool consumeEnergy = true)
         {
             if (!role.SubroutineModule.TryGetSubroutine<Scp079PingAbility>(out var PingAbility))
             {
@@ -223,6 +258,126 @@ namespace Next_generationSite_27.UnionP
         new DoorPingProcessor(),
         new DefaultPingProcessor()
 };
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class Scp5kstartCommand : ICommand
+    {
+        string ICommand.Command { get; } = "5k";
+
+        string[] ICommand.Aliases { get; } = new[] { "Scp5000" };
+
+        string ICommand.Description { get; } = "!!! 使用后将立刻重启服务器并启动5k 由于进行测试(有bug) 谨慎使用";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            Scp5k_Control.Is5kRound = true;
+            Round.Restart();
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class Scp5kroleCommand : ICommand
+    {
+        string ICommand.Command { get; } = "5kRole";
+
+        string[] ICommand.Aliases { get; } = new[] { "Scp5000Role" };
+
+        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            if (arguments.Count < 2)
+            {
+                response = "To execute this command provide at least 2 arguments!";
+                return false;
+            }
+
+            string[] newargs;
+            List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out newargs);
+            if (list == null)
+            {
+                response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                return false;
+            }
+
+            if (newargs == null)
+            {
+                response = "An error occured while processing this command.(0)";
+                return false;
+            }
+            if (newargs.Length == 0)
+            {
+                response = "An error occured while processing this command.(1)";
+                return false;
+            }
+            switch (newargs[0].ToUpper())
+            {
+                case "GOC":
+                    {
+                        foreach (var item in list) {
+                            if (CustomRole.TryGet(30, out var Prole))
+                            {
+                                Player player = Player.Get(item);
+                                Prole.AddRole(player);
+                            }
+                        }
+                        break;
+                    }
+                case "UIU":
+                    {
+                        foreach (var item in list)
+                        {
+                            if (CustomRole.TryGet(32, out var Prole))
+                            {
+                                Player player = Player.Get(item);
+                                Prole.AddRole(player);
+                            }
+                        }
+                        break;
+                    }
+                case "BOT":
+                    {
+                        foreach (var item in list)
+                        {
+                            if (CustomRole.TryGet(Scp5k_Control.botID, out var Prole))
+                            {
+                                Player player = Player.Get(item);
+                                Prole.AddRole(player);
+                            }
+                        }
+                        break;
+                    }
+                case "DOC":
+                    {
+                        foreach (var item in list)
+                        {
+                            if (CustomRole.TryGet(Scp5k.Scp5k_Control.SciID, out var Prole))
+                            {
+                                Player player = Player.Get(item);
+                                Prole.AddRole(player);
+                            }
+                        }
+                        break;
+                    }
+            }
+            response = $"done!";
+            return true;
+
+        }
     }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class ROOMCommand : ICommand

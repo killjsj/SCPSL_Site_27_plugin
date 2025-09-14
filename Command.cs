@@ -5,7 +5,6 @@ using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Pickups;
-using HintServiceMeow.UI.Utilities;
 using LabApi.Events.Arguments.PlayerEvents;
 using PlayerRoles;
 using PlayerStatsSystem;

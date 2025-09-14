@@ -1,27 +1,13 @@
-﻿using AdminToys;
-using AutoEvent;
-using AutoEvent.Commands;
+﻿using AutoEvent;
 using CentralAuth;
-using CommandSystem;
-using CommandSystem.Commands.RemoteAdmin;
-using CommandSystem.Commands.RemoteAdmin.Dummies;
-using CommandSystem.Commands.RemoteAdmin.Inventory;
-using CustomPlayerEffects;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
-using Exiled.API.Extensions;
-using Exiled.API.Features;
 using Exiled.API.Features.Items;
-using Exiled.API.Features.Pickups;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
-using Exiled.Events.EventArgs.Scp914;
 using Exiled.Events.EventArgs.Server;
-using Exiled.Events.Features;
 using Exiled.Events.Handlers;
-using Exiled.Loader;
 using GameCore;
-using Google.Protobuf.WellKnownTypes;
 using Interactables.Interobjects.DoorUtils;
 using InventorySystem;
 using InventorySystem.Configs;
@@ -32,45 +18,30 @@ using InventorySystem.Items.Firearms.Modules;
 using InventorySystem.Items.Firearms.ShotEvents;
 using InventorySystem.Items.Keycards;
 using InventorySystem.Items.Pickups;
-using InventorySystem.Items.Usables.Scp330;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Features.Wrappers;
-using LiteNetLib;
 using MEC;
 using Mirror;
-using Mysqlx.Notice;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
-using Org.BouncyCastle.Asn1.Ocsp;
 using PlayerRoles;
-using PlayerRoles.PlayableScps.Scp079;
-using PlayerRoles.PlayableScps.Scp079.GUI;
-using PlayerRoles.PlayableScps.Scp079.Overcons;
 using PlayerRoles.RoleAssign;
-using ProjectMER.Commands.Utility;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
-using Query;
 using Respawning.Objectives;
 using Respawning.Waves;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection;
 using System.Text;
-using TMPro;
 using UnityEngine;
-using UnityEngine.DedicatedServer;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
-using UnityEngine.Windows;
 using Utils.NonAllocLINQ;
 using Enum = System.Enum;
 using KeycardItem = InventorySystem.Items.Keycards.KeycardItem;
 using Log = Exiled.API.Features.Log;
-using Object = UnityEngine.Object;
 using Pickup = LabApi.Features.Wrappers.Pickup;
 using Player = Exiled.API.Features.Player;
 using Round = Exiled.API.Features.Round;
@@ -177,9 +148,10 @@ namespace Next_generationSite_27.UnionP
                                 string permColor = card.permColor; // 默认权限颜色
                                 if (!string.IsNullOrEmpty(card.color))
                                 {
-                                    Misc.TryParseColor(card.color, out color);
+                                    ColorUtility.TryParseHtmlString(card.color, out var color1);
+                                    color = color1;
                                 }
-                                if( string.IsNullOrEmpty(card.permColor))
+                                if ( string.IsNullOrEmpty(card.permColor))
                                 {
                                    permColor = "cyan";
                                 }
@@ -515,7 +487,11 @@ namespace Next_generationSite_27.UnionP
 
                         Dictionary<Player, RoleTypeId> initialRoles = readyPlayers.ToDictionary(p => p, p => p.Role.Type);
                         Dictionary<Player, RoleTypeId> finalRoles = new Dictionary<Player, RoleTypeId>(initialRoles);
+                        Log.Debug($"notTodaySCP:\n- {string.Join("\n- ", NotTodaySCP)}");
                         List<string> nottodaySCP = new List<string>(NotTodaySCP);
+                        //Log.Info(NotTodaySCP) 
+                        Log.Debug($"NotTodaySCP:\n- {string.Join("\n- ", nottodaySCP)}");
+
                         NotTodaySCP.Clear();
                         // 为非SCP分配保留未分配玩家列表
                         List<Player> unassignedPlayers = new List<Player>(readyPlayers);
@@ -819,7 +795,8 @@ namespace Next_generationSite_27.UnionP
         {
                 VIPPlayerList.ShuffleList();
 
-            Player chosenPlayer = VIPPlayerList[random.Next(0, VIPPlayerList.Count)]; // 使用 UnityEngine.Random
+            Player chosenPlayer = VIPPlayerList.GetRandomValue();
+            VIPPlayerList.RemoveAll(p => nottodaySCP.Contains(p.UserId));
             try
             {
                 using (ScpTicketsLoader scpTicketsLoader = new ScpTicketsLoader())

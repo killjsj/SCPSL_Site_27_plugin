@@ -177,42 +177,13 @@ namespace Next_generationSite_27.UnionP
                 {
                     MEC.Timing.KillCoroutines(coroutineHandle);
                 }
-                coroutineHandle = MEC.Timing.RunCoroutine(update());
-
                 // 确保 Plugin.harmony 实例存在
                 if (Plugin.harmony == null)
                 {
                     Log.Error("[SuperSCP] Harmony 实例为 null");
                     return;
                 }
-
-                // 获取目标方法
-                //var scp049Method = typeof(Scp049AttackAbility).GetMethod(nameof(Scp049AttackAbility.ServerProcessCmd));
-
-                //if (scp049Method == null)
-                //{
-                //    Log.Error("[SuperSCP] 无法找到 Scp049AttackAbility.ServerProcessCmd 方法");
-                //    return;
-                //}
-
-                // 移除旧补丁
-                //Plugin.harmony.Unpatch(scp049Method, HarmonyPatchType.All, Plugin.harmony.Id);
-
-                // 获取补丁方法
-                //var scp049PatchMethod = typeof(Scp049AttackPatch).GetMethod("Transpiler",
-                //    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
-
-                //if (scp049PatchMethod == null)
-                //{
-                //    Log.Error("[SuperSCP] 无法找到 Scp049AttackPatch.Transpiler 方法");
-                //    return;
-                //}
-
-
-                // 重新应用补丁
-                //Plugin.harmony.Patch(scp049Method, transpiler: new HarmonyMethod(scp049PatchMethod));
-
-                Log.Info("[SuperSCP] 成功应用所有 Harmony 补丁");
+                //Log.Info("[SuperSCP] 成功应用所有 Harmony 补丁");
             }
             catch (System.Exception ex)
             {

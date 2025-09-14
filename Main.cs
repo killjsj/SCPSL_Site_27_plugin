@@ -360,7 +360,10 @@ namespace Next_generationSite_27.UnionP
             { Features.Scp5kHeader, 5000 },
             { Features.AEHKey, 5141 },
         };
-        [Description("以下与5k相关 Goc开始刷新时间(s)")]
+        [Description("以下与5k相关 启用5k的概率(0-100)")]
+        public int scp5kPercent { get; set; } = 0;
+
+        [Description("Goc开始刷新时间(s)")]
         public int GocStartSpawnTime { get; set; } = 18 * 60;
         [Description("Goc间隔刷新时间(s)")]
         public int GocSpawnTime { get; set; } = 90;

@@ -59,10 +59,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 PlayerHudUtils.AddMessage(s, "messid", "<size=40><color=red>UIU已撤离</color></size>");
             }
             var w = WaveManager.Waves.FirstOrDefault(x => x is ChaosSpawnWave) as ChaosSpawnWave;
-            if (w.RespawnTokens <= 1)
-            {
                 w.RespawnTokens += 1;
-            }
+            FactionInfluenceManager.Add(Faction.FoundationEnemy, FactionInfluenceManager.Get(Faction.FoundationEnemy));
             w.Timer.AddTime(60);
         }
         public static bool _UiuEscaped = false;
@@ -317,9 +315,21 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 }
                                 if (item.Role.Type == RoleTypeId.FacilityGuard)
                                 {
-                                    RoleSpawnpointManager.TryGetSpawnpointForRole(RoleTypeId.Scientist, out var spawnpoint);
-                                    spawnpoint.TryGetSpawnpoint(out var position, out _);
-                                    item.Position = position + new UnityEngine.Vector3(0, 0.5f, 0);
+                                    if (RoleSpawnpointManager.TryGetSpawnpointForRole(RoleTypeId.Scientist, out var spawnpoint) && spawnpoint != null)
+                                    {
+                                        if (spawnpoint.TryGetSpawnpoint(out var position, out _))
+                                        {
+                                            item.Position = position + new UnityEngine.Vector3(0, 0.5f, 0);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        item.Position = Room.Get(Exiled.API.Enums.RoomType.EzCheckpointHallwayA).Position + new UnityEngine.Vector3(0, 3f, 0);
+
+                                        Log.Warn("未找到科学家出生点，无法设置 FacilityGuard 位置。");
+                                    }
+                                    //spawnpoint.TryGetSpawnpoint(out var position, out _);
+                                    //item.Position = position + new UnityEngine.Vector3(0, 0.5f, 0);
                                 }
                             }
                             Log.Info("refresher start");
@@ -441,6 +451,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(EscaperFF);
                             break;
+                            //Npc
                         }
 
                     case RoleTypeId.CustomRole:
@@ -521,6 +532,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                 }
                 Is5kRound = false;
+            }
+            else
+            {
+                Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
             }
             if (refresher.IsRunning)
             {
@@ -927,20 +942,19 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
             }
+            public int totalLives = 0;
             public void OnDying(Exiled.Events.EventArgs.Player.DyingEventArgs ev)
             {
                 if (Check(ev.Player))
                 {
                     //var p = LabApi.Features.Wrappers.Player.Get(Player.ReferenceHub);
                     var p = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
-
-                    if (LiveCount.TryGetValue(ev.Player.UserId, out int count))
-                    {
                         if (ev.Player.Role.Type == RoleTypeId.Tutorial && Check(ev.Player))
                         {
-                            if (count > 0)
+                            if (totalLives > 0)
                             {
-                                LiveCount[ev.Player.UserId] = count - 1;
+                            ev.Player.EnableEffect(type: Exiled.API.Enums.EffectType.Flashed, 0.1f);
+                            totalLives = totalLives - 1;
                                 ev.IsAllowed = false;
                                 ev.Player.Health = ev.Player.MaxHealth;
                                 ev.Player.Position = Room.Get(Exiled.API.Enums.RoomType.EzGateA).Position + new UnityEngine.Vector3(0, 3f, 0);
@@ -949,39 +963,24 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 {
                                     TryAddItem(ev.Player, itemName);
                                 }
-                                p.AddMessage("messID", $"<color=red><size=30>你还有 {count} 次复活机会</size></color>", 1.5f, ScreenLocation.CenterBottom);
+                                p.AddMessage("messID", $"<color=red><size=30>你还有 {totalLives} 次复活机会</size></color>", 1.5f, ScreenLocation.CenterBottom);
                             }
                             else
                             {
-                                LiveCount.Remove(ev.Player.UserId);
                                 RemoveRole(ev.Player);
 
                             }
                         }
 
-                    }
-                    else
-                    {
-                        LiveCount.Add(ev.Player.UserId, config.AndLives - 1);
-                        ev.IsAllowed = false;
-                        ev.Player.Health = ev.Player.MaxHealth;
-                        ev.Player.Position = Room.Get(Exiled.API.Enums.RoomType.EzGateA).Position + new UnityEngine.Vector3(0, 3f, 0);
-                        ev.Player.ClearItems();
-                        foreach (string itemName in Inventory)
-                        {
-                            Log.Debug($"{Name}: Adding {itemName} to inventory.");
-                            TryAddItem(ev.Player, itemName);
-                        }
-                    }
+                    
                 }
             }
-            public static Dictionary<string, int> LiveCount = new Dictionary<string, int>();
             protected override void RoleAdded(Player player)
             {
 
                 if (player != null)
                 {
-                    LiveCount[player.UserId] = config.AndLives;
+                    totalLives += config.AndLives;
                     player.Position = Room.Get(Exiled.API.Enums.RoomType.EzGateA).Position + new UnityEngine.Vector3(0, 3f, 0);
 
                     //MEC.Timing.RunCoroutine(PlayerUpdate(player));

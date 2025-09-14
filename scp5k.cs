@@ -422,7 +422,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     case RoleTypeId.Scp3114:
                     case RoleTypeId.Scp173:
                         {
-                            p.AddMessage("messID", "你是 基金会势力 消灭一切除基金会势力外的成员 \n <color=green>友好:SCP,九尾狐</color>\n<color=red>敌对:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>", 2f, ScreenLocation.CenterTop);
+                            p.AddMessage("messID", "你是 基金会势力 消灭一切除基金会势力外的成员 \n <color=green>友好:SCP,九尾狐</color>\n<color=red>敌对:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>", 5f, ScreenLocation.CenterTop);
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(SCPFF);
                             break;
                         }
@@ -437,7 +437,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     case RoleTypeId.Scientist:
                     case RoleTypeId.ClassD:
                         {
-                            p.AddMessage("messID", "你是 清收势力 尽与反基金会势力合作可能的逃跑\n<color=yellow>中立:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 2f, ScreenLocation.CenterTop);
+                            p.AddMessage("messID", "你是 清收势力 尽与反基金会势力合作可能的逃跑\n<color=yellow>中立:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
 
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(EscaperFF);
                             break;
@@ -450,7 +450,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     case RoleTypeId.ChaosRepressor:
                     case RoleTypeId.ChaosRifleman:
                         {
-                            p.AddMessage("messID", "你是 反基金会势力 消灭一切基金会团队的成员\n <color=green>友好:GOC,UIU,混沌,安德森机器人</color>\n<color=yellow>中立:ClassD,科学家,保安</color>\n<color=red>敌对:SCP,九尾狐</color>", 2f, ScreenLocation.CenterTop);
+                            p.AddMessage("messID", "你是 反基金会势力 消灭一切基金会团队的成员\n <color=green>友好:GOC,UIU,混沌,安德森机器人</color>\n<color=yellow>中立:ClassD,科学家,保安</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(AntiSCPFF);
                             break;
                         }

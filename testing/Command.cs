@@ -1,9 +1,11 @@
 ﻿using AdminToys;
 using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin;
+using Discord;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
+using Exiled.API.Features.CustomStats;
 using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Roles;
@@ -14,12 +16,14 @@ using InventorySystem;
 using InventorySystem.Items;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Arguments.Scp079Events;
+using MapGeneration;
 using MEC;
 using Microsoft.Win32;
 using Mirror;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.Enums;
 using Next_generationSite_27.UnionP.Scp5k;
+using Org.BouncyCastle.Asn1.X509;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.FirstPersonControl.Thirdperson;
@@ -30,18 +34,26 @@ using PlayerRoles.PlayableScps.Scp3114;
 using PlayerRoles.PlayableScps.Scp939;
 using PlayerRoles.Subroutines;
 using PlayerStatsSystem;
+using ProjectMER.Commands.ToolGunLike;
+using ProjectMER.Features;
+using ProjectMER.Features.Objects;
+using ProjectMER.Features.Serializable.Schematics;
 using RelativePositioning;
 using RemoteAdmin;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using Utf8Json.Formatters;
 using Utils;
+using static Next_generationSite_27.UnionP.RoomGraph;
 
 namespace Next_generationSite_27.UnionP 
 {
@@ -123,7 +135,11 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            response = $"done! op:{runner.Position.ToString()} {runner.CurrentRoom} {runner.CurrentRoom.RoomName} {runner.CurrentRoom.Identifier.Shape}";
+            response = $"done! op:{runner.Position.ToString()} {runner.CurrentRoom} {runner.CurrentRoom.RoomName} {runner.CurrentRoom.Identifier.Shape} \nNearestRooms:";
+            foreach (var item in runner.CurrentRoom.NearestRooms)
+            {
+                response += $"  {item} \n";
+            }
             return true;
 
         }
@@ -219,14 +235,14 @@ namespace Next_generationSite_27.UnionP
     "ServerSendRpc",
     BindingFlags.NonPublic | BindingFlags.Instance,
     null,
-    new Type[] { typeof(Func<ReferenceHub, bool>) },
+    new Type[] {},
     null
 );
             if (serverSendRpcMethod != null)
             {
                 // 构造委托参数
                 Func<ReferenceHub, bool> condition = x => ServerCheckReceiver(x, ((RelativePosition)syncPosField.GetValue(PingAbility)).Position, (int)pingType);
-                serverSendRpcMethod.Invoke(PingAbility, new object[] { condition });
+                serverSendRpcMethod.Invoke(PingAbility, new object[] {  });
             }
             else
             {
@@ -278,6 +294,272 @@ namespace Next_generationSite_27.UnionP
             }
             Scp5k_Control.Is5kRound = true;
             Round.Restart();
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class EndRoundCommand : ICommand
+    {
+        string ICommand.Command { get; } = "EndRound";
+
+        string[] ICommand.Aliases { get; } = new[] { "ENR" };
+
+        string ICommand.Description { get; } = "!!! 使用后将立刻结束回合";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            Round.EndRound(true);
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class BotZombieCommand : ICommand
+    {
+        string ICommand.Command { get; } = "BotZombie";
+
+        string[] ICommand.Aliases { get; } = new[] { "BZZ" };
+
+        string ICommand.Description { get; } = "!!! 使用后产生一个机器小僵尸 bzz [PlayerId(主人 可选)]";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            Player Owner = null;
+            if (arguments.Count < 1)
+            {
+                Owner = runner;
+            }
+            else
+            {
+
+                string[] newargs;
+                List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out newargs);
+                if (list == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                    return false;
+                }
+                if (list[0] == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
+                    return false;
+                }
+                Owner = Player.Get(list[0]);
+            }
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            BetterZombie.Create(Owner);
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class FinderRoomCommand : ICommand
+    {
+        string ICommand.Command { get; } = "pathroom";
+        string[] ICommand.Aliases { get; } = new[] { "" };
+        string ICommand.Description { get; } = "!!! 使用后产生很多教程角色寻路";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            response = "";
+            if (arguments.Count < 1)
+            {
+                foreach (var arg in Enum.GetNames(typeof(RoomType)))
+                {
+                    response += arg + " \n";
+                }
+                return false;
+            }
+
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+
+            if (!Enum.TryParse<RoomType>(arguments.First(), true, out var r))
+            {
+                response = "Failed to parse!";
+                return false;
+            }
+
+            if (runner.CurrentRoom == null)
+            {
+                response = "Player has no current room.";
+                return false;
+            }
+
+            var targetRoomId = RoomIdentifier.AllRoomIdentifiers.FirstOrDefault(x => Room.Get(x).Type == r);
+            if (targetRoomId == null)
+            {
+                response = "Target room not found.";
+                return false;
+            }
+            var nav = SimpleRoomNavigation.Nav;
+            var re = nav.GetPathRooms(runner.CurrentRoom, Room.Get(targetRoomId));
+
+            // 修复：检查路径是否存在
+            if (re == null || re.Count == 0)
+            {
+                response = "No path found.";
+                return false;
+            }
+
+            foreach (var item in re)
+            {
+                Npc npc = new Npc(DummyUtils.SpawnDummy("name"));
+                Timing.CallDelayed(0.5f, delegate
+                {
+                    npc.Role.Set(RoleTypeId.Tutorial);
+                    npc.Position = item.Position + Vector3.up * 2f;
+                    npc.Health = npc.MaxHealth;
+                });
+                Player.Dictionary.Add(npc.GameObject, npc);
+                response += $"   spawned at {item.Position}\n";
+            }
+            return true;
+        }
+    }
+
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class FinderPosCommand : ICommand
+    {
+        string ICommand.Command { get; } = "pathPos";
+        string[] ICommand.Aliases { get; } = new[] { "" };
+        string ICommand.Description { get; } = "!!! 使用后产生很多教程角色寻路";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            response = "";
+            if (arguments.Count < 3)
+            {
+                response = "No pos";
+                return false;
+            }
+
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+
+            var x = float.Parse(arguments.ElementAt(0));
+            var y = float.Parse(arguments.ElementAt(1));
+            var z = float.Parse(arguments.ElementAt(2));
+            //var pathfinding = Pathfinding.Instance;
+
+            //// 获取路径点
+            //var re = pathfinding.GetPathPoints(
+            //    runner.Position, new Vector3(x, y, z)
+            //);
+            var nav = SimpleRoomNavigation.Nav;
+            var re = nav.FindPath(runner.Position,runner.CurrentRoom , new Vector3(x, y, z), Room.Get(new Vector3(x, y, z)));
+            // 修复：检查路径是否存在
+            if (re == null || re.Count == 0)
+            {
+                response = $"No path found.Runner:{runner.CurrentRoom}";
+
+                return false;
+            }
+            int i = 0;
+            foreach (var item in re)
+            {
+                Npc npc = new Npc(DummyUtils.SpawnDummy($"{i}"));
+                Timing.CallDelayed(0.5f, delegate
+                {
+                    npc.Role.Set(RoleTypeId.Tutorial);
+                    npc.Position = item + Vector3.up * 2f;
+                    npc.Health = npc.MaxHealth;
+                });
+                Player.Dictionary.Add(npc.GameObject, npc);
+                response += $"  {i} spawned at {item}\n";
+                i++;
+            }
+            return true;
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class PlaceGocBombEffectCommand : ICommand
+    {
+        string ICommand.Command { get; } = "PGOCBE";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "!!! 使用后将生成GOC奇数核弹特性（原地） 由于进行测试(有bug) 谨慎使用";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+
+            Scp5k.GOCAnim.Gen(new Vector3(13f, 360f, -40f));
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class PlayGocBombEffectIdleCommand : ICommand
+    {
+        string ICommand.Command { get; } = "PGOCBEI";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "!!! 使用后将使现在的GOC奇数核弹播放动画 由于进行测试(有bug) 谨慎使用";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            Scp5k.GOCAnim.PlayIdle();
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class PlayGocBombEffectDonateCommand : ICommand
+    {
+        string ICommand.Command { get; } = "PGOCBED";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "!!! 使用后将使现在的GOC奇数核弹播放动画 由于进行测试(有bug) 谨慎使用";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            Scp5k.GOCAnim.PlayDonate();
             response = $"done!";
             return true;
 

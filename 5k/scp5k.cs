@@ -1,8 +1,10 @@
-﻿using Exiled.API.Extensions;
+﻿using Exiled.API.Enums;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
 using Exiled.API.Features.Core.UserSettings;
 using Exiled.API.Features.Doors;
+using Exiled.API.Features.Items;
 using Exiled.API.Features.Lockers;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Roles;
@@ -13,6 +15,7 @@ using Exiled.CustomRoles.API.Features;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using GameObjectPools;
+using InventorySystem.Items.Firearms.Extensions;
 using MapGeneration;
 using MEC;
 using Mirror;
@@ -21,7 +24,12 @@ using Next_generationSite_27.Features.PlayerHuds;
 using Org.BouncyCastle.Tls;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl.Spawnpoints;
+using PlayerRoles.PlayableScps.Scp079.Pinging;
 using PlayerRoles.PlayableScps.Scp106;
+using PlayerStatsSystem;
+using ProjectMER.Events.Handlers;
+using ProjectMER.Features.Objects;
+using RelativePositioning;
 using Respawning;
 using Respawning.Waves;
 using Respawning.Waves.Generic;
@@ -31,6 +39,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -64,6 +73,24 @@ namespace Next_generationSite_27.UnionP.Scp5k
             w.Timer.AddTime(60);
         }
         public static bool _UiuEscaped = false;
+        public static float UiuDownloadTime = 0;
+        public static float UiuDownloadTick
+        {
+            get {
+                if (CustomRole.TryGet(28, out var role))
+                {
+                    if (CustomRole.TryGet(32, out var Prole))
+                    {
+                        var count = Prole.TrackedPlayers.Count + role.TrackedPlayers.Count;
+                        if (count > 0) { 
+                            return Math.Min((100 / (90 * 0.3f )) / 6 * count, (100 / (90 * 0.3f)) / 6);
+                        }
+                    }
+                } 
+                    return 0.1f;
+                
+            }
+        }
         public static void WarheadDetonated(Exiled.Events.EventArgs.Warhead.DetonatingEventArgs ev)
         {
             if (Is5kRound && GocSpawned)
@@ -72,13 +99,56 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             GocSpawnable = false;
         }
+        public static void PlayerDamaged(Exiled.Events.EventArgs.Player.HurtingEventArgs ev)
+        {
+            if (Is5kRound)
+            {
+                if (ev.DamageHandler.Base is Scp096DamageHandler DH)
+                {
+                    DH.Damage = 99;
+                }
+                else if (ev.DamageHandler.Base is Scp049DamageHandler handler)
+                {
+                    if (handler.DamageSubType == Scp049DamageHandler.AttackType.Scp0492 && ev.Player.Health <= ev.Amount)
+                    {
+                        ev.Player.DropItems();
+                        Timing.CallDelayed(Timing.WaitForOneFrame, () =>
+                        {
+                            ev.Player.RoleManager.ServerSetRole(RoleTypeId.Scp0492, RoleChangeReason.Died, RoleSpawnFlags.AssignInventory);
+                        });
+                    }
+                }
+                else if (ev.DamageHandler.Base is ScpDamageHandler scpDamageHandler)
+                {
+                    if (scpDamageHandler.Attacker.Hub.roleManager.CurrentRole.RoleTypeId == RoleTypeId.Scp173)
+                    {
+                        if(ev.Player.Role.Type == RoleTypeId.NtfSpecialist ||
+                            ev.Player.Role.Type == RoleTypeId.NtfCaptain ||
+                            ev.Player.Role.Type == RoleTypeId.NtfPrivate ||
+                            ev.Player.Role.Type == RoleTypeId.NtfSergeant
+                            )
+                        {
+                            ev.IsAllowed = false;
+                        }
+                    }
+                }
+            }
+        }
         public static int UiUSpawnTime = config.UiUSpawnTime - config.UiUSpawnFloatTime + UnityEngine.Random.Range(0, config.UiUSpawnFloatTime * 2);
         public static int AndSpawnTime = config.AndSpawnTime - config.AndSpawnFloatTime + UnityEngine.Random.Range(0, config.AndSpawnFloatTime * 2);
         public static bool UiuDownloadBroadcasted = false;
         public static bool UiuSpawned = false;
         public static bool HammerSpawned = false;
         public static bool GocSpawned = false;
+        public static GameObject _GOCBOmb;
+        public static GameObject GOCBOmb { set { _GOCBOmb = value;
+                //Scp5k.GOCAnim.Playstart(_GOCBOmb.gameObject);
+            } get { return _GOCBOmb; } }
+
+        public static bool GocNuke = false;
         public static bool GocSpawnable = true;
+        [Description("内部锁定")]
+        public static bool NLock = false;
         public static List<Player> diedPlayer { get { return ReferenceHub.AllHubs.Where(x => x.roleManager.CurrentRole.RoleTypeId == RoleTypeId.Spectator).Select((x) => Player.Get(x)).ToList(); } }
         public static Stopwatch AndTimer = new Stopwatch();
         public static Stopwatch GocTimer = new Stopwatch();
@@ -95,6 +165,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     //    Log.Info("Manba out!");
                     //    break;
                     //}
+                    
+
                     if (WaveSpawner.AnyPlayersAvailable)
                     {
                         //Log.Info("刷新中");
@@ -230,7 +302,59 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
                         }
                     }
-                }
+                    if(!Round.IsLocked){
+                    int ntfScp = 0;
+                    int lightRunner = 0;
+                    int ChaosIn = 0;
+                    foreach (var hub in ReferenceHub.AllHubs)
+                    {
+                        switch (hub.GetTeam())
+                        {
+                            case Team.SCPs:
+                            case Team.FoundationForces:
+                                if (hub.GetRoleId() == RoleTypeId.Scp0492)
+                                {
+
+                                }
+                                else if (hub.GetRoleId() == RoleTypeId.FacilityGuard)
+                                {
+                                    lightRunner++;
+                                }
+                                else
+                                {
+                                    ntfScp++;
+
+                                }
+                                break;
+                            case Team.Scientists:
+                            case Team.ClassD:
+                                lightRunner++;
+
+                                break;
+                            case Team.ChaosInsurgency:
+                                ChaosIn++;
+                                break;
+                        }
+                    }
+                    ChaosIn += SpecRolesCount;
+                        if (ChaosIn == 0 && lightRunner == 0 && ntfScp != 0)
+                        {
+                            Round.EndRound(true);
+                        }
+                        else if ((ChaosIn == 0 || lightRunner != 0) && ntfScp == 0)
+                        {
+                            Round.EndRound(true);
+                        }
+                        else if (ChaosIn != 0 && ntfScp == 0)
+                        {
+                            Round.EndRound(true);
+                        }
+                        else if (ChaosIn == 0 && lightRunner == 0 && ntfScp == 0)
+                        {
+                            Round.EndRound(true);
+                        }
+                    }
+                                    }
                 catch (Exception ex)
                 {
                     Log.Warn(ex.ToString());
@@ -281,7 +405,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 Timing.KillCoroutines(refresher);
             }
-            Timing.CallDelayed(0.2f, () =>
+            Timing.CallDelayed(0.05f, () =>
                 {
                     try
                     {
@@ -292,11 +416,17 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             Door s055Pos = Door.List.Where(x => !x.IsGate && !x.IsElevator && x.Room.Type != Exiled.API.Enums.RoomType.Hcz079 && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointA && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointB && x.Room.Zone == Exiled.API.Enums.ZoneType.HeavyContainment && x.Room.Type != Exiled.API.Enums.RoomType.Hcz079 && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointA && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointB
                             && x.Room.Type != Exiled.API.Enums.RoomType.HczElevatorA && x.Room.Type != Exiled.API.Enums.RoomType.HczElevatorB).ToList().RandomItem();
                             var AEHPos = AEHPossableList.GetRandomValue();
+                            var BombPossableList = Pickup.List.Where(x => x.Type == ItemType.GunCrossvec && x.Room.Zone == Exiled.API.Enums.ZoneType.HeavyContainment && x.Room.Type != Exiled.API.Enums.RoomType.Hcz079 && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointA && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointB
+                            && x.Room.Type != Exiled.API.Enums.RoomType.HczElevatorA && x.Room.Type != Exiled.API.Enums.RoomType.HczElevatorB).ToList();
+                            var BOmbPos = BombPossableList.GetRandomValue();
                             CustomItem.TrySpawn(Scp055ItemID, s055Pos.Position + new Vector3(0f, 1f, 0f), out var s5);
                             CustomItem.TrySpawn(AEHItemID, AEHPos.Position + new Vector3(0f, 1f, 0f), out var aeh);
+                            CustomItem.TrySpawn(BombgunItemID, BOmbPos.Position + new Vector3(0f, 1f, 0f), out var bomb);
                             Log.Info($"SCP055 spawned AT:{s5.Room.RoomName} {s5.Room.RoomShape} {s5.Position}");
                             Log.Info($"AEH spawned AT:{aeh.Room.RoomName} {aeh.Room.RoomShape} {aeh.Position}");
+                            Log.Info($"Bombgun spawned AT:{BOmbPos.Room.RoomName} {BOmbPos.Room.RoomShape} {BOmbPos.Position}");
                             AEHPos.Destroy();
+                            BOmbPos.Destroy();
                             if (Player.List.Where(x => x.Role.Type == RoleTypeId.Scientist).ToList().Count() > 0)
                             {
                                 var Luck = Player.List.Where(x => x.Role.Type == RoleTypeId.Scientist).ToList().RandomItem(); 
@@ -312,6 +442,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 {
                                     item.RoleManager.ServerSetRole(RoleTypeId.Scp3114, RoleChangeReason.RoundStart);
                                     item.Position = Room.Get(Exiled.API.Enums.RoomType.Hcz096).Position + new UnityEngine.Vector3(0, 0.5f, 0);
+                                    
                                 }
                                 if (item.Role.Type == RoleTypeId.FacilityGuard)
                                 {
@@ -332,10 +463,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     //item.Position = position + new UnityEngine.Vector3(0, 0.5f, 0);
                                 }
                             }
+                            
+                            //Pickup.CreateAndSpawn(ItemType.Gu)
                             Log.Info("refresher start");
 
                             refresher = MEC.Timing.RunCoroutine(Refresher());
-
                         }
                     }
                     catch (Exception ex)
@@ -413,6 +545,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
             [RoleTypeId.Scp173] = 1,
             [RoleTypeId.Scp106] = 1,
         };
+        public static int SpecRolesCount { get {
+                return CustomRole.Get(botID).TrackedPlayers.Count + CustomRole.Get(UiuCID).TrackedPlayers.Count + CustomRole.Get(UiuPID).TrackedPlayers.Count +
+                        CustomRole.Get(GocCID).TrackedPlayers.Count +
+                        CustomRole.Get(GocPID).TrackedPlayers.Count;
+            } }
         public static void ChangingRole(ChangingRoleEventArgs ev)
         {
             if (Is5kRound)
@@ -470,6 +607,44 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     case RoleTypeId.ZombieFlamingo:
                         break;
                 }
+                switch (ev.NewRole)
+                {
+                    case RoleTypeId.Scp106:
+                        {
+                            Timing.CallDelayed(0.05f, () =>
+                            {
+                                try
+                                {
+                                    var a = ev.Player.Role as Exiled.API.Features.Roles.Scp106Role;
+                                    a.CaptureCooldown -= 0.5f;
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Warn(ex);
+                                }
+
+                            });
+                            break;
+
+                        }
+                    case RoleTypeId.Scp3114:
+                        {
+                            Timing.CallDelayed(0.05f, () =>
+                            {
+                                try
+                                {
+                                    ev.Player.MaxHealth = 2600;
+                                    ev.Player.Health = 2600;
+                                }
+                                catch (Exception ex)
+                                {
+                                    Log.Warn(ex);
+                                }
+
+                            });
+                            break;
+                        }
+                }
             }
         }
         public static void RoundEnding(EndingRoundEventArgs ev)
@@ -484,7 +659,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.Draw;
                 }
-                else if (Warhead.IsDetonated)
+                else if ((Warhead.IsDetonated && GocSpawned) || GocNuke)
                 {
                     ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
                     foreach (var s in LabApi.Features.Wrappers.Player.List)
@@ -526,7 +701,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     {
                         ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
                     }
-                    else
+                    else if (newList.chaos_insurgents == 0 && newList.mtf_and_guards != 0)
                     {
                         ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.FacilityForces;
                     }
@@ -543,11 +718,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
         }
 
+        public static uint UiuCID = 32;
         [CustomRole(RoleTypeId.Tutorial)]
         public class scp5k_Uiu_C : CustomRole
         {
 
-            public override uint Id { get; set; } = 32;
+            public override uint Id { get; set; } = UiuCID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "UIU_C";
             public override string Description { get; set; }
@@ -562,7 +738,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Description = "与安德森机器人合作 调查基金会为什么毁灭人类\n下载完资料后撤离";
                 this.Role = RoleTypeId.Tutorial;
                 MaxHealth = 120;
-                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU成员</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往办公有电脑的地方下载资料 下载完资料后撤离</color></size>", 4);
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU成员</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往机房下载资料 下载完资料后撤离</color></size>", 4);
                 //p.AddMessage("messID", "你是 反基金会 团队 消灭一切基金会团队的成员", 2f, ScreenLocation.CenterBottom));
                 this.IgnoreSpawnSystem = true;
 
@@ -614,7 +790,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public Dictionary<string, CoroutineHandle> CH = new Dictionary<string, CoroutineHandle>();
             public IEnumerator<float> PlayerUpdate(Player player)
             {
-                float time = 0f;
                 bool Downloaded = false;
                 var p = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
                 var hud = PlayerHud.Get(player);
@@ -631,25 +806,32 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             if (player.CurrentRoom != null)
                             {
-                                if (player.CurrentRoom.RoomName == MapGeneration.RoomName.EzOfficeSmall || player.CurrentRoom.RoomName == MapGeneration.RoomName.EzOfficeLarge)
+                                // 统计当前房间内的UIU数量
+                                int uiuInRoom = CustomRole.TryGet(28, out var roleP) ? roleP.TrackedPlayers.Count(x => x.CurrentRoom == player.CurrentRoom) : 0;
+                                uiuInRoom += CustomRole.TryGet(32, out var roleC) ? roleC.TrackedPlayers.Count(x => x.CurrentRoom == player.CurrentRoom) : 0;
+
+                                if (player.CurrentRoom.RoomName == MapGeneration.RoomName.HczServers)
                                 {
-                                    time += 0.2f;
-                                    if (time >= 300f)
+                                    if (Scp5k_Control.UiuDownloadTime >= 100f)
                                     {
-                                        hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom));
                                         Downloaded = true;
+                                        Cassie.MessageTranslated("Security alert . U I U down load and d . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。阻止撤离");
+                                        hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom));
                                         if (hud.HasMessage("UIUdownloading"))
                                         {
                                             hud.RemoveMessage("UIUdownloading");
                                         }
+                                        UiuDownloadTime = 100f;
                                     }
                                     else
                                     {
-                                        if(time >= 120f && !UiuDownloadBroadcasted)
+                                        UiuDownloadTime += UiuDownloadTick;
+                                        float remainTime = (100f - Scp5k_Control.UiuDownloadTime) / Math.Min(UiuDownloadTick,1);
+                                        if (UiuDownloadTime >= 30f && !UiuDownloadBroadcasted)
                                         {
-                                            Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。前往办公区");
+                                            Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。前往机房");
                                             UiuDownloadBroadcasted = true;
-                                        } else if (time <= 20 )
+                                        } else if (UiuDownloadTime <= 20 )
                                         {
                                             UiuDownloadBroadcasted = false;
 
@@ -660,7 +842,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                             hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.DynamicMessage(
                                                     "UIUdownloading",
                                                     p,
-                                                    (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {time:F0} 秒 下载结束: 300 秒</color></size>" },
+                                                    (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" },
                                                     2f,
                                                     ScreenLocation.CenterBottom
                                                 ));
@@ -669,8 +851,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 }
                                 else
                                 {
-                                    if (time > 0f)
-                                        time -= 0.4f;
+                                    if (UiuDownloadTime > 0f)
+                                        UiuDownloadTime -= UiuDownloadTick;
                                 }
                             }
                         }
@@ -713,12 +895,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
             }
         }
+        public static uint UiuPID = 28;
         [CustomRole(RoleTypeId.Tutorial)]
-
         public class scp5k_Uiu_P : CustomRole
         {
 
-            public override uint Id { get; set; } = 28;
+            public override uint Id { get; set; } = UiuPID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "UIU_P";
             public override string Description { get; set; }
@@ -731,7 +913,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Description = "与安德森机器人合作 调查基金会为什么毁灭人类\n下载完资料后撤离";
                 this.Role = RoleTypeId.Tutorial;
                 MaxHealth = 130;
-                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU成员</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往办公有电脑的地方下载资料 下载完资料后撤离</color></size>", 4);
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU成员</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往机房下载资料 下载完资料后撤离</color></size>", 4);
+                   
 
                 //foreach (var item in FFMul)
                 //{
@@ -783,10 +966,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                 }
             }
-            public Dictionary<string, CoroutineHandle> CH = new Dictionary<string, CoroutineHandle>();
-            public IEnumerator<float> PlayerUpdate(Player player)
+            public Dictionary<string, CoroutineHandle> CH = new Dictionary<string, CoroutineHandle>(); public IEnumerator<float> PlayerUpdate(Player player)
             {
-                float time = 0f;
                 bool Downloaded = false;
                 var p = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
                 var hud = PlayerHud.Get(player);
@@ -803,26 +984,33 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             if (player.CurrentRoom != null)
                             {
-                                if (player.CurrentRoom.RoomName == MapGeneration.RoomName.EzOfficeSmall || player.CurrentRoom.RoomName == MapGeneration.RoomName.EzOfficeLarge)
+                                // 统计当前房间内的UIU数量
+                                int uiuInRoom = CustomRole.TryGet(28, out var roleP) ? roleP.TrackedPlayers.Count(x => x.CurrentRoom == player.CurrentRoom) : 0;
+                                uiuInRoom += CustomRole.TryGet(32, out var roleC) ? roleC.TrackedPlayers.Count(x => x.CurrentRoom == player.CurrentRoom) : 0;
+
+                                if (player.CurrentRoom.RoomName == MapGeneration.RoomName.HczServers)
                                 {
-                                    time += 0.2f;
-                                    if (time >= 300f)
+                                    if (Scp5k_Control.UiuDownloadTime >= 100f)
                                     {
+                                        Downloaded = true;
+                                        Cassie.MessageTranslated("Security alert . U I U down load and d . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。阻止撤离");
                                         hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom));
                                         if (hud.HasMessage("UIUdownloading"))
                                         {
                                             hud.RemoveMessage("UIUdownloading");
                                         }
-                                        Downloaded = true;
+                                        UiuDownloadTime = 100f;
                                     }
                                     else
                                     {
-                                        if (time >= 120f && !UiuDownloadBroadcasted)
+                                        UiuDownloadTime += UiuDownloadTick;
+                                        float remainTime = (100f - Scp5k_Control.UiuDownloadTime) / Math.Min(UiuDownloadTick, 1);
+                                        if (UiuDownloadTime >= 30f && !UiuDownloadBroadcasted)
                                         {
-                                            Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。前往办公区");
+                                            Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。前往机房");
                                             UiuDownloadBroadcasted = true;
                                         }
-                                        else if (time <= 20)
+                                        else if (UiuDownloadTime <= 20)
                                         {
                                             UiuDownloadBroadcasted = false;
 
@@ -833,7 +1021,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                             hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.DynamicMessage(
                                                     "UIUdownloading",
                                                     p,
-                                                    (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {time:F0} 秒 下载结束: 300 秒</color></size>" },
+                                                    (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" },
                                                     2f,
                                                     ScreenLocation.CenterBottom
                                                 ));
@@ -842,8 +1030,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 }
                                 else
                                 {
-                                    if (time > 0f)
-                                        time -= 0.4f;
+                                    if (UiuDownloadTime > 0f)
+                                        UiuDownloadTime -= UiuDownloadTick;
                                 }
                             }
                         }
@@ -1001,12 +1189,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 base.AddRole(player);
             }
         }
+        public static uint GocCID = 30;
         [CustomRole(RoleTypeId.Tutorial)]
-
         public class scp5k_Goc_C : CustomRole
         {
 
-            public override uint Id { get; set; } = 30;
+            public override uint Id { get; set; } = GocCID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc_C";
             public override string Description { get; set; }
@@ -1065,11 +1253,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 base.RoleAdded(player);
             }
         }
+        public static uint GocPID = 31;
         [CustomRole(RoleTypeId.Tutorial)]
         public class scp5k_Goc_P : CustomRole
         {
 
-            public override uint Id { get; set; } = 31;
+            public override uint Id { get; set; } = GocPID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc_P";
             public override string Description { get; set; }
@@ -1259,7 +1448,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                 }
             }
-
+            protected override void ShowPickedUpMessage(Player player)
+            {
+                return;
+            }
             protected override void SubscribeEvents()
             {
                 Exiled.Events.Handlers.Player.SearchingPickup += SearchingItem;
@@ -1272,6 +1464,141 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             public override void Init()
             {
+                base.Init();
+            }
+        }
+        public static uint GocBombItemId = 5514;
+        [CustomItem(ItemType.Coin)]
+        public class scp5k_GocBomb : CustomItem
+        {
+            public override uint Id { get; set; } = GocBombItemId;
+            public override string Name { get; set; } = "Goc奇术发生器";
+            public override string Description { get => $"要安放在{GOCBomb.installCount}个互相离得最远的重收房间"; set { } }
+
+            public override float Weight { get; set; } = 5;
+            public override SpawnProperties SpawnProperties { get; set; } = null;
+            public override Vector3 Scale { get; set; } = new Vector3(2f, 2f, 2f);
+            protected override void OnOwnerChangingRole(OwnerChangingRoleEventArgs ev)
+            {
+                foreach (var item in ev.Player.Items)
+                {
+                    if (Check(item))
+                    {
+                        ev.Player.DropItem(item);
+                    }
+                }
+                base.OnOwnerChangingRole(ev);
+            }
+             
+            protected override void OnUpgrading(UpgradingEventArgs ev)
+            {
+                if (Check(ev.Pickup))
+                {
+                    ev.IsAllowed = false;
+                    base.OnUpgrading(ev);
+                }
+            }
+            void SearchingItem(SearchingPickupEventArgs ev)
+            {
+                if (Check(ev.Pickup))
+                {
+                        ev.IsAllowed = false;
+                    if (scp5k_Sci.TryGet(GocPID, out var item))
+                    {
+                        if (item.Check(ev.Player))
+                        {
+                            ev.IsAllowed = true;
+                        }
+                    }
+                    if (scp5k_Sci.TryGet(GocCID, out var item2))
+                    {
+                        if (item2.Check(ev.Player))
+                        {
+                            ev.IsAllowed = true;
+                        }
+                    }
+                    else
+                    {
+                        ev.IsAllowed = false;
+                        LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub).AddMessage("No!", "<color=red><size=27>此物品为goc专属</size></color>", 3f,ScreenLocation.Center);
+                    }
+                }
+            }
+            protected override void ShowSelectedMessage(Player player)
+            {
+                string w = "";
+                if(GOCBomb.installAt.Where(x => !GOCBomb.installedRoom.Contains(x)).Count() != 0)
+                {
+                    foreach (var item in GOCBomb.installAt.Where(x => !GOCBomb.installedRoom.Contains(x)))
+                    {
+                        w += $"{item.RoomName} ";
+                    }
+               LabApi.Features.Wrappers.Player.Get(player.ReferenceHub).AddMessage("Wait", $"<color=green><size=27>还剩下没有安装的房间:{w}</size></color>", 3f,ScreenLocation.Center);
+                } else
+                {
+                    LabApi.Features.Wrappers.Player.Get(player.ReferenceHub).AddMessage("Wait", $"<color=green><size=27>安装完成</size></color>", 3f, ScreenLocation.Center);
+
+                }
+
+            }
+            protected override void SubscribeEvents()
+            {
+                Exiled.Events.Handlers.Player.SearchingPickup += SearchingItem;
+                Exiled.Events.Handlers.Player.UsedItem += OnUsedItem;
+                Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
+                base.SubscribeEvents();
+            }
+
+            private void OnUsedItem(UsedItemEventArgs ev)
+            {
+                var lp = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
+                if (Check(ev.Item))
+                {
+                    if (GOCBomb.installAt.Contains(ev.Player.CurrentRoom))
+                    {
+                        if (GOCBomb.installedRoom.Contains(ev.Player.CurrentRoom))
+                        {
+                            lp.AddMessage("NO!", "<color=red><size=27>该房间已安装!</size></color>",3f);
+                            return;
+                        }
+
+                        if (scp5k_Sci.TryGet(GocPID, out var item))
+                        {
+                            if (item.Check(ev.Player))
+                            {
+                                var pickup = ev.Player.DropItem(ev.Item);
+                                GOCBomb.installbomb(pickup);
+                            }
+                        }
+                        if (scp5k_Sci.TryGet(GocPID, out var item2))
+                        {
+                            if (item2.Check(ev.Player))
+                            {
+                                var pickup = ev.Player.DropItem(ev.Item);
+                                GOCBomb.installbomb(pickup);
+                            }
+                        }
+                    } else
+                    {
+                        lp.AddMessage("NO!", "<color=red><size=27>不在该房间安装!</size></color>", 3f);
+
+                    }
+                }
+            }
+
+            protected override void UnsubscribeEvents()
+            {
+                Exiled.Events.Handlers.Player.UsedItem -= OnUsedItem;
+                Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
+                Exiled.Events.Handlers.Player.SearchingPickup -= SearchingItem;
+                base.UnsubscribeEvents();
+            }
+            public override void Init()
+            {
+                if (Is5kRound)
+                {
+                    GOCBomb.init();
+                }
                 base.Init();
             }
         }
@@ -1419,6 +1746,40 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 // 将 Plugin.plugin.MenuCache 替换为 Plugin.MenuCache
                 if (!Plugin.MenuCache.Any(x => x.Id == Plugin.plugin.Config.SettingIds[Features.AEHKey]))
                     Plugin.MenuCache.AddRange(MenuInit());
+                base.Init();
+            }
+        }
+        public static uint BombgunItemID = 5808;
+        [CustomItem(ItemType.GunRevolver)]
+        public class scp5k_bombgun : CustomWeapon
+        {
+            public override uint Id { get; set; } = BombgunItemID;
+            public override string Name { get; set; } = "榴弹枪";
+            public override float Damage { get; set; } = 0;
+            public override string Description { get; set; } = "";
+            public override float Weight { get; set; } = 2;
+            public override SpawnProperties SpawnProperties { get; set; } = null;
+            public override Vector3 Scale { get; set; } = new Vector3(2f, 2f, 2f);
+            protected override void OnUpgrading(UpgradingEventArgs ev)
+            {
+                if (Check(ev.Pickup))
+                {
+                    ev.IsAllowed = false;
+                    base.OnUpgrading(ev);
+                }
+            }
+            protected override void OnAcquired(Player player, Item item, bool displayMessage)
+            {
+                if (Check(item))
+                {
+                    BombHandle.RegisterAGun(item);
+                }
+                base.OnAcquired(player, item, displayMessage);
+            }
+            public override void Init()
+            {
+
+
                 base.Init();
             }
         }

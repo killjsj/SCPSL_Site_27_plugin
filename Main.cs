@@ -218,6 +218,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
+            Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
 
             //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
             CustomRole.RegisterRoles(assembly:Assembly);
@@ -226,6 +227,7 @@ namespace Next_generationSite_27.UnionP
             harmony = new Harmony("Killjsj.plugin.site27plugin");
             harmony.PatchAll();
             AutoEvent.AutoEvent.EventManager.RegisterInternalEvents();
+            Scp5k.GOCAnim.Load();
             base.OnEnabled();
         }
         public override void OnDisabled()
@@ -277,6 +279,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Warhead.Detonating -= Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Server.EndingRound -= Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
+            Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
             Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
 
 

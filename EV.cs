@@ -1,7 +1,9 @@
 ﻿using AutoEvent;
 using CentralAuth;
+using CommandSystem.Commands.Shared;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
+using Exiled.API.Features;
 using Exiled.API.Features.Items;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
@@ -19,7 +21,10 @@ using InventorySystem.Items.Firearms.ShotEvents;
 using InventorySystem.Items.Keycards;
 using InventorySystem.Items.Pickups;
 using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Arguments.ServerEvents;
 using LabApi.Features.Wrappers;
+using LabApi.Loader.Features.Paths;
+using MapGeneration;
 using MEC;
 using Mirror;
 using NetworkManagerUtils.Dummies;
@@ -39,6 +44,7 @@ using System.Text;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Utils.NonAllocLINQ;
+using static Next_generationSite_27.UnionP.RoomGraph;
 using Enum = System.Enum;
 using KeycardItem = InventorySystem.Items.Keycards.KeycardItem;
 using Log = Exiled.API.Features.Log;
@@ -385,6 +391,15 @@ namespace Next_generationSite_27.UnionP
         {
             InventoryLimits.StandardCategoryLimits[ItemCategory.SpecialWeapon] = (sbyte)Config.MaxSpecialWeaponLimit;
             ServerConfigSynchronizer.Singleton.RefreshCategoryLimits();
+            Timing.RunCoroutine(LoadConnectMeshesAsync());
+
+
+        }
+        private IEnumerator<float> LoadConnectMeshesAsync()
+        {
+            yield return Timing.WaitUntilTrue(() => SeedSynchronizer.MapGenerated);
+            new SimpleRoomNavigation();
+
         }
         public Dictionary<Player, Stopwatch> BroadcastTimers = new Dictionary<Player, Stopwatch>();
         public bool RoundEnded
@@ -1869,11 +1884,10 @@ namespace Next_generationSite_27.UnionP
             var CS = MysqlConnect.QueryCassieWelcome(ev.Player.UserId);
             if (CS.enabled)
             {
-                Exiled.API.Features.Cassie.Message("Welcome", isNoisy: false, isSubtitles: false);
                 if(string.IsNullOrEmpty(CS.welcomeText))
                 {
                     if (CS.color != "rainbow"){ 
-                    Exiled.API.Features.Cassie.Message($"<color={CS.color}>{config.WelcomeContext.Replace("{player}", ev.Player.Nickname)}</color>", isNoisy: false, isSubtitles: true); 
+                    Exiled.API.Features.Cassie.MessageTranslated("Welcome", $"<color={CS.color}>{config.WelcomeContext.Replace("{player}", ev.Player.Nickname)}</color>", isNoisy: false, isSubtitles: true); 
                     } else 
                     {
                         Exiled.API.Features.Cassie.Message(rainbowtime(config.WelcomeContext.Replace("{player}", ev.Player.Nickname)), isNoisy: false, isSubtitles: true);
@@ -1882,11 +1896,11 @@ namespace Next_generationSite_27.UnionP
                 {
                     if (CS.color != "rainbow")
                     {
-                        Exiled.API.Features.Cassie.Message($"<color={CS.color}>{CS.welcomeText}</color>", isNoisy: false, isSubtitles: true);
+                        Exiled.API.Features.Cassie.MessageTranslated("Welcome", $"<color={CS.color}>{CS.welcomeText}</color>", isNoisy: false, isSubtitles: true);
                     }
                     else
                     {
-                        Exiled.API.Features.Cassie.Message(rainbowtime(CS.welcomeText), isNoisy: false, isSubtitles: true);
+                        Exiled.API.Features.Cassie.MessageTranslated("Welcome", rainbowtime(CS.welcomeText), isNoisy: false, isSubtitles: true);
                     }
 
                 }

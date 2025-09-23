@@ -319,7 +319,7 @@ namespace Next_generationSite_27.UnionP
                             {
                                 throw new NullReferenceException($"Could not set the gun. item is not a gun.");
                             }
-                            Plugin.bomb_gun_ItemSerial.Add(itemBase.Serial);
+                            BombHandle.RegisterAGun(itemBase);
 
                         }
                         catch (Exception ex)
@@ -481,10 +481,30 @@ namespace Next_generationSite_27.UnionP
                 Plugin.active_g++;
             }
         }
+        public static void RegisterAGun(Pickup gun)
+        {
+
+            if (!Plugin.bomb_gun_ItemSerial.Contains(gun.Serial))
+            {
+
+                Plugin.bomb_gun_ItemSerial.Add(gun.Serial);
+            }
+
+        }
+        public static void RegisterAGun(Item gun)
+        {
+
+            if (!Plugin.bomb_gun_ItemSerial.Contains(gun.Serial))
+            {
+
+                Plugin.bomb_gun_ItemSerial.Add(gun.Serial);
+            }
+
+        }
 
         private IEnumerator<float> GCoroutine(Exiled.API.Features.Player plr,GrenadePickup grenadePickup)
         {
-            yield return Timing.WaitForSeconds(0.5f);
+            yield return Timing.WaitForSeconds(0.1f);
             if(grenadePickup == null)
             {
                 yield break;

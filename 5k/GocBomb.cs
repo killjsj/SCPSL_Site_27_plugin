@@ -647,9 +647,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 try
                 {
-                    if (countDownTick <= 0)
+                    if (countDown <= 0)
                     {
-                        countDownTick = 0; break;
+                        countDown = 0; break;
                     }
                     else
                     {
@@ -709,15 +709,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             foreach (var item in LabApi.Features.Wrappers.Player.GetAll())
             {
-                var ep = Exiled.API.Features.Player.Get(item);
-                bool isGocActing = false;
-                if (customGocC != null && customGocP != null)
-                {
-                    if (customGocC.Check(ep) || customGocP.Check(ep))
-                    {
-                        isGocActing = true;
-                    }
-                }
                 if (item.HasMessage("donationCount"))
                 {
                     item.RemoveMessage("donationCount");

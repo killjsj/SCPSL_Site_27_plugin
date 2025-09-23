@@ -702,6 +702,15 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             if (Is5kRound)
             {
+                GOCBomb.GOCBombList.Clear();
+                GOCBomb.installedRoom.Clear();
+                GOCBomb.P2B.Clear();
+                GOCBomb.Questions.Clear();
+                GOCBomb.Inited = false;
+                GOCBomb.Played = false;
+                GOCBomb.installAt.Clear();
+                GOCBomb.QuestionPoint = -1;
+                GOCBomb.countDown = 100;
                 if (Scp055Escaped)
                 {
                     foreach (var s in LabApi.Features.Wrappers.Player.List)

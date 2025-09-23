@@ -29,6 +29,7 @@ using MEC;
 using Mirror;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
+using Next_generationSite_27.UnionP.Scp5k;
 using PlayerRoles;
 using PlayerRoles.RoleAssign;
 using ProjectMER.Features;
@@ -479,6 +480,8 @@ namespace Next_generationSite_27.UnionP
         public Dictionary<Player, int> PlayerTicket = new Dictionary<Player, int>();
         public void RoundStarted()
         {
+
+
             if (targetRole == null || targetRole.Count == 0) // 更标准的空检查
             {
                 Log.Debug("No target roles to assign. Skipping RoundStarted logic.");
@@ -791,6 +794,10 @@ namespace Next_generationSite_27.UnionP
 
             // 11. 启用 Super SCP (如果配置允许)
             updateInfo = Timing.RunCoroutine(this.UpdateInfo());
+            if (Scp5k_Control.Is5kRound)
+            {
+                GOCBomb.init();
+            }
             try
             {
                 if (Player.List.Count() >= Config.EnableSuperScpCount && Config.EnableSuperScp)

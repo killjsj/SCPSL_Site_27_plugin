@@ -352,7 +352,8 @@ namespace Next_generationSite_27.UnionP
                                     float adjusted = PU.level >= 220 ? original * 0.75f : original;
                                     field.SetValue(r.DoorLockChanger, adjusted);
                                     SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
-                                    SettingBase.Register(player, Plugin.MenuCache);
+                                    
+                                    SettingBase.Register(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader]));
                                     break;
                                 }
                         }

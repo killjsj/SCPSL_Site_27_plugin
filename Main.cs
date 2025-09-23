@@ -219,8 +219,8 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
-
-            //Exiled.Events.Handlers.Player. += eventhandle.Escaping;
+                Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
+            
             CustomRole.RegisterRoles(assembly:Assembly);
             CustomItem.RegisterItems();
             max_active_g = Config.maxbomb;
@@ -281,7 +281,8 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
             Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
-
+            Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
+            
 
             harmony.UnpatchAll();
             eventhandle.update();
@@ -361,6 +362,7 @@ namespace Next_generationSite_27.UnionP
             { Features.LevelHeader, 114 },
             { Features.Scp079NukeKey, 514 },
             { Features.Scp5kHeader, 5000 },
+            { Features.Scp5kGOCAnswer, 5001 },
             { Features.AEHKey, 5141 },
         };
         [Description("以下与5k相关 启用5k的概率(0-100)")]
@@ -441,6 +443,7 @@ namespace Next_generationSite_27.UnionP
         Scp079NukeKey,
         Scp5kHeader,
         AEHKey,
+        Scp5kGOCAnswer,
     }
     public class RunningMan : Event<GwangjuRunningManLoader.RunningManConfig, RunningManTranslation>, IEventMap, IEventSound
     {

@@ -64,6 +64,9 @@
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
     </Reference>
+    <Reference Include="AudioManagerAPI">
+      <HintPath>.\AudioManagerAPI.dll</HintPath>
+    </Reference>
     <Reference Include="AutoEvent">
       <HintPath>..\..\..\AppData\Roaming\EXILED\Plugins\AutoEvent.dll</HintPath>
     </Reference>
@@ -407,6 +410,7 @@
     <Compile Include="5k\GocBomb.cs" />
     <Compile Include="5k\GOCAnim.cs" />
     <Compile Include="5k\patch.cs" />
+    <Compile Include="Audio.cs" />
     <Compile Include="bomb.cs" />
     <Compile Include="5k\scp5k.cs" />
     <Compile Include="Command.cs" />

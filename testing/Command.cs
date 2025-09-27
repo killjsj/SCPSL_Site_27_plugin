@@ -118,7 +118,7 @@ namespace Next_generationSite_27.UnionP
             var p = LabApi.Features.Wrappers.Player.Get(runner.ReferenceHub);
             Next_generationSite_27.Features.PlayerHuds.PlayerHud.TryGet(p, out var hud);
             
-            hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage(messid, text, time, (ScreenLocation)Enum.Parse(typeof(ScreenLocation), loc)));
+            hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage(messid, text, time, (ScreenLocation)Enum.Parse(typeof(ScreenLocation), loc,true)));
             return true;
 
         }
@@ -275,6 +275,7 @@ namespace Next_generationSite_27.UnionP
         new DefaultPingProcessor()
 };
     }
+    [CommandHandler(typeof(GameConsoleCommandHandler))]
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class Scp5kstartCommand : ICommand
     {
@@ -287,16 +288,77 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            if (runner.KickPower < 12)
+            if (runner != null)
             {
-                response = "你没权 （player.KickPower < 12）";
-                return false;
+                if (runner.KickPower < 12)
+                {
+                    response = "你没权 （player.KickPower < 12）";
+                    return false;
+                }
             }
             Scp5k_Control.Is5kRound = true;
             Round.Restart();
             response = $"done!";
             return true;
 
+        }
+    }
+    [CommandHandler(typeof(GameConsoleCommandHandler))]
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class ReplyCommand : ICommand
+    {
+        string ICommand.Command { get; } = "reply";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "just a test";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            Timing.RunCoroutine(test1(sender));
+            response = $"test 1";
+            return true;
+
+        }
+        IEnumerator<float> test1(ICommandSender sender)
+        {
+            if (sender is CommandSender CS)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    try
+                    {
+                        CS.RaReply($"RaReply test3 {i}", true, true, "test3_overrideDisplay");
+                        CS.RaReply($"RaReply test3 {i} Null", true, true, "");
+                    }
+                    catch(Exception ex)
+                    {
+                        Log.Error("test3:");
+                        Log.Error(ex.ToString());
+                    }
+                    try
+                    {
+                        CS.Print($"Print test4 {i}");
+                        CS.Print($"Print Color test4 {i}",ConsoleColor.Green);
+                        CS.Print($"Print Color RgbColor test4 {i}",ConsoleColor.Green,Color.cyan);
+                    }
+                    catch(Exception ex)
+                    {
+                        Log.Error("test4:");
+                        Log.Error(ex.ToString());
+                    }
+                    try
+                    {
+                        CS.Respond($"Respond test5 {CS.Available()}");
+                    }catch(Exception ex)
+                    {
+                        Log.Error("test5:");
+                        Log.Error(ex.ToString());
+                    }
+                    yield return Timing.WaitForSeconds(0.5f);
+                    
+                }
+            }
         }
     }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
@@ -362,6 +424,52 @@ namespace Next_generationSite_27.UnionP
                 return false;
             }
             BetterZombie.Create(Owner);
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class ChangeAppearceCommand : ICommand
+    {
+        string ICommand.Command { get; } = "CAP";
+
+        string[] ICommand.Aliases { get; } = new[] {""};
+
+        string ICommand.Description { get; } = "!!! 修改外貌 CAP RoleTypeID [PlayerId(可选)]";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var target = Player.Get(sender);
+            RoleTypeId targetRole = RoleTypeId.None; 
+            if (target.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            if (arguments.Count < 2)
+            {
+                targetRole = (RoleTypeId)Enum.Parse(typeof(RoleTypeId), arguments.At(0), true);
+            }
+            else
+            {
+
+                string[] newargs;
+                List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 1, out newargs);
+                if (list == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                    return false;
+                }
+                if (list[0] == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
+                    return false;
+                }
+                targetRole = (RoleTypeId)Enum.Parse(typeof(RoleTypeId), arguments.At(0), true);
+                target = Player.Get(list[0]);
+            }
+            target.ChangeAppearance(targetRole);
             response = $"done!";
             return true;
 
@@ -467,7 +575,7 @@ namespace Next_generationSite_27.UnionP
 
             //// 获取路径点
             //var re = pathfinding.GetPathPoints(
-            //    runner.Position, new Vector3(x, y, z)
+            //    target.Position, new Vector3(x, y, z)
             //);
             var nav = SimpleRoomNavigation.Nav;
             var re = nav.FindPath(runner.Position,runner.CurrentRoom , new Vector3(x, y, z), Room.Get(new Vector3(x, y, z)));
@@ -513,7 +621,7 @@ namespace Next_generationSite_27.UnionP
                 return false;
             }
 
-            Scp5k.GOCAnim.Gen(new Vector3(13f, 360f, -40f));
+            Scp5k.GOCAnim.Gen(new Vector3(13f, 400f, -40f));
             response = $"done!";
             return true;
 

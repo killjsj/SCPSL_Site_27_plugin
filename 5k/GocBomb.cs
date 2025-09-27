@@ -1,4 +1,6 @@
-﻿using AdminToys;
+﻿using Achievements;
+using AdminToys;
+using AudioManagerAPI.Defaults;
 using AutoEvent.Interfaces;
 using CommandSystem;
 using CustomRendering;
@@ -8,12 +10,16 @@ using Exiled.API.Features;
 using Exiled.API.Features.Core.UserSettings;
 using Exiled.API.Features.Spawn;
 using Exiled.API.Features.Toys;
+using Exiled.API.Features.Waves;
 using Exiled.CustomItems.API.Features;
 using Exiled.CustomRoles.API.Features;
 using Exiled.Events.Commands.Reload;
 using Exiled.Events.EventArgs.Player;
+using Exiled.Events.Handlers;
 using Exiled.Loader;
 using InventorySystem.Items.Firearms;
+using LabApi.Events.Arguments.WarheadEvents;
+using LabApi.Features.Audio;
 using LabApi.Features.Wrappers;
 using LiteNetLib;
 using MEC;
@@ -21,16 +27,21 @@ using Mirror;
 using Next_generationSite_27.Features.PlayerHuds;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
+using Respawning;
+using Respawning.Waves;
+using Respawning.Waves.Generic;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.DedicatedServer;
 using UnityEngine.EventSystems;
+using UserSettings.ServerSpecific;
 using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 using static TMPro.TMP_InputField;
 using static UnityEngine.UI.CanvasScaler;
@@ -225,7 +236,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             if (bomb.nowquestion.a == arguments.At(0))
             {
-                bomb.AnsweredCount++;
+                if (!bomb.GocIntering)
+                {
+                    bomb.AnotAnsweredCount++;
+                }
+                else
+                {
+                    bomb.GoCAnsweredCount++;
+                }
                 response = "正确!";
             }
             else
@@ -302,6 +320,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             Log.Info("GOCBOMB init");
             if (Inited) return;
+            
             //installCount = UnityEngine.Random.Range(3,5 + 1);
             installAt = GetFarthestRooms(installCount, ZoneType.HeavyContainment);
             foreach (var item in installAt)
@@ -318,8 +337,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
             if (!Plugin.MenuCache.Any(x => x.Id == Plugin.plugin.Config.SettingIds[Features.Scp5kGOCAnswer]))
                 Plugin.MenuCache.AddRange(MenuInit());
             Inited = true;
-
+            
         }
+        
         public GOCBomb(ushort itemID)
         {
             if (!Inited) init();
@@ -345,8 +365,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static Dictionary<GOCBomb, Room> installedRoom = new Dictionary<GOCBomb, Room>();
         public static Dictionary<Exiled.API.Features.Player, GOCBomb> P2B = new Dictionary<Exiled.API.Features.Player, GOCBomb>();
         public static List<(string q, string a)> Questions = new List<(string q, string a)>();
-        public static int QuestionCount = 1;
+        public static int QuestionCount = 2;
         public static int QuestionPoint = -1;
+        public Exiled.API.Features.Pickups.Pickup pickup;
         private static readonly object questionLock = new object();
         public SchematicObject schematicObject;
         public static GOCBomb installbomb(Exiled.API.Features.Pickups.Pickup pickup)
@@ -375,7 +396,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         break;
                     }
                 }
-
+                g.pickup = pickup;
 
                 return g;
             }
@@ -406,7 +427,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             GOCBombList.Remove(this);
             installedRoom.Remove(this);
-            schematicObject.Destroy();
+            if (schematicObject.gameObject != null)
+            {
+                schematicObject.Destroy();
+            }
             intering = null;
 
             if (installedCount == 0 && Played)
@@ -435,7 +459,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
         }
         public LabApi.Features.Wrappers.Player intering = null;
-        public int AnsweredCount = 0;
+        public int GoCAnsweredCount = 0;
+        public int AnotAnsweredCount = 0;
         public ushort ItemID = 0;
         public (string q, string a) nowquestion;
         public bool installed = false;
@@ -469,7 +494,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     intering = p;
                     p.AddMessage("GocBomb", "<color=yellow><size=27>正在拆除炸弹</size></color>");
-                    Timing.RunCoroutine(playerCode(ep, ep.CurrentRoom));
+                    Timing.RunCoroutine(playerCode(ep, ep.CurrentRoom,false));
                 }
                 else
                 {
@@ -485,7 +510,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             intering = p;
                             p.AddMessage("GocBomb", "<color=yellow><size=27>正在安装炸弹</size></color>");
-                            Timing.RunCoroutine(playerCode(ep, ep.CurrentRoom));
+                            Timing.RunCoroutine(playerCode(ep, ep.CurrentRoom,true));
                         }
                     }
                     else
@@ -494,6 +519,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                 }
 
+            }
+            else
+            {
+                p.AddMessage("BOmb", $"<color=yellow><size=27>玩家{ep.DisplayNickname}正在操作炸弹!</size></color>");
             }
         }
         public override bool Equals(object obj)
@@ -506,7 +535,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             var settings = new List<SettingBase>();
 
             settings.Add(new UserTextInputSetting(
-                Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer], $"回答问题 在此处输入答案:", contentType: ContentType.IntegerNumber,
+                Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer], $"回答问题 在此处输入答案:", contentType: ContentType.IntegerNumber,isServerOnly:true,
                 onChanged: (player, SB) =>
                 {
                     try
@@ -515,19 +544,36 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             return;
                         }
+                        if (bomb.intering == null || bomb.intering.ReferenceHub != player.ReferenceHub)
+                        {
+                            SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
+
+                            return; // 不在互动中，忽略输入
+                        }
                         var lp = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
                         if (SB is UserTextInputSetting UTI)
                         {
+                            if(string.IsNullOrEmpty(UTI.Text))
+                            {
+                                return; // 空输入忽略
+                            }
                             if (bomb.nowquestion.a == UTI.Text)
                             {
-                                bomb.AnsweredCount++;
-                                lp.AddMessage("answer!", "<color=green>正确!</color>", 3f, Enums.ScreenLocation.CenterBottom);
+                                if (!bomb.GocIntering)
+                                {
+                                    bomb.AnotAnsweredCount++;
+                                }
+                                else
+                                {
+                                    bomb.GoCAnsweredCount++;
+                                }
+                                lp.AddMessage("answer!", "<color=green>正确!</color>", 2f, Enums.ScreenLocation.CenterBottom);
                                 UTI.RequestClear((x) => x == player);
                             }
                             else
                             {
-                                lp.AddMessage("answer!", "<color=red>错误!</color>", 3f, Enums.ScreenLocation.CenterBottom);
-
+                                lp.AddMessage("answer!", "<color=red>错误!</color>", 2f, Enums.ScreenLocation.CenterBottom);
+                                UTI.RequestClear((x) => x == player);
                             }
                             bomb.nowquestion = GOCBomb.GetNextQuestion;
                         }
@@ -544,7 +590,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             return this.ItemID.GetHashCode();
         }
-        public IEnumerator<float> playerCode(Exiled.API.Features.Player player, Room runAt)
+        public bool GocIntering = false;
+        public IEnumerator<float> playerCode(Exiled.API.Features.Player player, Room runAt, bool isGoc)
         {
             if (!P2B.ContainsKey(player))
             {
@@ -560,10 +607,22 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 nowquestion = GetNextQuestion; // 👈 在这里首次获取题目
             }
-            SettingBase.Register(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
-
-            while (!player.Role.IsDead)
+            GocIntering = isGoc;
+            var i = Plugin.MenuCache.FirstOrDefault(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]);
+            SettingBase.Register(player, new List<SettingBase>() { i});
+            if (i != null && i is UserTextInputSetting u)
             {
+                u.UpdateValue("", filter: p => p == player);
+                u.RequestClear(p => p == player);
+        
+            }
+            while (true)
+            {
+                if (player == null || !player.IsConnected || player.Role.IsDead)
+                {
+                    break;
+                }
+
                 if (intering == null)
                 {
                     break;
@@ -576,90 +635,176 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
                 else
                 {
-                    if (AnsweredCount == QuestionCount)
+                    if (GoCAnsweredCount == QuestionCount)
                     {
-                        if (installed)
+                        if (lp.HasMessage("problem"))
+                        {
+                            lp.RemoveMessage("problem");
+                        }
+                        if (!isGoc)
                         {
                             lp.AddMessage("Runned", "<pos=20%><color=green><size=27>拆除成功</size></color></pos>", 3f, Enums.ScreenLocation.CenterBottom);
+                            Uninstall(pickup);
                             installedRoom.Remove(this);
+                            pickup.Destroy();
                         }
                         else
                         {
                             lp.AddMessage("Runned", "<pos=20%><color=green><size=27>安装成功</size></color></pos>", 3f, Enums.ScreenLocation.CenterBottom);
 
 
-                            if (installedCount == 1 && !Played)
-                            {
-                                Exiled.API.Features.Cassie.Message("警告!GOC正在安装奇术核弹 所有人员前往阻止/拆除", isSubtitles: true);
-                                Played = true;
 
-                            }
                         }
-                        installed = !installed;
-                        AnsweredCount = 0;
+                        installed = true;
+                        AnotAnsweredCount = 0;
+                        GoCAnsweredCount = 0;
+                        if (isGoc && installedCount == 1 && !Played)
+                        {
+                            Exiled.API.Features.Cassie.Message("警告!GOC正在安装奇术核弹 所有人员前往阻止/拆除", isSubtitles: true);
+                            Played = true;
+
+                        }
+                        if (installedCount == installCount)
+                        {
+                            Timing.RunCoroutine(CountDown());
+                        }
                         break;
                     }
-                    if (!lp.HasMessage("problem"))
+                    if (AnotAnsweredCount == QuestionCount)
                     {
-                        lp.AddMessage("problem", (p) =>
+                        if (lp.HasMessage("problem"))
                         {
-                            if (nowquestion.q == null || nowquestion.a == null)
-                            {
-                                nowquestion = GetNextQuestion; // 👈 在这里首次获取题目
-                            }
-                            return new string[]{
-                            $"<pos=45%><color=yellow><size=27>第{AnsweredCount + 1}题 还剩{QuestionCount - AnsweredCount - 1}题 使用 .answer 答案 或者Server-specific回答</size></color></pos>\n<pos=45%><color=green><size=27>{nowquestion.q} = ?</size></color></pos>"};
+                            lp.RemoveMessage("problem");
+                        }
+                        if (!isGoc)
+                        {
+                            lp.AddMessage("Runned", "<pos=20%><color=green><size=27>拆除成功</size></color></pos>", 3f, Enums.ScreenLocation.CenterBottom);
+                            installed = false;
+                            intering = null;
+                            Uninstall(pickup);
+                            installedRoom.Remove(this);
+                            pickup.Destroy(); 
+                            GoCAnsweredCount = 0;
+                            AnotAnsweredCount = 0;
+                        }
+                        
+                        //Uninstall
+                        break;
+                    }
+                    else if (!lp.HasMessage("problem"))
+                    {
 
-                        }, 4f, Enums.ScreenLocation.CenterTop);
+                        if (isGoc)
+                        {
+                            lp.AddMessage("problem", (p) =>
+                            {
+                                if (nowquestion.q == null || nowquestion.a == null)
+                                {
+                                    nowquestion = GetNextQuestion; // 👈 在这里首次获取题目
+                                }
+                                return new string[]{
+                            $"<pos=45%><color=yellow><size=27>第{GoCAnsweredCount + 1}题 还剩{QuestionCount - GoCAnsweredCount - 1}题 使用 .answer 答案 或者Server-specific回答</size></color></pos>\n<pos=45%><color=green><size=27>{nowquestion.q} = ?</size></color></pos>"};
+
+                            }, 4f, Enums.ScreenLocation.CenterTop);
+                        } else
+                        {
+                            lp.AddMessage("problem", (p) =>
+                            {
+                                if (nowquestion.q == null || nowquestion.a == null)
+                                {
+                                    nowquestion = GetNextQuestion; // 👈 在这里首次获取题目
+                                }
+                                return new string[]{
+                            $"<pos=45%><color=yellow><size=27>第{AnotAnsweredCount + 1}题 还剩{QuestionCount - AnotAnsweredCount - 1}题 使用 .answer 答案 或者Server-specific回答</size></color></pos>\n<pos=45%><color=green><size=27>{nowquestion.q} = ?</size></color></pos>"};
+
+                            }, 4f, Enums.ScreenLocation.CenterTop);
+                        }
                     }
                     yield return Timing.WaitForSeconds(0.3f);
                 }
             }
             intering = null;
+            if (i != null && i is UserTextInputSetting u1)
+            {
+                Predicate<Exiled.API.Features.Player> P = p => p == player;
+                u1.UpdateValue("", filter: P);
+                u1.RequestClear(P);
+            }
+
             SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
 
             P2B.Remove(player); // 👈 清理字典，避免玩家断开后仍占用内存
             yield break;
         }
-        public static float countDown = 100;
+        public static float countDownStart = 160;
+        public static float countDown = countDownStart;
         public static float countDownTick = 0.2f;
         public static IEnumerator<float> CountDown()
         {
-                            Scp5k_Control.GocSpawnable = false;
-            Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹安装完成 预计在{countDown}秒后爆炸! 请务必拆除所有 {GOCBomb.installCount} 个炸弹", isSubtitles: true);
-            if (Scp5k.Scp5k_Control.GOCBOmb == null)
+            try
             {
-                GOCAnim.Gen(new Vector3(13f, 360f, -40f));
-                //Exiled.API.Features.Cassie.Message("警告!GOC正在安装奇术核弹 所有人员前往阻止/拆除", isSubtitles: true);
-                Played = true;
-            }
-            if (!CustomRole.TryGet(Scp5k_Control.GocCID, out var customGocC))
-            {
-                Log.Info("Failed to get goc");
+                Scp5k_Control.GocSpawnable = false;
+                Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹安装完成 预计在{countDown}秒后预热完成! 请务必拆除所有{GOCBomb.installCount}个炸弹", isHeld: true, isSubtitles: true);
+                if (Scp5k.Scp5k_Control.GOCBOmb == null)
+                {
+                    GOCAnim.Gen(new Vector3(13f, 400f, -40f));
+                    //Exiled.API.Features.Cassie.Message("警告!GOC正在安装奇术核弹 所有人员前往阻止/拆除", isSubtitles: true);
+                    Played = true;
+                }
+               
+                foreach (var item in Room.List)
+                {
+                    item.Color = Color.red;
 
-            }
-            if (!CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocP))
+                }
+            }catch(Exception ex)
             {
-                Log.Info("Failed to get goc");
+                Log.Error(ex);
             }
-
+            foreach (var item in WaveManager.Waves)
+            {
+                if(item is TimeBasedWave IL)
+                {
+                    IL.Timer.Reset();
+                }
+            }
             while (true)
             {
                 try
                 {
                     if (countDown <= 0)
                     {
-                        countDown = 0; break;
+                        countDown = 0;
+                        foreach (var item in LabApi.Features.Wrappers.Player.GetAll())
+                        {
+                            if (item.HasMessage("donationCount"))
+                            {
+                                item.RemoveMessage("donationCount");
+                            }
+
+                        }
+                        Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹预热完成 预计在40到60秒后爆炸 尽快撤离!", isSubtitles: true);
+                        GOCAnim.PlayDonate();
+                        break;
                     }
                     else
                     {
-                        if(installedCount == 0)
+                        if (installedCount == 0)
                         {
 
                             Exiled.API.Features.Cassie.Message($"GOC奇术核弹拆除完毕 终结所有GOC人员", isSubtitles: true);
                             GOCAnim.PlayEnd();
-                            countDown = 100;
-                            yield break;
+                            countDown = countDownStart;
+                            break;
+                        }
+                        if (!CustomRole.TryGet(Scp5k_Control.GocCID, out var customGocC))
+                        {
+                            Log.Info("Failed to get goc");
+
+                        }
+                        if (!CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocP))
+                        {
+                            Log.Info("Failed to get goc");
                         }
                         foreach (var item in LabApi.Features.Wrappers.Player.GetAll())
                         {
@@ -679,7 +824,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     item.AddMessage("donationCount", (p) =>
                                     {
                                         return new string[]{
-                            $"<voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}内保护GOC奇术核弹!</size></color></pos>\n<pos=45%><color=green><size=27>目前剩下:{installedCount}</size></color></pos>"};
+                            $"<voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内保护GOC奇术核弹!</size></color></pos>\n<pos=45%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
 
                                     }, 5f, Enums.ScreenLocation.CenterTop);
                                 }
@@ -691,7 +836,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     item.AddMessage("donationCount", (p) =>
                                     {
                                         return new string[]{
-                            $"<voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}内阻止GOC奇术核弹!</size></color></pos>\n<pos=45%><color=green><size=27>目前剩下:{installedCount}</size></color></pos>"};
+                            $"<voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内阻止GOC奇术核弹!</size></color></pos>\n<pos=45%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
 
                                     }, 5f, Enums.ScreenLocation.CenterTop);
                                 }
@@ -713,10 +858,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 {
                     item.RemoveMessage("donationCount");
                 }
-                    
+
             }
-            Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹预热完成 预计在40到20秒后爆炸 尽快撤离!", isSubtitles: true);
-            GOCAnim.PlayDonate();
+
         }
 
     }

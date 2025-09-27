@@ -11,6 +11,7 @@ using InventorySystem;
 using InventorySystem.Items;
 using InventorySystem.Items.Firearms;
 using InventorySystem.Items.Firearms.ShotEvents;
+using InventorySystem.Items.ThrowableProjectiles;
 using MEC;
 using PlayerRoles;
 using PlayerStatsSystem;
@@ -475,9 +476,15 @@ namespace Next_generationSite_27.UnionP
                     return;
                 }
                 var p = plr.CameraTransform.position + plr.CameraTransform.forward * UnityEngine.Random.value;
-                GrenadePickup grenadePickup = (GrenadePickup)Pickup.CreateAndSpawn<GrenadePickup>(ItemType.GrenadeHE, p, plr.CameraTransform.rotation, plr);
-                grenadePickup.Rigidbody.AddForce(plr.CameraTransform.forward * 25, ForceMode.Impulse);
-                Timing.RunCoroutine(GCoroutine(plr,grenadePickup));
+                // 直接创建手雷物品并生成Pickup
+                var grenadeItem = Item.Create(ItemType.GrenadeHE);
+                var grenadePickup = grenadeItem.CreatePickup(p, Quaternion.identity, true) as GrenadePickup;
+                if (grenadePickup != null && grenadePickup.Rigidbody != null)
+                {
+                    grenadePickup.Rigidbody.AddForce(plr.CameraTransform.forward * 25, ForceMode.Impulse);
+                    Timing.RunCoroutine(GCoroutine(plr, grenadePickup));
+                    Plugin.active_g++;
+                }
                 Plugin.active_g++;
             }
         }

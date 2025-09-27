@@ -10,6 +10,7 @@ using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Roles;
 using Exiled.API.Features.Toys;
+using Exiled.CustomItems.API.Features;
 using Exiled.CustomRoles.API.Features;
 using GameObjectPools;
 using InventorySystem;
@@ -86,6 +87,52 @@ namespace Next_generationSite_27.UnionP
             var y = float.Parse(newargs[1]);
             var z = float.Parse(newargs[2]);
             runner.Position = new Vector3(x, y, z);
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class WhipCommand : ICommand
+    {
+        string ICommand.Command { get; } = "whip";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "Whip playerID";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (!sender.CheckPermission(PlayerPermissions.GivingItems, out response))
+            {
+                return false;
+            }
+            Player Owner = null;
+            if (arguments.Count < 1)
+            {
+                Owner = runner;
+                    CustomItem.Get(WhipS.WhipId).Give(Player.Get(Owner));
+            }
+            else
+            {
+
+                string[] newargs;
+                List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out newargs);
+                if (list == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                    return false;
+                }
+                if (list[0] == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
+                    return false;
+                }
+                foreach (var item in list) { 
+                    CustomItem.Get(WhipS.WhipId).Give(Player.Get(item));
+                }
+            }
+            response = $"done!";
             return true;
 
         }
@@ -330,6 +377,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         CS.RaReply($"RaReply test3 {i}", true, true, "test3_overrideDisplay");
                         CS.RaReply($"RaReply test3 {i} Null", true, true, "");
+                        CS.RaReply($"RaReply#test3.1 {i} Null", true, true, "");
                     }
                     catch(Exception ex)
                     {

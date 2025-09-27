@@ -80,6 +80,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         }
                 }
             }
+            foreach (var item in Room.List)
+            {
+                item.Color = Color.red;
+
+            }
             _animator.SetBool("end", false);
             foreach (var item in Player.List)
             {
@@ -158,6 +163,12 @@ autoCleanup: false);
         public static void PlayEnd()
         {
             _animator.SetBool("end", true);
+            foreach (var item in Room.List)
+            {
+                item.ResetColor();
+            }
+            Exiled.API.Features.Cassie.Message($"GOC奇术核弹拆除完毕 终结所有GOC人员", isSubtitles: true);
+
             if (idleID != 0)
             {
                 DefaultAudioManager.Instance.FadeOutAudio(idleID, 15f);
@@ -263,20 +274,20 @@ autoCleanup: false);
                     donateID = DefaultAudioManager.Instance.PlayGlobalAudioWithFilter("GocDonateMusic", false, 0.6f, AudioManagerAPI.Features.Enums.AudioPriority.Max, fadeInDuration: 0f, configureSpeaker: (x) => { x.Stop(); }, queue: false);
                     Stopwatch sw = new Stopwatch();
                     sw.Restart();
-                    foreach (var item in LabApi.Features.Wrappers.Player.GetAll())
-                    {
-                        if (!item.HasMessage("DebugMusic"))
-                        {
-                            item.AddMessage("DebugMusic", (p) =>
-                            {
-                                stateInfo = an.GetCurrentAnimatorStateInfo(0);
-                                return new string[]{
-                            $"<pos=45%><color=yellow><size=27>debug:本地计时:{sw.Elapsed.TotalSeconds} 动画:{stateInfo.normalizedTime}</size></color></pos>"};
+                    //foreach (var item in LabApi.Features.Wrappers.Player.GetAll())
+                    //{
+                    //    if (!item.HasMessage("DebugMusic"))
+                    //    {
+                    //        item.AddMessage("DebugMusic", (p) =>
+                    //        {
+                    //            stateInfo = an.GetCurrentAnimatorStateInfo(0);
+                    //            return new string[]{
+                    //        $"<pos=45%><color=yellow><size=27>debug:本地计时:{sw.Elapsed.TotalSeconds} 动画:{stateInfo.normalizedTime}</size></color></pos>"};
 
-                            }, 80f, Enums.ScreenLocation.Center);
-                        }
+                    //        }, 80f, Enums.ScreenLocation.Center);
+                    //    }
 
-                    }
+                    //}
                 }
             }
             catch (Exception ex)
@@ -333,7 +344,7 @@ autoCleanup: false);
                             yield break;
                     }
                     Log.Info("Kill");
-                    yield return Timing.WaitForSeconds(0.5f);
+                    yield return Timing.WaitForSeconds(0.06f);
                     foreach (var player in Player.List)
                     {
                         player.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 6, 10f);
@@ -388,7 +399,7 @@ autoCleanup: false);
             }
             Scp5k.Scp5k_Control.GOCBOmb.GetComponent<SchematicObject>().Destroy();
 
-
+            
             Scp5k.Scp5k_Control.GOCBOmb = null;
 
         }

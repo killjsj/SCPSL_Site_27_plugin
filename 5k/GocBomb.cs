@@ -752,11 +752,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     Played = true;
                 }
                
-                foreach (var item in Room.List)
-                {
-                    item.Color = Color.red;
-
-                }
+                
             }catch(Exception ex)
             {
                 Log.Error(ex);
@@ -792,7 +788,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         if (installedCount == 0)
                         {
 
-                            Exiled.API.Features.Cassie.Message($"GOC奇术核弹拆除完毕 终结所有GOC人员", isSubtitles: true);
+                            
                             GOCAnim.PlayEnd();
                             countDown = countDownStart;
                             break;
@@ -824,9 +820,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     item.AddMessage("donationCount", (p) =>
                                     {
                                         return new string[]{
-                            $"<voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内保护GOC奇术核弹!</size></color></pos>\n<pos=45%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
+                            $"<pos=40%><voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内保护GOC奇术核弹!</size></color></pos>\n<pos=60%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
 
-                                    }, 5f, Enums.ScreenLocation.CenterTop);
+                                    }, 5f, Enums.ScreenLocation.CenterBottom);
                                 }
                             }
                             else
@@ -836,9 +832,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     item.AddMessage("donationCount", (p) =>
                                     {
                                         return new string[]{
-                            $"<voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内阻止GOC奇术核弹!</size></color></pos>\n<pos=45%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
+                            $"<pos=40%><voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内阻止GOC奇术核弹!</size></color></pos>\n<pos=60%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
 
-                                    }, 5f, Enums.ScreenLocation.CenterTop);
+                                    }, 5f, Enums.ScreenLocation.CenterBottom);
                                 }
                             }
 

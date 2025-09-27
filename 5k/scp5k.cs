@@ -289,7 +289,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         }
                         else if (Round.ElapsedTime.TotalSeconds > config.HammerStartSpawnTime && !HammerSpawned)
                         {
-                            Log.Info("Hammer");
                             int c = 0;
                             int s = 0;
                             foreach (var p in ReferenceHub.AllHubs.Where(x => x.roleManager.CurrentRole.RoleTypeId.IsAlive()))
@@ -306,6 +305,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
                             if (c - s > config.HammerSpawnCount)
                             {
+                            Log.Info("Hammer");
                                 var w = WaveManager.Waves.FirstOrDefault(x => x is NtfSpawnWave) as NtfSpawnWave;
                                 if (w.RespawnTokens > 0)
                                 {
@@ -1590,9 +1590,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public class scp5k_Goc_spy : CustomRole
         {
 
-            public override uint Id { get; set; } = GocPID;
+            public override uint Id { get; set; } = GocSpyID;
             public override int MaxHealth { get; set; }
-            public override string Name { get; set; } = "Goc_P";
+            public override string Name { get; set; } = "Goc_spy";
             public override string Description { get; set; }
             public override string CustomInfo { get; set; }
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
@@ -1673,6 +1673,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 //Exiled.Events.Handlers.Player.Dying -= OnDying;
                 //Exiled.Events.Handlers.Player.Hurting -= OnHurting;
+                Exiled.Events.Handlers.Player.UsingItem -= UsingItem;
                 //Exiled.Events.Handlers.Player.Verified -= OnVerified;
                 //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
@@ -2240,8 +2241,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             public override void Init()
             {
-
-
                 base.Init();
             }
         }

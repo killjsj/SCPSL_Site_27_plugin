@@ -263,7 +263,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             // Step 1: 过滤出指定 Zone 的房间
             var candidates = Room.List.Where(room => room.Zone == z).ToList();
             candidates = candidates.Where(room => room.Type != RoomType.Unknown && room.Type != RoomType.HczCornerDeep && room.Type != RoomType.HczCrossing && room.Type != RoomType.HczCrossRoomWater && room.Type != RoomType.HczCurve && room.Type != RoomType.HczStraight &&
-             room.Type != RoomType.HczStraightC && room.Type != RoomType.HczStraightPipeRoom && room.Type != RoomType.HczStraightVariant && room.Type != RoomType.HczIntersection && room.Type != RoomType.HczIntersectionJunk && room.Type != RoomType.HczTesla
+             room.Type != RoomType.HczStraightC && room.Type != RoomType.HczStraightPipeRoom && room.Type != RoomType.HczStraightVariant && room.Type != RoomType.HczIntersection && room.Type != RoomType.HczIntersectionJunk && room.Type != RoomType.HczTesla && room.Type != RoomType.HczEzCheckpointB && room.Type != RoomType.HczEzCheckpointA
             ).ToList();
             if (candidates.Count == 0)
                 return new List<Room>();
@@ -739,8 +739,15 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static float countDownStart = 160;
         public static float countDown = countDownStart;
         public static float countDownTick = 0.2f;
+        public static bool CountdownStarted = false;
         public static IEnumerator<float> CountDown()
         {
+            if (CountdownStarted)
+            {
+                yield break;
+            }
+
+            CountdownStarted = false;
             try
             {
                 Scp5k_Control.GocSpawnable = false;
@@ -848,6 +855,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 yield return Timing.WaitForSeconds(countDownTick);
                 countDown -= countDownTick;
             }
+            CountdownStarted = false;
             foreach (var item in LabApi.Features.Wrappers.Player.GetAll())
             {
                 if (item.HasMessage("donationCount"))

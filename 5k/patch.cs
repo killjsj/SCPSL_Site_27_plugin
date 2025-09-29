@@ -416,6 +416,34 @@ namespace Next_generationSite_27.UnionP.Scp5k
             return true;
         }
     }
+    [HarmonyPatch(typeof(PlayerStats))]
+    public static class PlayerStatsPatch
+    {
+        [HarmonyPatch("DealDamage")]
+        [HarmonyPrefix]
+        public static bool Prefix(PlayerStats __instance, DamageHandlerBase handler, ref bool __result)
+        {
+            if (Scp5k_Control.Is5kRound)
+            {
+                var hub = typeof(PlayerStats)
+                    .GetField("_hub", BindingFlags.NonPublic | BindingFlags.Instance)
+                    ?.GetValue(__instance) as ReferenceHub;
+                if(hub != null)
+                {
+                    if (handler is WarheadDamageHandler attackerHandler)
+                    {
+                        if(hub.roleManager.CurrentRole.RoleTypeId == RoleTypeId.Scp079)
+                        {
+                            __result = false;
+                            return false;  // 跳过原始方法执行}
+
+                        }
+                    }
+                }
+            }
+            return true;
+        }
+    }
     [HarmonyPatch(typeof(ZombieAttackAbility))]
     public static class ZombieAttackAbilityPatch
     {

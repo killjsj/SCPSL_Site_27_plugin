@@ -37,6 +37,7 @@ using PlayerRoles.Subroutines;
 using PlayerStatsSystem;
 using ProjectMER.Commands.ToolGunLike;
 using ProjectMER.Features;
+using ProjectMER.Features.Extensions;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
 using RelativePositioning;
@@ -350,6 +351,85 @@ namespace Next_generationSite_27.UnionP
 
         }
     }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class EffectTestCommand : ICommand
+    {
+        string ICommand.Command { get; } = "EfT";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "!!! 使用后将给你添加一个测试buff 由于进行测试(有bug) 谨慎使用 EfT playerId(可选)";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            Player Owner = null;
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            if (arguments.Count < 1)
+            {
+                Owner = runner;
+            }
+            else
+            {
+
+                string[] newargs;
+                List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out newargs);
+                if (list == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                    return false;
+                }
+                if (list[0] == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
+                    return false;
+                }
+                Owner = Player.Get(list[0]);
+            }
+            var a = EffectHelper.AddStatusEffectRuntime<Next_generationSite_27.UnionP.TestEffect>(Owner.ReferenceHub.playerEffectsController);
+            Owner.EnableEffect(a, 30f);
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class Scp079RedButtonCommand : ICommand
+    {
+        string ICommand.Command { get; } = "S079K";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "!!! 使用后将销毁079家的红色按钮 由于进行测试(有bug) 谨慎使用";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            Player Owner = null;
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            ObjectDestroyMessage objectDestroyMessage = default(ObjectDestroyMessage);
+            objectDestroyMessage.netId = Recontainer.ActivatorWindow.Base.netId;
+            ObjectDestroyMessage message = objectDestroyMessage;
+            foreach (Player item in Player.List)
+            {
+                item.Connection.Send(message);
+            }
+            
+           
+
+            response = $"done!";
+            return true;
+
+        }
+    }
     [CommandHandler(typeof(GameConsoleCommandHandler))]
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class ReplyCommand : ICommand
@@ -377,9 +457,13 @@ namespace Next_generationSite_27.UnionP
                     {
                         CS.RaReply($"RaReply test3 {i}", true, true, "test3_overrideDisplay");
                         CS.RaReply($"RaReply test3 {i} Null", true, true, "");
-                        CS.RaReply($"RaReply#test3.1 {i} Null", true, true, "");
+                        // 替换此行：
+                        // CS.RaReply("\b"*18+$"RaReply#test3.1 {i} Null", true, true, "");
+
+                        // 修正为如下（使用 new string('\b', 18) 生成 18 个退格符）:
+                        CS.RaReply(new string('\b', 18) + $"RaReply#test3.1 {i} Null", true, true, "");
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Log.Error("test3:");
                         Log.Error(ex.ToString());
@@ -387,10 +471,10 @@ namespace Next_generationSite_27.UnionP
                     try
                     {
                         CS.Print($"Print test4 {i}");
-                        CS.Print($"Print Color test4 {i}",ConsoleColor.Green);
-                        CS.Print($"Print Color RgbColor test4 {i}",ConsoleColor.Green,Color.cyan);
+                        CS.Print($"Print Color test4 {i}", ConsoleColor.Green);
+                        CS.Print($"Print Color RgbColor test4 {i}", ConsoleColor.Green, Color.cyan);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Log.Error("test4:");
                         Log.Error(ex.ToString());
@@ -398,13 +482,51 @@ namespace Next_generationSite_27.UnionP
                     try
                     {
                         CS.Respond($"Respond test5 {CS.Available()}");
-                    }catch(Exception ex)
+                    }
+                    catch (Exception ex)
                     {
                         Log.Error("test5:");
                         Log.Error(ex.ToString());
                     }
                     yield return Timing.WaitForSeconds(0.5f);
-                    
+
+                }
+            }
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class Reply1Command : ICommand
+    {
+        string ICommand.Command { get; } = "repl1y";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "just a test";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            Timing.RunCoroutine(test1(sender));
+            response = $"test 1";
+            return true;
+
+        }
+        IEnumerator<float> test1(ICommandSender sender)
+        {
+            if (sender is CommandSender CS)
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    try
+                    {
+                        CS.RaReply(new string('\f', 1) + $"RaReply#test3.1 {i} Null", true, true, "");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error("test3:");
+                        Log.Error(ex.ToString());
+                    }
+                    yield return Timing.WaitForSeconds(0.5f);
+
                 }
             }
         }
@@ -728,7 +850,7 @@ namespace Next_generationSite_27.UnionP
 
         string[] ICommand.Aliases { get; } = new[] { "Scp5000Role" };
 
-        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc";
+        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc/GOCSPY/Changer";
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -766,8 +888,9 @@ namespace Next_generationSite_27.UnionP
             {
                 case "GOC":
                     {
-                        foreach (var item in list) {
-                            if (CustomRole.TryGet(30, out var Prole))
+                        foreach (var item in list)
+                        {
+                            if (CustomRole.TryGet(Scp5k_Control.GocPID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);
@@ -775,11 +898,34 @@ namespace Next_generationSite_27.UnionP
                         }
                         break;
                     }
+                case "GOCSPY":
+                    {
+                        foreach (var item in list)
+                        {
+                            if (CustomRole.TryGet(Scp5k_Control.GocSpyID, out var Prole))
+                            {
+                                Player player = Player.Get(item);
+                                Prole.AddRole(player);
+                            }
+                        }
+                        break;
+                    }
+                case "CHANGER":
+                    {
+                        foreach (var item in list)
+                        {
+                            
+                                Player player = Player.Get(item);
+                            Scp5k.Scp5k_Control.ColorChangerRole.instance.AddRole(player);
+                            
+                        }
+                        break;
+                    }
                 case "UIU":
                     {
                         foreach (var item in list)
                         {
-                            if (CustomRole.TryGet(32, out var Prole))
+                            if (CustomRole.TryGet(Scp5k_Control.UiuPID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);

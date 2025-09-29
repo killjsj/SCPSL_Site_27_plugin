@@ -338,13 +338,12 @@ autoCleanup: false);
 
                     while (stateInfo.normalizedTime < 0.98f || !stateInfo.IsName("donate"))
                     {
-                        yield return Timing.WaitForSeconds(0.1f);
+                        yield return Timing.WaitForSeconds(0.02f);
                         stateInfo = an.GetCurrentAnimatorStateInfo(0);
                         if (Round.IsEnded)
                             yield break;
                     }
                     Log.Info("Kill");
-                    yield return Timing.WaitForSeconds(0.06f);
                     foreach (var player in Player.List)
                     {
                         player.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 6, 10f);

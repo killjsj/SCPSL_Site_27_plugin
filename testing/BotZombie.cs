@@ -114,7 +114,7 @@ namespace Next_generationSite_27.UnionP
         }
         public IEnumerator<float> Update() {
             while (Zombie.Role.Type == RoleTypeId.Scp0492) {
-                // Lock In
+                // Lock instance
                 try
                 {
                     if (!tracking)

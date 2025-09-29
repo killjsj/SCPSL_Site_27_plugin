@@ -218,6 +218,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
+            Exiled.Events.Handlers.Player.VoiceChatting += Scp5k_Control.VoiceChatting;
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
                 Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
             
@@ -280,6 +281,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.EndingRound -= Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
+            Exiled.Events.Handlers.Player.VoiceChatting -= Scp5k_Control.VoiceChatting;
             Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
             
@@ -364,6 +366,7 @@ namespace Next_generationSite_27.UnionP
             { Features.Scp5kHeader, 5000 },
             { Features.Scp5kGOCAnswer, 5001 },
             { Features.AEHKey, 5141 },
+            { Features.ColorChangerRole, 1011 },
         };
         [Description("以下与5k相关 启用5k的概率(0-100)")]
         public int scp5kPercent { get; set; } = 0;
@@ -382,7 +385,7 @@ namespace Next_generationSite_27.UnionP
         [Description("uiu刷新最高人数")]
         public int UiuMaxCount { get; set; } = 9;
         [Description("安德森刷新时间(具体:(AndSpawnTime-AndSpawnFloatTime+random(AndSpawnFloatTime*2)) 单位:s)")]
-        public int AndSpawnTime { get; set; } = 350;
+        public int AndSpawnTime { get; set; } = 480;
         [Description("安德森浮动刷新时间(具体:(AndSpawnTime-AndSpawnFloatTime+random(AndSpawnFloatTime*2)) 单位:s)")]
 
         public int AndSpawnFloatTime { get; set; } = 45;
@@ -391,6 +394,8 @@ namespace Next_generationSite_27.UnionP
         public int AndLives { get; set; } = 5;
         [Description("安德森最高人数")]
         public int AndMaxCount { get; set; } = 3;
+        [Description("安德森刷新次数")]
+        public int AndRefreshMaxCount { get; set; } = 3;
         [Description("落锤开始刷新时间(s)")]
         public int HammerStartSpawnTime { get; set; } = 6 * 60;
         [Description("刷新落锤需要的数量(Scp+基金会人员 < 其他)")]
@@ -444,6 +449,7 @@ namespace Next_generationSite_27.UnionP
         Scp5kHeader,
         AEHKey,
         Scp5kGOCAnswer,
+        ColorChangerRole,
     }
     public class RunningMan : Event<GwangjuRunningManLoader.RunningManConfig, RunningManTranslation>, IEventMap, IEventSound
     {

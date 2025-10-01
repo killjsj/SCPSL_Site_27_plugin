@@ -19,8 +19,7 @@ using InventorySystem.Items.Firearms.Extensions;
 using MapGeneration;
 using MEC;
 using Mirror;
-using Next_generationSite_27.Enums;
-using Next_generationSite_27.Features.PlayerHuds;
+using Next_generationSite_27.UnionP.UI;
 using Org.BouncyCastle.Tls;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl.Spawnpoints;
@@ -66,9 +65,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static void OnUIUEscaped()
         {
-            foreach (var s in LabApi.Features.Wrappers.Player.List)
+            foreach (var s in Player.List)
             {
-                PlayerHudUtils.AddMessage(s, "messid", "<size=40><color=red>UIU已撤离</color></size>");
+                s.AddMessage("messid", "<size=40><color=red>UIU已撤离</color></size>");
             }
             var w = WaveManager.Waves.FirstOrDefault(x => x is ChaosSpawnWave) as ChaosSpawnWave;
             w.RespawnTokens += 1;
@@ -135,6 +134,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         }
                     }
                 }
+                
             }
         }
         public static int UiUSpawnTime = config.UiUSpawnTime - config.UiUSpawnFloatTime + UnityEngine.Random.Range(0, config.UiUSpawnFloatTime * 2);
@@ -407,7 +407,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     item.AddItem(ItemType.Jailbird);
                     item.AddItem(ItemType.Jailbird);
-                    var lp = LabApi.Features.Wrappers.Player.Get(item.ReferenceHub);
+                    var lp = Player.Get(item.ReferenceHub);
                     lp.AddMessage("HammerMessage", "<size=40><color=red>你是 Nu-17 小队 队员</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>",5f,ScreenLocation.CenterBottom);
                     HammerSpawned = true;
 
@@ -669,7 +669,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             if (Is5kRound)
             {
-                var p = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
+                var p = Player.Get(ev.Player.ReferenceHub);
                 switch (ev.NewRole)
                 {
                     case RoleTypeId.Scp079:
@@ -905,18 +905,18 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 GocNuke = false;
                 if (Scp055Escaped)
                 {
-                    foreach (var s in LabApi.Features.Wrappers.Player.List)
+                    foreach (var s in Player.List)
                     {
-                        PlayerHudUtils.AddMessage(s, "messid", "Normal Ending:055进入了579 宇宙重启");
+                        s.AddMessage("messid", "Normal Ending:055进入了579 宇宙重启");
                     }
                     ev.LeadingTeam = (Exiled.API.Enums.LeadingTeam)4;
                 }
                 else if ((Warhead.IsDetonated && GocSpawned) || GocNuke)
                 {
                     ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
-                    foreach (var s in LabApi.Features.Wrappers.Player.List)
+                    foreach (var s in Player.List)
                     {
-                        PlayerHudUtils.AddMessage(s, "messid", "GOC Ending: GOC成功引爆核弹");
+                        s.AddMessage("messid", "GOC Ending: GOC成功引爆核弹");
                     }
                 }
                 else
@@ -1043,7 +1043,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public IEnumerator<float> PlayerUpdate(Player player)
             {
                 bool Downloaded = false;
-                var p = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
+                var p = player;
                 while (true)
                 {
                     try
@@ -1052,7 +1052,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             yield break;
                         }
-                        var hud = PlayerHud.Get(player);
+                        var hud = HSM_hintServ.GetPlayerHUD(player);
                         if (hud == null)
                         {
                             yield break; // 或者 continue，取决于你想怎么处理
@@ -1077,7 +1077,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                             Cassie.MessageTranslated("Security alert . U I U down load d . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。阻止撤离");
                                             uiu_broadcasted = true;
                                         }
-                                        hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom));
+                                        hud.AddMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom);
                                         if (hud.HasMessage("UIUdownloading"))
                                         {
                                             hud.RemoveMessage("UIUdownloading");
@@ -1102,13 +1102,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                         //p.SendConsoleMessage($"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {time:F0} 秒 下载结束: 300 秒</color></size>");
                                         if (!hud.HasMessage("UIUdownloading"))
                                         {
-                                            hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.DynamicMessage(
+                                            hud.AddMessage(
                                                     "UIUdownloading",
-                                                    p,
                                                     (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" },
                                                     2f,
                                                     ScreenLocation.CenterBottom
-                                                ));
+                                                );
                                         }
                                     }
                                 }
@@ -1127,7 +1126,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 {
                                     hud.RemoveMessage("UIUdownloading");
                                 }
-                                hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage("messID", "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.CenterBottom));
+                                hud.AddMessage("messID", "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.CenterBottom);
                                 Scp5k_Control.UiuEscaped = true;
                                 RemoveRole(player);
                                 yield break;
@@ -1240,8 +1239,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public IEnumerator<float> PlayerUpdate(Player player)
             {
                 bool Downloaded = false;
-                var p = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
-
+                var p = player;
                 while (true)
                 {
                     try
@@ -1250,14 +1248,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             yield break;
                         }
-                        if (!Check(player))
-                        {
-                            break;
-                        }
-                        var hud = PlayerHud.Get(player);
+                        var hud = HSM_hintServ.GetPlayerHUD(player);
                         if (hud == null)
                         {
                             yield break; // 或者 continue，取决于你想怎么处理
+                        }
+                        if (!Check(player))
+                        {
+                            break;
                         }
                         if (!Downloaded)
                         {
@@ -1275,7 +1273,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                             Cassie.MessageTranslated("Security alert . U I U down load d . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。阻止撤离");
                                             uiu_broadcasted = true;
                                         }
-                                        hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom));
+                                        hud.AddMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom);
                                         if (hud.HasMessage("UIUdownloading"))
                                         {
                                             hud.RemoveMessage("UIUdownloading");
@@ -1300,13 +1298,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                         //p.SendConsoleMessage($"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {time:F0} 秒 下载结束: 300 秒</color></size>");
                                         if (!hud.HasMessage("UIUdownloading"))
                                         {
-                                            hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.DynamicMessage(
+                                            hud.AddMessage(
                                                     "UIUdownloading",
-                                                    p,
                                                     (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" },
                                                     2f,
                                                     ScreenLocation.CenterBottom
-                                                ));
+                                                );
                                         }
                                     }
                                 }
@@ -1325,7 +1322,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 {
                                     hud.RemoveMessage("UIUdownloading");
                                 }
-                                hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage("messID", "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.CenterBottom));
+                                hud.AddMessage("messID", "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.CenterBottom);
                                 Scp5k_Control.UiuEscaped = true;
                                 RemoveRole(player);
                                 yield break;
@@ -1424,7 +1421,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 if (Check(ev.Player))
                 {
                     //var p = LabApi.Features.Wrappers.Player.Get(Player.ReferenceHub);
-                    var p = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
+                    var p = ev.Player;
                     if (ev.Player.Role.Type == RoleTypeId.Tutorial && Check(ev.Player))
                     {
                         if (totalLives > 0)
@@ -1716,17 +1713,17 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         if (Goc_Spy_broadcasted)
                         {
                             Cassie.MessageTranslated("Security alert . Substantial G o c activity detected . Security personnel ,  proceed with standard protocols , Protect the warhead ", "安保警戒，侦测到大量GOC的活动。安保人员请继续执行标准协议，保护核弹。");
-                            LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub).AddMessage("messID", "<size=30><color=green>你成功呼叫支援!</color></size>", 3f, ScreenLocation.CenterBottom);
+                            ev.Player.AddMessage("messID", "<size=30><color=green>你成功呼叫支援!</color></size>", 3f, ScreenLocation.CenterBottom);
                         }
                         else
                         {
-                            LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub).AddMessage("messID", "<size=30><color=green>失败!</color></size>", 3f, ScreenLocation.CenterBottom);
+                            ev.Player.AddMessage("messID", "<size=30><color=green>失败!</color></size>", 3f, ScreenLocation.CenterBottom);
 
                         }
                     }
                     else
                     {
-                        var p = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
+                        var p = ev.Player;
                         p.AddMessage("messID", "<size=30><color=red>你必须在广播室使用硬币呼叫阵营!</color></size>", 3f, ScreenLocation.CenterBottom);
                     }
                 }
@@ -1847,7 +1844,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             {
                                 return;
                             }
-                            var lp = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
+                            var lp = player;
                             if (SB is DropdownSetting UTI)
                             {
                                 if (!PlayerToRole.TryGetValue(player, out var OldRole))
@@ -1931,7 +1928,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 if (Check(ev.Player))
                 {
-                    var p = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
+                    var p = ev.Player;
 
                     if (CustomItem.TryGet(Scp055ItemID, out var item))
                     {
@@ -2108,9 +2105,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         }
                     }
                     ev.IsAllowed = false;
-                    if (!LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub).HasMessage("No!"))
+                    if (!ev.Player.HasMessage("No!"))
                     {
-                        LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub).AddMessage("No!", "<color=red><size=27>此物品为goc专属</size></color>", 3f, ScreenLocation.Center);
+                        ev.Player.AddMessage("No!", "<color=red><size=27>此物品为goc专属</size></color>", 3f, ScreenLocation.Center);
                     }
 
                 }
@@ -2124,11 +2121,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     {
                         w += $"{item.Type} ";
                     }
-                    LabApi.Features.Wrappers.Player.Get(player.ReferenceHub).AddMessage("Wait", $"<color=green><size=20>还剩下没有安装的房间:{w}</size></color>", 3f, ScreenLocation.Center);
+                    player.AddMessage("Wait", $"<color=green><size=20>还剩下没有安装的房间:{w}</size></color>", 3f, ScreenLocation.Center);
                 }
                 else
                 {
-                    LabApi.Features.Wrappers.Player.Get(player.ReferenceHub).AddMessage("Wait", $"<color=green><size=27>安装完成</size></color>", 3f, ScreenLocation.Center);
+                    player.AddMessage("Wait", $"<color=green><size=27>安装完成</size></color>", 3f, ScreenLocation.Center);
 
                 }
 
@@ -2162,7 +2159,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     //Log.Info("✅ GocC4 检查通过");
 
-                    var lp = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
+                    var lp = ev.Player;
                     if (lp == null)
                     {
                         //Log.Error("❌ 无法获取 LabApi Player Wrapper");
@@ -2294,7 +2291,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             protected override void ShowPickedUpMessage(Player player)
             {
                 player.Broadcast(4, "", global::Broadcast.BroadcastFlags.Normal, true);
-                var p = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
+                var p = player;
 
                 p.AddMessage("messID", "<size=28><color=red>你获得了绝对排斥护具,请查看Server-Specific修改按键</color></size>", 4f, ScreenLocation.CenterBottom);
 
@@ -2315,7 +2312,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 if (Check(ev.Pickup))
                 {
-                    var p = LabApi.Features.Wrappers.Player.Get(ev.Player.ReferenceHub);
+                    var p = ev.Player;
                     //
 
                 }
@@ -2383,7 +2380,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
                             if (CustomArmor.TryGet(AEHItemID, out var item))
                             {
-                                var p = LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
+                                var p = player;
 
                                 foreach (var items in player.Items)
                                 {

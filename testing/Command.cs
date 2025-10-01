@@ -12,6 +12,7 @@ using Exiled.API.Features.Roles;
 using Exiled.API.Features.Toys;
 using Exiled.CustomItems.API.Features;
 using Exiled.CustomRoles.API.Features;
+using GameCore;
 using GameObjectPools;
 using InventorySystem;
 using InventorySystem.Items;
@@ -22,13 +23,15 @@ using MEC;
 using Microsoft.Win32;
 using Mirror;
 using NetworkManagerUtils.Dummies;
-using Next_generationSite_27.Enums;
 using Next_generationSite_27.UnionP.Scp5k;
+using Next_generationSite_27.UnionP.UI;
 using Org.BouncyCastle.Asn1.X509;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
+using PlayerRoles.FirstPersonControl.NetworkMessages;
 using PlayerRoles.FirstPersonControl.Thirdperson;
 using PlayerRoles.PlayableScps;
+using PlayerRoles.PlayableScps.Scp049.Zombies;
 using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp079.Pinging;
 using PlayerRoles.PlayableScps.Scp3114;
@@ -42,12 +45,14 @@ using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
 using RelativePositioning;
 using RemoteAdmin;
+using Respawning.NamingRules;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -55,7 +60,11 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using Utf8Json.Formatters;
 using Utils;
+using static HintServiceMeow.Core.Models.HintContent.AutoContent;
 using static Next_generationSite_27.UnionP.RoomGraph;
+using static UnityEngine.GraphicsBuffer;
+using static UnityEngine.UI.CanvasScaler;
+using Log = Exiled.API.Features.Log;
 
 namespace Next_generationSite_27.UnionP 
 {
@@ -139,6 +148,50 @@ namespace Next_generationSite_27.UnionP
         }
     }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class MessageTest2Command : ICommand
+    {
+        string ICommand.Command { get; } = "MT2";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "MT2 text locX locY";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (arguments.Count < 3)
+            {
+                response = "To execute this command provide at least 4 arguments!" + string.Join("\n- ", Enum.GetNames(typeof(ScreenLocation)));
+                return false;
+            }
+
+            List<string> newargs = arguments.ToList();
+            response = $"done! op:{runner.Position}";
+
+            var text = newargs[0];
+            var locX = float.Parse(newargs[1]);
+            var locY = float.Parse(newargs[2]);
+            var p = LabApi.Features.Wrappers.Player.Get(runner.ReferenceHub);
+            HSM_hintServ.GetPlayerHUD(p, out var hud);
+            if(hud is HSM_hintServ hsm)
+            {
+                
+                hsm.hud.AddHint(new HintServiceMeow.Core.Models.Hints.Hint()
+                {
+                    Text = text,
+                    XCoordinate = locX,
+                    YCoordinate = locY,
+
+
+                });
+            }
+            return true;
+
+        }
+    }
+
+
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class MessageTestCommand : ICommand
     {
         string ICommand.Command { get; } = "MT";
@@ -164,11 +217,118 @@ namespace Next_generationSite_27.UnionP
             var time = float.Parse(newargs[2]);
             var loc = newargs[3];
             var p = LabApi.Features.Wrappers.Player.Get(runner.ReferenceHub);
-            Next_generationSite_27.Features.PlayerHuds.PlayerHud.TryGet(p, out var hud);
-            
-            hud.AddMessage(new Next_generationSite_27.Features.PlayerHuds.Messages.TextMessage(messid, text, time, (ScreenLocation)Enum.Parse(typeof(ScreenLocation), loc,true)));
+            HSM_hintServ.GetPlayerHUD(p, out var hud);
+
+            hud.AddMessage(messid, text, time, (ScreenLocation)Enum.Parse(typeof(ScreenLocation), loc, true));
             return true;
 
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class RoleSyncMessageTestCommand : ICommand
+    {
+        string ICommand.Command { get; } = "RSMT";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "RSMT Target";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            var targetRole = RoleTypeId.None;
+            List<ReferenceHub> list = new List<ReferenceHub>();
+            if (arguments.Count >= 2)
+            {
+                targetRole = (RoleTypeId)Enum.Parse(typeof(RoleTypeId), arguments.At(0), true);
+                list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 1, out var _);
+            }
+            else
+            {
+            list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out var _);
+                targetRole = RoleTypeId.Scp106;
+            }
+            if (list == null)
+            {
+                response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                return false;
+            }
+            if (list[0] == null)
+            {
+                response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
+                return false;
+            }
+            RoleTypeId roleTypeId = targetRole;
+            ChangeAppearance(Player.Get(list[0]), roleTypeId, new List<Player>() { runner });
+            response = "done";
+
+            return true;
+
+        }
+        public static void ChangeAppearance(Player player, RoleTypeId type, IEnumerable<Player> playersToAffect, bool skipJump = false, byte unitId = 0)
+        {
+            if (!player.IsConnected || !RoleExtensions.TryGetRoleBase(type, out PlayerRoleBase roleBase))
+                return;
+
+            bool isRisky = PlayerRolesUtils.GetTeam(type) is Team.Dead || player.IsDead;
+
+
+
+            NetworkWriterPooled writer = NetworkWriterPool.Get();
+            if (roleBase is PlayerRoles.HumanRole HR)
+            {
+                UnitNamingRule unitNamingRule;
+
+                if (NamingRulesManager.TryGetNamingRule(HR.Team, out unitNamingRule))
+                {
+                    writer.WriteByte(HR.UnitNameId);
+                }
+            }
+            if (roleBase is ZombieRole)
+            {
+                if (!(player.Role.Base is ZombieRole))
+                    isRisky = true;
+
+                writer.WriteUShort((ushort)Mathf.Clamp(Mathf.CeilToInt(player.MaxHealth), ushort.MinValue, ushort.MaxValue));
+                writer.WriteBool(true);
+            }
+            if (roleBase is Scp1507Role)
+            {
+                // 替换所有 "is not" 模式为 C# 7.3 兼容写法
+                // 原代码：
+                // if (player.Role.Base is not ZombieRole)
+                // 替换为：
+                if (!(player.Role.Base is Scp1507Role))
+                    isRisky = true;
+
+                writer.WriteByte((byte)player.Role.SpawnReason);
+            }
+
+            if (roleBase is FpcStandardRoleBase fpc)
+            {
+                if (!(player.Role.Base is FpcStandardRoleBase playerfpc))
+                    isRisky = true;
+                else
+                    fpc = playerfpc;
+
+                ushort value = 0;
+                fpc?.FpcModule.MouseLook.GetSyncValues(0, out value, out ushort _);
+                writer.WriteRelativePosition(player.RelativePosition);
+                writer.WriteUShort(value);
+            }
+            foreach (Player target in playersToAffect)
+            {
+                if (target != player || !isRisky)
+                    target.ReferenceHub.connectionToClient.Send<RoleSyncInfo>(new RoleSyncInfo(player.ReferenceHub, type, target.ReferenceHub, writer), 0);
+                else
+                    Log.Error($"Prevent Seld-Desync of {player.Nickname} with {type}");
+            }
+
+            NetworkWriterPool.Return(writer);
+
+            // To counter a bug that makes the player invisible until they move after changing their appearance, we will teleport them upwards slightly to force a new position update for all clients.
+            if (!skipJump)
+                player.Position += Vector3.up * 0.25f;
         }
     }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
@@ -212,7 +372,7 @@ namespace Next_generationSite_27.UnionP
             var r = DummyUtils.SpawnDummy("temp 079");
             var p = Player.Get(r);
             r.roleManager.ServerSetRole(RoleTypeId.Scp079, RoleChangeReason.RemoteAdmin);
-            Timing.CallDelayed(0.4f, () =>
+            Timing.CallDelayed(0.2f, () =>
             {
                 try
                 {
@@ -486,7 +646,7 @@ namespace Next_generationSite_27.UnionP
                     catch (Exception ex)
                     {
                         Log.Error("test5:");
-                        Log.Error(ex.ToString());
+                        Exiled.API.Features.Log.Error(ex.ToString());
                     }
                     yield return Timing.WaitForSeconds(0.5f);
 

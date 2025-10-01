@@ -3,7 +3,7 @@ using Exiled.API.Extensions;
 using Exiled.API.Features;
 using MEC;
 using Mirror;
-using Next_generationSite_27.Features.PlayerHuds;
+using Next_generationSite_27.UnionP.UI;
 using NorthwoodLib.Pools;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
@@ -25,7 +25,7 @@ namespace Next_generationSite_27.UnionP
 
         protected override void OnTick()
         {
-            var p = LabApi.Features.Wrappers.Player.Get(Hub);
+            var p = Player.Get(Hub);
             if (p != null)
             {
                 p.Health += 1;
@@ -59,11 +59,10 @@ namespace Next_generationSite_27.UnionP
         private RoleTypeId LastTargetType { get; set; } = RoleTypeId.None;
 
         private Player _player;
-        private LabApi.Features.Wrappers.Player _LaBplayer;
+        private Player _LaBplayer => _player;
 
         protected override void Enabled()
         {
-            _LaBplayer = LabApi.Features.Wrappers.Player.Get(Hub);
             _player = Player.Get(Hub);
             LastType = Hub.roleManager.CurrentRole.RoleTypeId; // ✅ 正确记录原始角色
 

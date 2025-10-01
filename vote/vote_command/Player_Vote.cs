@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace Next_generationSite_27.UnionP { 
     [CommandHandler(typeof(ClientCommandHandler))]
-    internal class vote_yes : ICommand
+    class vote_yes : ICommand
     {
         public string Command { get; } = "yes";
 
@@ -39,7 +39,7 @@ namespace Next_generationSite_27.UnionP {
         }
     }
     [CommandHandler(typeof(ClientCommandHandler))]
-    internal class vote_no : ICommand
+    class vote_no : ICommand
     {
         public string Command { get; } = "no";
 

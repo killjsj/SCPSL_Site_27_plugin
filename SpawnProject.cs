@@ -76,9 +76,26 @@ using Player = Exiled.API.Features.Player;
 using Round = Exiled.API.Features.Round;
 namespace Next_generationSite_27.UnionP.SpawnPorject
 {
-    class EventHandle
+    class SpawnP : BaseClass
     {
-
+        public override void Init()
+        {
+            Exiled.Events.Handlers.Server.EndingRound += OnRoundEnd;
+            Exiled.Events.Handlers.Player.Left += OnPlayerLeave;
+            Exiled.Events.Handlers.Player.ChangingRole += ChangingRole;
+            Exiled.Events.Handlers.Player.Shot += Shot;
+            Exiled.Events.Handlers.Server.RespawnedTeam += RespawnedTeam;
+            base.Init();
+        }
+        public override void Delete()
+        {
+            Exiled.Events.Handlers.Server.EndingRound -= OnRoundEnd;
+            Exiled.Events.Handlers.Player.Left -= OnPlayerLeave;
+            Exiled.Events.Handlers.Player.ChangingRole -= ChangingRole;
+            Exiled.Events.Handlers.Player.Shot -= Shot;
+            Exiled.Events.Handlers.Server.RespawnedTeam -= RespawnedTeam;
+            base.Delete();
+        }
         PConfig Config => Plugin.Instance.Config;
         public Dictionary<Player, CoroutineHandle> ProtectionCoroutines = new Dictionary<Player, CoroutineHandle>();
         public bool RoundEnded

@@ -11,7 +11,7 @@ using UnityEngine;
 namespace Next_generationSite_27.UnionP
 {
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
-    internal class ra_VoteControl_start : ICommand, IUsageProvider
+    class ra_VoteControl_start : ICommand, IUsageProvider
     {
         public static long RelativeTimeToSeconds(string time, int defaultFactor = 1)
         {

@@ -71,7 +71,7 @@ namespace Next_generationSite_27.UnionP
         public static Plugin Instance { get { return plugin; } }
         public static List<ReferenceHub> ScpPlayer = new List<ReferenceHub>();
         public EventHandle eventhandle;
-        private SpawnPorject.EventHandle SPeventhandle;
+
 
         public override PluginPriority Priority => PluginPriority.Lower;
         public static Harmony harmony { get; private set; }
@@ -153,10 +153,11 @@ namespace Next_generationSite_27.UnionP
         public static bool enableSSCP = false;
         public SuperSCP superSCP = new SuperSCP();
         // --- superSCP end---
+        static public List<BaseClass> baseClasses = new List<BaseClass>();
         public override void OnEnabled()
         {
             plugin = this;
-            MenuCache = LevelSCP.Menu();
+            MenuCache = new List<SettingBase>();
             var connectionString = $"Server={Config.IpAddress};" +
                               $"Port={Config.Port};" +
                               $"Database={Config.Database};" +
@@ -164,18 +165,30 @@ namespace Next_generationSite_27.UnionP
                               $"Pwd={Config.Password};" +
                               "SslMode=none;" +
                               "Connection Timeout=30;";
+            
             connect.Connect(connectionString);
             eventhandle = new EventHandle(Config);
-            SPeventhandle = new UnionP.SpawnPorject.EventHandle();
+            foreach (var item in Assembly.GetTypes())
+            {
+                if(!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(BaseClass)))
+                {
+                    object obj = Activator.CreateInstance(item);
+                    if (obj != null) {
+                        if (obj is BaseClass BC) { 
+                            BC.StartInit();
+                            baseClasses.Add(BC);
+                        }
+
+                    }
+                }
+            }
             Exiled.Events.Handlers.Map.Generated += eventhandle.Generated;
             Exiled.Events.Handlers.Player.Joined += eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam += eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers += eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Player.Shot += eventhandle.Shot;
-            Exiled.Events.Handlers.Player.Shot += SPeventhandle.Shot;
             Exiled.Events.Handlers.Player.Hurting += superSCP.Hurting;
             Exiled.Events.Handlers.Player.Died += superSCP.Died;
-            Exiled.Events.Handlers.Server.RespawnedTeam += SPeventhandle.RespawnedTeam;
             Exiled.Events.Handlers.Player.ChangedItem += eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState += eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
@@ -188,11 +201,7 @@ namespace Next_generationSite_27.UnionP
             //Exiled.Events.Handlers.Player.DroppedItem += eventhandle.DroppedItem;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
-            Exiled.Events.Handlers.Player.ChangingRole += LevelSCP.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
-            Exiled.Events.Handlers.Player.ChangingRole += SPeventhandle.ChangingRole;
-            Exiled.Events.Handlers.Server.EndingRound += eventhandle.EndingRound;
-            //Exiled.Events.Handlers.Server.OnEndingRound += SPeventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
             //Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
@@ -203,16 +212,12 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Escaping += eventhandle.Escaping;
 
             Exiled.Events.Handlers.Player.Left += eventhandle.OnPlayerLeave;
-            Exiled.Events.Handlers.Player.Left += SPeventhandle.OnPlayerLeave;
 
             Exiled.Events.Handlers.Player.Spawned += eventhandle.OnSpawned;
             Exiled.Events.Handlers.Scp079.GainingExperience += superSCP.GainingExperience;
             Exiled.Events.Handlers.Item.DisruptorFiring += eventhandle.DisruptorFiring;
 
-            Exiled.Events.Handlers.Warhead.Starting += LevelSCP.Starting;
-            Exiled.Events.Handlers.Warhead.Stopping += LevelSCP.Stopping;
             Exiled.Events.Handlers.Server.EndingRound += eventhandle.OnRoundEnd;
-            Exiled.Events.Handlers.Server.EndingRound += SPeventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
@@ -221,7 +226,51 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.VoiceChatting += Scp5k_Control.VoiceChatting;
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
                 Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
-            
+
+            Exiled.Events.Handlers.Player.Verified += UnionP.testing.FlightFailed.OnVerify;
+            Exiled.Events.Handlers.Player.Dying += UnionP.testing.FlightFailed.OnDied;
+            Exiled.Events.Handlers.Player.Hurting += UnionP.testing.FlightFailed.OnHurt;
+            Exiled.Events.Handlers.Player.Left += UnionP.testing.FlightFailed.OnLeft;
+            try
+            {
+                // 1. 获取类型：使用完整类名（含命名空间）
+                Type configType = Type.GetType("FriendlyFireConfig");
+
+                // 如果没找到，尝试用 AccessTools（Harmony 提供）
+                if (configType == null)
+                    configType = AccessTools.TypeByName("FriendlyFireConfig");
+
+                if (configType == null)
+                {
+                    Log.Error("❌ 找不到 FriendlyFireConfig 类，请确认完整类名！");
+                }
+
+                Log.Info($"✅ 找到类型: {configType.FullName}");
+
+                // 2. 获取静态字段 PauseDetector
+                FieldInfo field = configType.GetField("PauseDetector",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                if (field == null)
+                {
+                    Log.Error("❌ 找不到字段 PauseDetector，请检查字段名是否正确！");
+
+                    // 调试：打印所有字段
+                    foreach (var f in configType.GetFields(BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        Log.Debug($"字段: {f.Name}, 类型: {f.FieldType}, 权限: {(f.IsPublic ? "public" : "non-public")}");
+                    }
+                }
+
+                // 3. 设置字段值
+                field.SetValue(null, true); // 静态字段，第一个参数为 null
+                Log.Info($"✅ 成功设置 FriendlyFireConfig.PauseDetector = {true}");
+            }
+            catch (Exception e)
+            {
+                Log.Error("❌ 反射设置失败: " + e.Message);
+            }
+
             CustomRole.RegisterRoles(assembly:Assembly);
             CustomItem.RegisterItems();
             max_active_g = Config.maxbomb;
@@ -233,6 +282,19 @@ namespace Next_generationSite_27.UnionP
         }
         public override void OnDisabled()
         {
+            foreach (var item in baseClasses)
+            {
+                    if (item != null)
+                    {
+                        if (item is BaseClass BC)
+                        {
+                            BC.StartInit();
+                            baseClasses.Add(BC);
+                        }
+
+                    
+                }
+            }
             Exiled.Events.Handlers.Map.Generated -= eventhandle.Generated;
             Exiled.Events.Handlers.Player.Joined -= eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam -= eventhandle.RespawningTeam;
@@ -240,9 +302,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Shot -= eventhandle.Shot;
             //Exiled.Events.Handlers.Player.DroppedItem -= eventhandle.DroppedItem;
             Exiled.Events.Handlers.Player.Hurting -= superSCP.Hurting;
-            Exiled.Events.Handlers.Player.Shot -= SPeventhandle.Shot;
             Exiled.Events.Handlers.Player.Died -= superSCP.Died;
-            Exiled.Events.Handlers.Server.RespawnedTeam -= SPeventhandle.RespawnedTeam;
             Exiled.Events.Handlers.Player.ChangedItem -= eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState -= eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
@@ -254,13 +314,9 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Verified -= eventhandle.Verified;
             Exiled.Events.Handlers.Scp079.GainingExperience -= superSCP.GainingExperience;
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
-            Exiled.Events.Handlers.Player.ChangingRole -= SPeventhandle.ChangingRole;
-            Exiled.Events.Handlers.Player.ChangingRole -= LevelSCP.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
-            Exiled.Events.Handlers.Server.EndingRound -= eventhandle.EndingRound;
             Exiled.Events.Handlers.Server.EndingRound -= eventhandle.OnRoundEnd;
-            Exiled.Events.Handlers.Server.EndingRound -= SPeventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Shot -= Bomb.OnPlayerShotWeapon;
             Exiled.Events.Handlers.Scp914.UpgradingPickup -= Bomb.OnUpgradingPickup;
@@ -270,8 +326,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Escaping -= eventhandle.Escaping;
             
             Exiled.Events.Handlers.Player.Left -= eventhandle.OnPlayerLeave;
-            Exiled.Events.Handlers.Player.Left -= SPeventhandle.OnPlayerLeave;
-
 
             Exiled.Events.Handlers.Item.DisruptorFiring-= eventhandle.DisruptorFiring;
             Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
@@ -284,8 +338,11 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.VoiceChatting -= Scp5k_Control.VoiceChatting;
             Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
-            
 
+            Exiled.Events.Handlers.Player.Verified -= UnionP.testing.FlightFailed.OnVerify;
+            Exiled.Events.Handlers.Player.Dying -= UnionP.testing.FlightFailed.OnDied;
+            Exiled.Events.Handlers.Player.Hurting -= UnionP.testing.FlightFailed.OnHurt;
+            Exiled.Events.Handlers.Player.Left -= UnionP.testing.FlightFailed.OnLeft;
             harmony.UnpatchAll();
             eventhandle.update();
             eventhandle.stopBroadcast();
@@ -356,8 +413,16 @@ namespace Next_generationSite_27.UnionP
 
         public string MainColorHex { get; set; } = "#ff0000";
         public string TextShow { get; set; } = "Alive SCPs:";
-        [Description("100级以上 等级奖励")]
+        [Description("等级奖励")]
         public bool Level { get; set; } = true;
+        [Description("回合结束时的背背刺")]
+        public bool RoundEndFF { get; set; } = true;
+        [Description("回合结束时的背背刺文字")]
+        public string RoundEndFFText { get; set; } = "<size=22><color=F5FFFA>友军伤害已开启，尽情背刺吧</color></size>";
+
+        [Description("qq群")]
+        public string QQgroup { get; set; } = "";
+
         [Description("Button setting ids of features")]
         public Dictionary<Features, int> SettingIds { get; set; } = new Dictionary<Features, int>
         {

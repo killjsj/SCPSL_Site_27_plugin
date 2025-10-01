@@ -30,6 +30,7 @@ using Mirror;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
 using Next_generationSite_27.UnionP.Scp5k;
+using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
 using PlayerRoles.RoleAssign;
 using ProjectMER.Features;
@@ -43,6 +44,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using UnityEngine;
+using UnityEngine.DedicatedServer;
 using UnityEngine.EventSystems;
 using Utils.NonAllocLINQ;
 using static Next_generationSite_27.UnionP.RoomGraph;
@@ -470,7 +472,19 @@ namespace Next_generationSite_27.UnionP
             Plugin.plugin.scpChangeReqs = new List<ScpChangeReq>();
 
             Plugin.plugin.superSCP.stop();
-
+            Timing.KillCoroutines(new CoroutineHandle[]
+            {
+                            this.updateInfo
+            });
+            if (config.RoundEndFF)
+            {
+                ServerConsole.FriendlyFire = true;
+                ServerConfigSynchronizer.RefreshAllConfigs();
+                foreach (var item in Player.List)
+                {
+                    item.AddMessage("RoundEnd",config.RoundEndFFText,location:ScreenLocation.CenterTop);
+                }
+            }
             // 清理计时器
             BroadcastTimers.Clear();
         }
@@ -481,7 +495,7 @@ namespace Next_generationSite_27.UnionP
         public void RoundStarted()
         {
 
-
+            testing.FlightFailed.Start();
             if (targetRole == null || targetRole.Count == 0) // 更标准的空检查
             {
                 Log.Debug("No target roles to assign. Skipping RoundStarted logic.");
@@ -1092,6 +1106,11 @@ namespace Next_generationSite_27.UnionP
             {RoleTypeId.ClassD ,new List<ReferenceHub>()}
         };
             SPD.Clear();
+            if (config.RoundEndFF)
+            {
+                ServerConsole.FriendlyFire = false;
+                ServerConfigSynchronizer.RefreshAllConfigs();
+            }
 #if DEBUG
 #endif
             if (!Config.RoundSelfChoose)
@@ -1779,13 +1798,6 @@ namespace Next_generationSite_27.UnionP
                     }
                 }
             }
-        }
-        public void EndingRound(EndingRoundEventArgs ev)
-        {
-            Timing.KillCoroutines(new CoroutineHandle[]
-            {
-                            this.updateInfo
-            });
         }
 
         public void ChangingMicroHIDState(ChangingMicroHIDStateEventArgs ev)

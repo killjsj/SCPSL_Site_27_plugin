@@ -13,7 +13,6 @@ using Exiled.Events.Commands.Reload;
 using Exiled.Loader;
 using MEC;
 using Mirror;
-using Next_generationSite_27.Features.PlayerHuds;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
 using System;
@@ -318,25 +317,14 @@ autoCleanup: false);
                     }
                     if (error)
                         yield break;
-
-                    stateInfo = an.GetCurrentAnimatorStateInfo(0);
-                    Log.Info("IsName");
-
-                    // 等待动画切换到目标动画
-                    while (!stateInfo.IsName("donate"))
+                    foreach(var player in Player.List)
                     {
-                        yield return Timing.WaitForSeconds(0.1f);
-
-                        stateInfo = an.GetCurrentAnimatorStateInfo(0);
-                        if (Round.IsEnded)
-                        {
-                            Log.Info("IsEnded");
-                            yield break;
-                        }
+                        player.EnableEffect(Exiled.API.Enums.EffectType.Flashed, 1, 2f);
                     }
+                    stateInfo = an.GetCurrentAnimatorStateInfo(0);
                     Log.Info("normalizedTime");
 
-                    while (stateInfo.normalizedTime < 0.98f || !stateInfo.IsName("donate"))
+                    while (stateInfo.normalizedTime < 0.99f || !stateInfo.IsName("donate"))
                     {
                         yield return Timing.WaitForSeconds(0.02f);
                         stateInfo = an.GetCurrentAnimatorStateInfo(0);
@@ -344,12 +332,13 @@ autoCleanup: false);
                             yield break;
                     }
                     Log.Info("Kill");
+                    Warhead.Shake();
                     foreach (var player in Player.List)
                     {
+                        player.DisableEffect(Exiled.API.Enums.EffectType.Flashed);
                         player.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 6, 10f);
                     }
                     Scp5k_Control.GocNuke = true;
-                    Warhead.Shake();
                     foreach (var player in Player.List)
                     {
                         player.Kill("Goc奇术");

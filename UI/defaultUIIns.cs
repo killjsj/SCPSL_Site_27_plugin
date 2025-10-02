@@ -27,7 +27,7 @@ namespace Next_generationSite_27.UnionP.UI
         {
             return HSM_hintServ.GetPlayerHUD(player);
         }
-        public static void AddMessage(this Player player,string id, Func<Player, string[]> getter, float duration = 5, ScreenLocation location = ScreenLocation.CenterBottom)
+        public static void AddMessage(this Player player,string id, Func<Player, string[]> getter, float duration = 5, ScreenLocation location = ScreenLocation.Center)
         {
             GetHUD(player).AddMessage(id, getter, duration, location);
         }
@@ -43,7 +43,7 @@ namespace Next_generationSite_27.UnionP.UI
             GetHUD(player).RemoveMessage(id);
         }
 
-        public static void AddMessage(this Player player, string id, string c, float duration = 5, ScreenLocation location = ScreenLocation.CenterBottom)
+        public static void AddMessage(this Player player, string id, string c, float duration = 5, ScreenLocation location = ScreenLocation.Center)
         {
             GetHUD(player).AddMessage(id, c, duration, location);
 

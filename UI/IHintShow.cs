@@ -28,6 +28,8 @@ namespace Next_generationSite_27.UnionP.UI
         ChaosSpawn,
         MiddleLeft,
         MiddleRight,
-        Middle
+        Middle,
+        ReversedForPlayerLVShow,
+        Scp914
     }
 }

@@ -346,7 +346,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
             // 安全检查
             if (__instance.Attacker.Hub == null || ply == null)
             {
-                __instance.Damage = 0f;
                 return true;
             }
 
@@ -356,8 +355,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             // 出生保护：攻击者受保护 → 无法造成伤害
             if (DisableSpawnProtect(attacker, victim))
             {
-                __instance.Damage = 0f;
-                return false;
+                return true;
+
             }
 
             // 判断是否为“敌人”（使用你的自定义 IsEnemy）

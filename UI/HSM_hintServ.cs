@@ -1,4 +1,5 @@
 ﻿using Exiled.API.Features;
+using Hints;
 using HintServiceMeow.Core.Models.Arguments;
 using HintServiceMeow.Core.Models.Hints;
 using HintServiceMeow.Core.Utilities;
@@ -10,6 +11,7 @@ using System.Diagnostics.Metrics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using static HintServiceMeow.Core.Models.HintContent.AutoContent;
 
 namespace Next_generationSite_27.UnionP.UI
@@ -60,10 +62,13 @@ namespace Next_generationSite_27.UnionP.UI
                 }
                 foreach (var item in Dur)
                 {
-                    if (item.Value.Item1.Elapsed.TotalSeconds >= item.Value.Item2 && item.Value.Item2 > 0)
+                    if (item.Value.Item1.Elapsed.TotalSeconds > item.Value.Item2 && item.Value.Item2 > 0)
                     {
                         hud.RemoveHint(item.Key);
-                        Dur.Remove(item.Key);
+                        Timing.CallDelayed(0.01f, () =>
+                        {
+                            Dur.Remove(item.Key);
+                        });
                     }
                 }
                 yield return Timing.WaitForSeconds(0.2f);
@@ -78,7 +83,7 @@ namespace Next_generationSite_27.UnionP.UI
                 this.hud.RemoveHint(item.Key);
             }
         }
-        public void AddMessage(string id, Func<Player, string[]> getter, float duration = 5, ScreenLocation location = ScreenLocation.CenterBottom)
+        public void AddMessage(string id, Func<Player, string[]> getter, float duration = 5, ScreenLocation location = ScreenLocation.Center)
         {
             var a = ParsePos(location);
             var targetX = a.targetX;
@@ -122,10 +127,22 @@ namespace Next_generationSite_27.UnionP.UI
 
         void IHintShowHUD.RemoveMessage(string id)
         {
+            List<AbstractHint> wait = new List<AbstractHint>();
+            foreach (AbstractHint item in from predicate in Dur.Keys
+                                          where predicate.Id == id
+                                          select predicate)
+            {
+                wait.Add(item);
+            }
             hud.RemoveHint(id);
+            foreach (var item in wait)
+            {
+                Dur.Remove(item);
+
+            }
         }
 
-        public void AddMessage(string id, string c, float duration = 5, ScreenLocation location = ScreenLocation.CenterBottom)
+        public void AddMessage(string id, string c, float duration = 5, ScreenLocation location = ScreenLocation.Center)
         {
             var a = ParsePos(location);
             var targetX = a.targetX;
@@ -164,7 +181,7 @@ namespace Next_generationSite_27.UnionP.UI
                     targetY = 200;
                     break;
                 case ScreenLocation.CenterTop:
-                    targetY = 200;
+                    targetY = 100;
                     targetX = 0;
                     break;
                 case ScreenLocation.Center:
@@ -179,11 +196,19 @@ namespace Next_generationSite_27.UnionP.UI
                     targetY = 200;
                     targetX = 0;
                     break;
+                case ScreenLocation.Scp914:
+                    targetY = 200;
+                    targetX = 0;
+                    break;
                 case ScreenLocation.MiddleRight:
                     targetY = 200;
                     targetX = 100;
                     break;
                 case ScreenLocation.CenterBottom:
+                    targetY = 1000;
+                    targetX = 0;
+                    break;
+                case ScreenLocation.ReversedForPlayerLVShow:
                     targetY = 1070;
                     targetX = 0;
                     break;

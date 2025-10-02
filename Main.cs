@@ -419,6 +419,12 @@ namespace Next_generationSite_27.UnionP
         public bool RoundEndFF { get; set; } = true;
         [Description("回合结束时的背背刺文字")]
         public string RoundEndFFText { get; set; } = "<size=22><color=F5FFFA>友军伤害已开启，尽情背刺吧</color></size>";
+        [Description("SCP站立回血")]
+        public bool ScpStandAddHP { get; set; } = true;
+        [Description("SCP站立回血-站几秒回一次")]
+        public int ScpStandAddHPTime { get; set; } = 5;
+        [Description("SCP站立回血-回多少")]
+        public int ScpStandAddHPCount { get; set; } = 3;
 
         [Description("qq群")]
         public string QQgroup { get; set; } = "";

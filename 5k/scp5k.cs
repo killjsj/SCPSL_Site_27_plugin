@@ -67,7 +67,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             foreach (var s in Player.List)
             {
-                s.AddMessage("messid", "<size=40><color=red>UIU已撤离</color></size>");
+                s.AddMessage("UIU_ESCAPED" + DateTime.Now.ToString(), "<size=40><color=red>UIU已撤离</color></size>");
             }
             var w = WaveManager.Waves.FirstOrDefault(x => x is ChaosSpawnWave) as ChaosSpawnWave;
             w.RespawnTokens += 1;
@@ -408,7 +408,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     item.AddItem(ItemType.Jailbird);
                     item.AddItem(ItemType.Jailbird);
                     var lp = Player.Get(item.ReferenceHub);
-                    lp.AddMessage("HammerMessage", "<size=40><color=red>你是 Nu-17 小队 队员</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>",5f,ScreenLocation.CenterBottom);
+                    lp.AddMessage("HammerMessage", "<size=40><color=red>你是 Nu-17 小队 队员</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>",5f,ScreenLocation.Center);
                     HammerSpawned = true;
 
                 });
@@ -669,7 +669,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             if (Is5kRound)
             {
+
                 var p = Player.Get(ev.Player.ReferenceHub);
+                if (p.HasMessage("donationCount"))
+                {
+                    p.RemoveMessage("donationCount");
+                }
                 switch (ev.NewRole)
                 {
                     case RoleTypeId.Scp079:
@@ -754,7 +759,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     case RoleTypeId.Scp3114:
                     case RoleTypeId.Scp173:
                         {
-                            p.AddMessage("messID", "你是 基金会势力 消灭一切除基金会势力外的成员 \n <color=green>友好:SCP,九尾狐</color>\n<color=red>敌对:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>", 5f, ScreenLocation.CenterTop);
+                            p.AddMessage("","你是 基金会势力 消灭一切除基金会势力外的成员 \n <color=green>友好:SCP,九尾狐</color>\n<color=red>敌对:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>", 5f, ScreenLocation.CenterTop);
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(SCPFF);
                             ev.Player.VoiceChannel.AddFlags(VoiceChat.VoiceChatChannel.ScpChat);
                             break;
@@ -787,12 +792,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
                             if (isGocActing)
                             {
-                                p.AddMessage("messID", "你是 GOC势力 与反基金会势力合作 前往广播召唤GOC\n<color=yellow>中立:ClassD,科学家,保安,UIU,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
+                                p.AddMessage("", "你是 GOC势力 与反基金会势力合作 前往广播召唤GOC\n<color=yellow>中立:ClassD,科学家,保安,UIU,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
                                 ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(GOCFF);
                                 ev.Player.SetCustomRoleFriendlyFire("Goc_Spy", RoleTypeId.Tutorial, 0);
                                 break;
                             }
-                            p.AddMessage("messID", "你是 清收势力 与反基金会势力合作 尽可能的逃跑\n<color=yellow>中立:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
+                            p.AddMessage("", "你是 清收势力 与反基金会势力合作 尽可能的逃跑\n<color=yellow>中立:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
 
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(EscaperFF);
                             break;
@@ -842,13 +847,13 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
                             if (!isGocActing)
                             {
-                                p.AddMessage("messID", "你是 反基金会势力 消灭一切基金会团队的成员\n <color=green>友好:GOC,UIU,混沌,安德森机器人</color>\n<color=yellow>中立:ClassD,科学家,保安</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
+                                p.AddMessage("", "你是 反基金会势力 消灭一切基金会团队的成员\n <color=green>友好:GOC,UIU,混沌,安德森机器人</color>\n<color=yellow>中立:ClassD,科学家,保安</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
                                 ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(AntiSCPFF);
                                 break;
                             }
                             else
                             {
-                                p.AddMessage("messID", "你是 GOC势力 消灭一切基金会团队的成员\n <color=green>友好:goc</color>\n<color=yellow>中立:ClassD,科学家,保安,UIU,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
+                                p.AddMessage("", "你是 GOC势力 消灭一切基金会团队的成员\n <color=green>友好:goc</color>\n<color=yellow>中立:ClassD,科学家,保安,UIU,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
                                 if (ev.Player != null)
                                 {
                                     ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(GOCFF);
@@ -907,7 +912,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 {
                     foreach (var s in Player.List)
                     {
-                        s.AddMessage("messid", "Normal Ending:055进入了579 宇宙重启");
+                        s.AddMessage("", "Normal Ending:055进入了579 宇宙重启");
                     }
                     ev.LeadingTeam = (Exiled.API.Enums.LeadingTeam)4;
                 }
@@ -916,7 +921,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
                     foreach (var s in Player.List)
                     {
-                        s.AddMessage("messid", "GOC Ending: GOC成功引爆核弹");
+                        s.AddMessage("", "GOC Ending: GOC成功引爆核弹");
                     }
                 }
                 else
@@ -979,7 +984,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "UIU_C";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; }
+            public override string CustomInfo { get; set; } = "UIU 成员";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
 
@@ -989,9 +994,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                 Description = "与安德森机器人合作 调查基金会为什么毁灭人类\n下载完资料后撤离";
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 120;
+                MaxHealth = 130;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU成员</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往机房下载资料 下载完资料后撤离</color></size>", 4);
-                //p.AddMessage("messID", "你是 反基金会 团队 消灭一切基金会团队的成员", 2f, ScreenLocation.CenterBottom));
+                //p.AddMessage("messID", "你是 反基金会 团队 消灭一切基金会团队的成员", 2f, ScreenLocation.Center));
                 this.IgnoreSpawnSystem = true;
 
                 this.Inventory = new List<string>()
@@ -1000,7 +1005,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 string.Format("{0}", ItemType.Medkit),
                 string.Format("{0}", ItemType.Painkillers),
                 string.Format("{0}", ItemType.KeycardChaosInsurgency),
-                string.Format("{0}", ItemType.GunCrossvec)
+                string.Format("{0}", ItemType.GunCrossvec),
+                string.Format("{0}", ItemType.GrenadeHE)
             };
                 base.Init();
             }
@@ -1077,10 +1083,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                             Cassie.MessageTranslated("Security alert . U I U down load d . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。阻止撤离");
                                             uiu_broadcasted = true;
                                         }
-                                        hud.AddMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom);
-                                        if (hud.HasMessage("UIUdownloading"))
+                                        hud.AddMessage("UIU_DOWNLOAD_DONE" + DateTime.Now.ToString(), "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.Center);
+                                        if (hud.HasMessage("UIUdownloading" + player.Nickname))
                                         {
-                                            hud.RemoveMessage("UIUdownloading");
+                                            hud.RemoveMessage("UIUdownloading" + player.Nickname);
                                         }
                                         UiuDownloadTime = 100f;
                                     }
@@ -1088,7 +1094,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     {
                                         UiuDownloadTime += UiuDownloadTick;
                                         //Log.Info($"UiuDownloadTick:{UiuDownloadTick}");
-                                        float remainTime = (100f - Scp5k_Control.UiuDownloadTime) * 0.2f;
+                                        float remainTime = (100f - Scp5k_Control.UiuDownloadTime);
                                         if (UiuDownloadTime >= 30f && !UiuDownloadBroadcasted)
                                         {
                                             Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。前往机房");
@@ -1100,13 +1106,23 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                                         }
                                         //p.SendConsoleMessage($"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {time:F0} 秒 下载结束: 300 秒</color></size>");
-                                        if (!hud.HasMessage("UIUdownloading"))
+                                        if (!hud.HasMessage("UIUdownloading" + player.Nickname))
                                         {
                                             hud.AddMessage(
-                                                    "UIUdownloading",
-                                                    (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" },
-                                                    2f,
-                                                    ScreenLocation.CenterBottom
+                                                    "UIUdownloading" + player.Nickname,
+                                                    (x) => { 
+                                                        if(UiuDownloadTime >= 100f)
+                                                        {
+                                                            if (hud.HasMessage("UIUdownloading" + player.Nickname))
+                                                            {
+                                                                hud.RemoveMessage("UIUdownloading" + player.Nickname);
+                                                            }
+                                                            return new string[] { };
+                                                        }
+                                                        return new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" };
+                                                    },
+                                                    -1f,
+                                                    ScreenLocation.Center
                                                 );
                                         }
                                     }
@@ -1122,11 +1138,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             if (Escape.CanEscape(player.ReferenceHub, out var role, out var zone))
                             {
-                                if (hud.HasMessage("UIUdownloading"))
+                                if (hud.HasMessage("UIUdownloading" + player.Nickname))
                                 {
-                                    hud.RemoveMessage("UIUdownloading");
+                                    hud.RemoveMessage("UIUdownloading" + player.Nickname);
                                 }
-                                hud.AddMessage("messID", "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.CenterBottom);
+                                hud.AddMessage("UIU_ESCAPED" + DateTime.Now.ToString(), "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.Center);
                                 Scp5k_Control.UiuEscaped = true;
                                 RemoveRole(player);
                                 yield break;
@@ -1142,6 +1158,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     yield return Timing.WaitForSeconds(0.2f);
 
+                }
+                if (p.HasMessage("UIUdownloading" + player.Nickname))
+                {
+                    p.RemoveMessage("UIUdownloading" + player.Nickname);
                 }
                 Log.Debug("Out!");
 
@@ -1173,7 +1193,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "UIU_P";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; }
+            public override string CustomInfo { get; set; } = "UIU 队长";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
@@ -1181,8 +1201,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 Description = "与安德森机器人合作 调查基金会为什么毁灭人类\n下载完资料后撤离";
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 130;
-                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU成员</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往机房下载资料 下载完资料后撤离</color></size>", 4);
+                MaxHealth = 150;
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU队长</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往机房下载资料 下载完资料后撤离</color></size>", 4);
 
 
                 //foreach (var item in FFMul)
@@ -1197,6 +1217,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 string.Format("{0}", ItemType.Painkillers),
                 string.Format("{0}", ItemType.KeycardChaosInsurgency),
                 string.Format("{0}", ItemType.GunE11SR),
+                string.Format("{0}", ItemType.GrenadeHE)
+
             };
                 base.Init();
             }
@@ -1273,8 +1295,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                             Cassie.MessageTranslated("Security alert . U I U down load d . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。阻止撤离");
                                             uiu_broadcasted = true;
                                         }
-                                        hud.AddMessage("messID", "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.CenterBottom);
-                                        if (hud.HasMessage("UIUdownloading"))
+                                        hud.AddMessage("UIU_DOWNLOAD_DONE" + DateTime.Now.ToString(), "<size=30><color=red>你已成功下载资料,请尽快撤离!</color></size>", 04f, ScreenLocation.Center);
+                                        if (hud.HasMessage("UIUdownloading" + player.Nickname))
                                         {
                                             hud.RemoveMessage("UIUdownloading");
                                         }
@@ -1284,7 +1306,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     {
                                         UiuDownloadTime += UiuDownloadTick;
                                         //Log.Info($"UiuDownloadTick:{UiuDownloadTick}");
-                                        float remainTime = (100f - Scp5k_Control.UiuDownloadTime) * 0.2f;
+                                        float remainTime = (100f - Scp5k_Control.UiuDownloadTime);
                                         if (UiuDownloadTime >= 30f && !UiuDownloadBroadcasted)
                                         {
                                             Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols", "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。前往机房");
@@ -1296,13 +1318,23 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                                         }
                                         //p.SendConsoleMessage($"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {time:F0} 秒 下载结束: 300 秒</color></size>");
-                                        if (!hud.HasMessage("UIUdownloading"))
+                                        if (!hud.HasMessage("UIUdownloading" + player.Nickname))
                                         {
                                             hud.AddMessage(
-                                                    "UIUdownloading",
-                                                    (x) => new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" },
-                                                    2f,
-                                                    ScreenLocation.CenterBottom
+                                                    "UIUdownloading" + player.Nickname,
+                                                    (x) => {
+                                                        if (UiuDownloadTime >= 100f)
+                                                        {
+                                                            if (hud.HasMessage("UIUdownloading"))
+                                                            {
+                                                                hud.RemoveMessage("UIUdownloading");
+                                                            }
+                                                            return new string[] { };
+                                                        }
+                                                        return new string[] { $"<size=30><color=red>你正在下载资料,请勿离开电脑房! 已持续: {UiuDownloadTime:F1}% 预计下载结束: {remainTime:F0} 秒</color></size>" };
+                                                    },
+                                                    -1f,
+                                                    ScreenLocation.Center
                                                 );
                                         }
                                     }
@@ -1318,11 +1350,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             if (Escape.CanEscape(player.ReferenceHub, out var role, out var zone))
                             {
-                                if (hud.HasMessage("UIUdownloading"))
+                                if (hud.HasMessage("UIUdownloading" + player.Nickname))
                                 {
-                                    hud.RemoveMessage("UIUdownloading");
+                                    hud.RemoveMessage("UIUdownloading" + player.Nickname);
                                 }
-                                hud.AddMessage("messID", "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.CenterBottom);
+                                hud.AddMessage("UIU_ESCAPED" + DateTime.Now.ToString(), "<size=30><color=yellow>你作为uiu成功撤离</color></size>", 4f, ScreenLocation.Center);
                                 Scp5k_Control.UiuEscaped = true;
                                 RemoveRole(player);
                                 yield break;
@@ -1351,6 +1383,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 {
                     if (player != null)
                     {
+                        
                         CH[player.UserId] = MEC.Timing.RunCoroutine(PlayerUpdate(player));
                         player.Position = new Vector3(0, 302, -41);
                         player.SetCustomRoleFriendlyFire("Goc_C", RoleTypeId.Tutorial, 1);
@@ -1369,7 +1402,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Bot";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; }
+            public override string CustomInfo { get; set; } = "安德森机器人";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
@@ -1436,7 +1469,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             {
                                 TryAddItem(ev.Player, itemName);
                             }
-                            p.AddMessage("messID", $"<color=red><size=30>你还有 {totalLives} 次复活机会</size></color>", 1.5f, ScreenLocation.CenterBottom);
+                            p.AddMessage("", $"<color=red><size=30>你还有 {totalLives} 次复活机会</size></color>", 1.5f, ScreenLocation.Center);
                         }
                         else
                         {
@@ -1488,7 +1521,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc_C";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; }
+            public override string CustomInfo { get; set; } = "Goc 特工";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
@@ -1568,7 +1601,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc_P";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; }
+            public override string CustomInfo { get; set; } = "Goc 队长";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
@@ -1650,7 +1683,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc_spy";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; }
+            public override string CustomInfo { get; set; } = "";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
@@ -1663,7 +1696,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Description = "你是Goc间谍\n前往广播室呼叫阵营";
 
                 this.Role = RoleTypeId.ClassD;
-                MaxHealth = 130;
+                MaxHealth = 100;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc间谍</color></size>\n<size=30><color=yellow>前往广播室呼叫阵营</color></size>", 4);
 
                 this.IgnoreSpawnSystem = true;
@@ -1695,6 +1728,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 if (Check(ev.Player))
                 {
+                    if(diedPlayer.Count == 0)
+                    {
+
+                            ev.Player.AddMessage("spy_failed_no_body_died" + DateTime.Now.ToString(), "<size=30><color=green>失败 没有GOC在待命!</color></size>", 3f, ScreenLocation.Center);
+                        return;
+                    }
                     if (ev.Player.CurrentRoom != null && ev.Player.CurrentRoom.RoomName == RoomName.EzIntercom && !Goc_Spy_broadcasted && GocSpawnable)
                     {
                         Log.Info("goc");
@@ -1713,18 +1752,18 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         if (Goc_Spy_broadcasted)
                         {
                             Cassie.MessageTranslated("Security alert . Substantial G o c activity detected . Security personnel ,  proceed with standard protocols , Protect the warhead ", "安保警戒，侦测到大量GOC的活动。安保人员请继续执行标准协议，保护核弹。");
-                            ev.Player.AddMessage("messID", "<size=30><color=green>你成功呼叫支援!</color></size>", 3f, ScreenLocation.CenterBottom);
+                            ev.Player.AddMessage("Spy_goc_spawned" + DateTime.Now.ToString(), "<size=30><color=green>你成功呼叫支援!</color></size>", 3f, ScreenLocation.Center);
                         }
                         else
                         {
-                            ev.Player.AddMessage("messID", "<size=30><color=green>失败!</color></size>", 3f, ScreenLocation.CenterBottom);
+                            ev.Player.AddMessage("spy_failed_no_body"+DateTime.Now.ToString(), "<size=30><color=green>失败!</color></size>", 3f, ScreenLocation.Center);
 
                         }
                     }
                     else
                     {
                         var p = ev.Player;
-                        p.AddMessage("messID", "<size=30><color=red>你必须在广播室使用硬币呼叫阵营!</color></size>", 3f, ScreenLocation.CenterBottom);
+                        p.AddMessage("Spy_Failed_not_in_intercom" + DateTime.Now.ToString(), "<size=30><color=red>你必须在广播室使用硬币呼叫阵营!</color></size>", 3f, ScreenLocation.Center);
                     }
                 }
             }
@@ -1736,6 +1775,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             protected override void RoleAdded(Player player)
 
             {
+                player.InfoArea = PlayerInfoArea.Nickname | PlayerInfoArea.Badge | PlayerInfoArea.Role | PlayerInfoArea.UnitName | PlayerInfoArea.PowerStatus;
                 base.RoleAdded(player);
             }
         }
@@ -1762,7 +1802,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Description = "你是变色龙 想方法活下去";
 
                 this.Role = RoleTypeId.ClassD;
-                MaxHealth = 140;
+                MaxHealth = 100;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是变色龙</color></size>\n<size=30><color=yellow>想方法活下去\n使用Server-specific变身</color></size>", 4);
 
                 this.IgnoreSpawnSystem = true;
@@ -1860,7 +1900,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 {
                                     if (targetRole == OldRole)
                                     {
-                                        lp.AddMessage("messID", "<size=30><color=red>你已经是这个外表了!</color></size>", 3f, ScreenLocation.CenterBottom);
+                                        lp.AddMessage("Changer_Failed_already_is"+DateTime.Now.ToString(), "<size=30><color=red>你已经是这个外表了!</color></size>", 3f, ScreenLocation.Center);
                                         return;
                                     }
                                     player.EnableEffect(a, 40f);
@@ -1886,6 +1926,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             {
                 SettingBase.Register(player, Plugin.MenuCache.Where(x=>x.Id== Plugin.Instance.Config.SettingIds[Features.ColorChangerRole]));
+                player.InfoArea = PlayerInfoArea.Nickname | PlayerInfoArea.Badge | PlayerInfoArea.Role | PlayerInfoArea.UnitName | PlayerInfoArea.PowerStatus;
+
                 base.RoleAdded(player);
             }
             protected override void RoleRemoved(Player player)
@@ -1904,7 +1946,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "DrPW";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; }
+            public override string CustomInfo { get; set; } = "Pietro Wilson";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
@@ -1912,7 +1954,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 Description = "逃出site27,前往site62c \n带着055撤离";
                 this.Role = RoleTypeId.Scientist;
-                MaxHealth = 130;
+                MaxHealth = 100;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Pietro Wilson</color></size>\n<size=30><color=yellow>携带SCP055逃出site27,前往site62c\n(带着055撤离)</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
 
@@ -1943,7 +1985,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     if (!ev.IsAllowed)
                     {
-                        p.AddMessage("messID", "<size=40><color=red>你必须携带055逃离!</color></size>", 2f, ScreenLocation.CenterBottom);
+                        p.AddMessage("Doc_escape_failed_no055" + DateTime.Now.ToString(), "<size=40><color=red>你必须携带055逃离!</color></size>", 2f, ScreenLocation.Center);
 
                     }
                     else
@@ -1954,7 +1996,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             if (Round.IsStarted)
                                 Round.EndRound(true);
                         });
-                        p.AddMessage("messID", "<size=40><color=red>你携带055成功逃离! 30秒后回合结束!</color></size>", 3f, ScreenLocation.CenterBottom);
+                        p.AddMessage("Doc_escape_successful" + DateTime.Now.ToString(), "<size=40><color=red>你携带055成功逃离! 30秒后回合结束!</color></size>", 3f, ScreenLocation.Center);
                         ev.NewRole = RoleTypeId.Spectator;
                     }
                 }
@@ -2293,7 +2335,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 player.Broadcast(4, "", global::Broadcast.BroadcastFlags.Normal, true);
                 var p = player;
 
-                p.AddMessage("messID", "<size=28><color=red>你获得了绝对排斥护具,请查看Server-Specific修改按键</color></size>", 4f, ScreenLocation.CenterBottom);
+                p.AddMessage("AEH_GET_HINT" + DateTime.Now.ToString(), "<size=28><color=red>你获得了绝对排斥护具,请查看Server-Specific修改按键</color></size>", 4f, ScreenLocation.Center);
 
                 base.ShowPickedUpMessage(player);
             }
@@ -2391,17 +2433,17 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                             CoolDown.Restart();
                                             player.EnableEffect(Exiled.API.Enums.EffectType.Fade, 255, 45);
 
-                                            p.AddMessage("messID", "<color=red>成功隐身</color>", 3f, ScreenLocation.CenterBottom);
+                                            p.AddMessage("AEH_INVESS" + DateTime.Now.ToString(), "<color=red>成功隐身</color>", 3f, ScreenLocation.Center);
                                             Timing.CallDelayed(45, () =>
                                             {
-                                                p.AddMessage("messID", "<color=red>隐身结束</color>", 3f, ScreenLocation.CenterBottom);
+                                                p.AddMessage("AEH_INVESS_END" + DateTime.Now.ToString(), "<color=red>隐身结束</color>", 3f, ScreenLocation.Center);
                                                 CoolDown.Restart();
                                             });
                                             break;
                                         }
                                         else
                                         {
-                                            p.AddMessage("messID", "<color=red>冷却中</color>", 3f, ScreenLocation.CenterBottom);
+                                            p.AddMessage("AEH_INVESS_COLLDOWN" + DateTime.Now.ToString(), "<color=red>冷却中</color>", 3f, ScreenLocation.Center);
                                             break;
                                         }
                                     }

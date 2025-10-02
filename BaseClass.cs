@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Next_generationSite_27.UnionP
 {
-    class BaseClass
+    public class BaseClass
     {
         public void StartInit()
         {

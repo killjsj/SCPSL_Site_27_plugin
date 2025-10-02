@@ -86,7 +86,7 @@ namespace Next_generationSite_27.UnionP
                         _LaBplayer.RemoveMessage("ChangeEffect");
 
                 }
-                this.DisableEffect();
+                //this.DisableEffect();
                 return;
             }
             if (!_LaBplayer.HasMessage("ChangeEffect"))
@@ -104,7 +104,7 @@ namespace Next_generationSite_27.UnionP
                     {
                             $"<pos=40%><voffset=-1em%><color=yellow><size=27>变身剩余时间: {this.TimeLeft.ToString("F0")} 目前外表:{Scp5k.Scp5k_Control.ColorChangerRole.RoleTrans[TargetType]}</size></color></pos></voffset>"
                     };
-                },this.TimeLeft);
+                },this.TimeLeft,ScreenLocation.Center);
             }
             if (_player == null || TargetType == LastTargetType)
                 return;
@@ -148,7 +148,7 @@ namespace Next_generationSite_27.UnionP
                 if (_LaBplayer.HasMessage("ChangeEffect"))
                     _LaBplayer.RemoveMessage("ChangeEffect");
 
-                _LaBplayer.AddMessage("ChangeEffectEnd", "<pos=40%><voffset=-1em%><color=yellow><size=27>打回原型</size></color></pos></voffset>", 2f);
+                _LaBplayer.AddMessage("ChangeEffectEnd", "<pos=40%><voffset=-1em%><color=yellow><size=27>打回原型</size></color></pos></voffset>", 2f, ScreenLocation.Center);
             }
 
             base.DisableEffect();

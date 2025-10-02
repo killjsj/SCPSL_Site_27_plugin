@@ -421,13 +421,14 @@
     <Compile Include="configs\Translation.cs" />
     <Compile Include="customWeapon.cs" />
     <Compile Include="dude.cs" />
+    <Compile Include="ScpHpShow.cs" />
     <Compile Include="SpawnProject.cs" />
     <Compile Include="EV.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="mysql.cs" />
     <Compile Include="patch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Level\PlayerManager.cs" />
+    <Compile Include="PM\PlayerManager.cs" />
     <Compile Include="SuperSCP.cs" />
     <Compile Include="testing\FlightFailed.cs" />
     <Compile Include="testing\Command.cs" />

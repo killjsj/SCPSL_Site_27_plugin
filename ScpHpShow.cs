@@ -225,25 +225,17 @@ namespace Next_generationSite_27.UnionP
 
         string GetScpNumber(RoleTypeId role)
         {
-            switch (role)
+            return role switch
             {
-                case RoleTypeId.Scp049:
-                    return "049";
-                case RoleTypeId.Scp079:
-                    return "079";
-                case RoleTypeId.Scp096:
-                    return "096";
-                case RoleTypeId.Scp106:
-                    return "106";
-                case RoleTypeId.Scp173:
-                    return "173";
-                case RoleTypeId.Scp3114:
-                    return "3114";
-                case RoleTypeId.Scp939:
-                    return "939";
-                default:
-                    return "???";
-            }
+                RoleTypeId.Scp049 => "049",
+                RoleTypeId.Scp079 => "079",
+                RoleTypeId.Scp096 => "096",
+                RoleTypeId.Scp106 => "106",
+                RoleTypeId.Scp173 => "173",
+                RoleTypeId.Scp3114 => "3114",
+                RoleTypeId.Scp939 => "939",
+                _ => "???"
+            };
         }
     }
 }

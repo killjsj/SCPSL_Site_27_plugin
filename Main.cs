@@ -217,20 +217,21 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Scp079.GainingExperience += superSCP.GainingExperience;
             Exiled.Events.Handlers.Item.DisruptorFiring += eventhandle.DisruptorFiring;
 
-            Exiled.Events.Handlers.Server.EndingRound += eventhandle.OnRoundEnd;
+            Exiled.Events.Handlers.Server.RoundEnded += eventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
-            Exiled.Events.Handlers.Player.VoiceChatting += Scp5k_Control.VoiceChatting;
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
+            Exiled.Events.Handlers.Player.ChangingRole += GOCAnim.OnchangingRole;
                 Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
 
             Exiled.Events.Handlers.Player.Verified += UnionP.testing.FlightFailed.OnVerify;
             Exiled.Events.Handlers.Player.Dying += UnionP.testing.FlightFailed.OnDied;
             Exiled.Events.Handlers.Player.Hurting += UnionP.testing.FlightFailed.OnHurt;
             Exiled.Events.Handlers.Player.Left += UnionP.testing.FlightFailed.OnLeft;
+            Exiled.Events.Handlers.Player.ChangingRole += UnionP.testing.FlightFailed.OnChangingRole;
             try
             {
                 // 1. 获取类型：使用完整类名（含命名空间）
@@ -316,7 +317,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
-            Exiled.Events.Handlers.Server.EndingRound -= eventhandle.OnRoundEnd;
+            Exiled.Events.Handlers.Server.RoundEnded -= eventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Shot -= Bomb.OnPlayerShotWeapon;
             Exiled.Events.Handlers.Scp914.UpgradingPickup -= Bomb.OnUpgradingPickup;
@@ -335,14 +336,15 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.EndingRound -= Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
-            Exiled.Events.Handlers.Player.VoiceChatting -= Scp5k_Control.VoiceChatting;
             Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
+            Exiled.Events.Handlers.Player.ChangingRole -= GOCAnim.OnchangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
 
             Exiled.Events.Handlers.Player.Verified -= UnionP.testing.FlightFailed.OnVerify;
             Exiled.Events.Handlers.Player.Dying -= UnionP.testing.FlightFailed.OnDied;
             Exiled.Events.Handlers.Player.Hurting -= UnionP.testing.FlightFailed.OnHurt;
             Exiled.Events.Handlers.Player.Left -= UnionP.testing.FlightFailed.OnLeft;
+            Exiled.Events.Handlers.Player.ChangingRole -= UnionP.testing.FlightFailed.OnChangingRole;
             harmony.UnpatchAll();
             eventhandle.update();
             eventhandle.stopBroadcast();
@@ -418,7 +420,7 @@ namespace Next_generationSite_27.UnionP
         [Description("回合结束时的背背刺")]
         public bool RoundEndFF { get; set; } = true;
         [Description("回合结束时的背背刺文字")]
-        public string RoundEndFFText { get; set; } = "<size=22><color=F5FFFA>友军伤害已开启，尽情背刺吧</color></size>";
+        public string RoundEndFFText { get; set; } = "<size=22><color=#F5FFFA>友军伤害已开启，尽情背刺吧</color></size>";
         [Description("SCP站立回血")]
         public bool ScpStandAddHP { get; set; } = true;
         [Description("SCP站立回血-站几秒回一次")]
@@ -438,6 +440,7 @@ namespace Next_generationSite_27.UnionP
             { Features.Scp5kGOCAnswer, 5001 },
             { Features.AEHKey, 5141 },
             { Features.ColorChangerRole, 1011 },
+            { Features.ScpTalk,1021 },
         };
         [Description("以下与5k相关 启用5k的概率(0-100)")]
         public int scp5kPercent { get; set; } = 0;
@@ -521,6 +524,7 @@ namespace Next_generationSite_27.UnionP
         AEHKey,
         Scp5kGOCAnswer,
         ColorChangerRole,
+        ScpTalk,
     }
     public class RunningMan : Event<GwangjuRunningManLoader.RunningManConfig, RunningManTranslation>, IEventMap, IEventSound
     {

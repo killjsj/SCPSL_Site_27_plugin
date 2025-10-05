@@ -10,6 +10,7 @@ using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using Exiled.Events.Handlers;
 using GameCore;
+using Interactables.Interobjects;
 using Interactables.Interobjects.DoorUtils;
 using InventorySystem;
 using InventorySystem.Configs;
@@ -42,6 +43,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEngine;
 using UnityEngine.DedicatedServer;
@@ -467,7 +469,7 @@ namespace Next_generationSite_27.UnionP
         }
 
         // 在回合结束时清理所有保护
-        public void OnRoundEnd(EndingRoundEventArgs ev)
+        public void OnRoundEnd(Exiled.Events.EventArgs.Server.RoundEndedEventArgs ev)
         {
             Plugin.plugin.scpChangeReqs = new List<ScpChangeReq>();
 
@@ -482,7 +484,7 @@ namespace Next_generationSite_27.UnionP
                 ServerConfigSynchronizer.RefreshAllConfigs();
                 foreach (var item in Player.List)
                 {
-                    item.AddMessage("RoundEnd",config.RoundEndFFText,location:ScreenLocation.CenterTop);
+                    item.AddMessage("RoundEnd",config.RoundEndFFText,location:ScreenLocation.CenterTop,duration:2);
                 }
             }
             // 清理计时器
@@ -1088,6 +1090,7 @@ namespace Next_generationSite_27.UnionP
         //TeslaOverconRenderer TeslaOverconRenderer = null;
         public void WaitingForPlayers()
         {
+            Scp330Interobject.MaxAmountPerLife = 4;
             st = false;
             StopBroadcast = false;
             Plugin.enableSSCP = false;
@@ -1118,26 +1121,9 @@ namespace Next_generationSite_27.UnionP
                 goto No;
             }
 
-            var g = GameObject.FindObjectsByType<Canvas>(FindObjectsInactive.Exclude, FindObjectsSortMode.InstanceID);
-            EventSystem.current.SetSelectedGameObject(null);
-            if (g != null)
-            {
-                foreach (Canvas c in g)
-                {
-                    if (c.name == "Player Canvas")
-                    {
-                        var t = c.gameObject.transform.Find("StartRound");
-                        
-                        if (t != null)
-                        {
-                            t.gameObject.SetActive(false);
-                            canvas = t.gameObject;
-                            //GameObject.Destroy(t.gameObject);
-                        }
-                    }
-                }
+            //var method = typeof(CharacterClassManager)
 
-            }
+
 
             EventSystem.current.SetSelectedGameObject(null);
             PrefabManager.RegisterPrefabs();
@@ -1845,6 +1831,11 @@ namespace Next_generationSite_27.UnionP
                             {
                                 PlayerTicket.Add(ev.Player, scpTicketsLoader.GetTickets(ev.Player.ReferenceHub,10,true));
                             }
+                            var method = typeof(CharacterClassManager)
+    .GetMethod("RpcRoundStarted", BindingFlags.Instance | BindingFlags.NonPublic);
+
+                            method.Invoke(ev.Player.ReferenceHub.characterClassManager, null);
+
                         }
                         catch (Exception e)
                         {

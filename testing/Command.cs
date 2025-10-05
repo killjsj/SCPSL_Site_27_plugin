@@ -951,7 +951,7 @@ namespace Next_generationSite_27.UnionP
                 return false;
             }
 
-            Scp5k.GOCAnim.Gen(new Vector3(13f, 400f, -40f));
+            Scp5k.GOCAnim.Gen(new Vector3(13f, 450f, -40f));
             response = $"done!";
             return true;
 

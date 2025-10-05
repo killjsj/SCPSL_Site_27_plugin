@@ -48,7 +48,7 @@ namespace Next_generationSite_27.UnionP
             return true;
         }
     }
-    public class ChangeEffect : TickingEffectBase, ISpectatorDataPlayerEffect
+    public class ChangeEffect
     {
         public string DisplayName => "ChangeEffect";
 
@@ -59,70 +59,76 @@ namespace Next_generationSite_27.UnionP
         private RoleTypeId LastTargetType { get; set; } = RoleTypeId.None;
 
         private Player _player;
-        private Player _LaBplayer => _player;
-
-        protected override void Enabled()
+        public Player _LaBplayer => _player;
+        public int TimeLeft = 0;
+        public static ChangeEffect Enabled(ReferenceHub Hub,int time)
         {
-            _player = Player.Get(Hub);
-            LastType = Hub.roleManager.CurrentRole.RoleTypeId; // ✅ 正确记录原始角色
+            var a = new ChangeEffect();
 
-            if (_player != null && Scp5k.Scp5k_Control.ColorChangerRole.PlayerToRole.TryGetValue(_player, out var role))
+            a.TimeLeft = time;
+            a._player = Player.Get(Hub);
+            a.LastType = Hub.roleManager.CurrentRole.RoleTypeId; // ✅ 正确记录原始角色
+
+            if (a._player != null && Scp5k.Scp5k_Control.ColorChangerRole.PlayerToRole.TryGetValue(a._player, out var role))
             {
-                _player.ChangeAppearance(role);
-                TargetType = role;
-                LastTargetType = role;
+                a._player.ChangeAppearance(role);
+                a.TargetType = role;
+                a.LastTargetType = role;
+            Timing.RunCoroutine(a.OnTick());
             }
-
-            base.Enabled();
+            return a;
         }
 
-        protected override void OnTick()
+        public IEnumerator<float> OnTick()
         {
-            if(this.Intensity == 0)
-            {
-                if (_LaBplayer != null)
+            while (_player != null) {
+                try
                 {
-                    if (_LaBplayer.HasMessage("ChangeEffect"))
-                        _LaBplayer.RemoveMessage("ChangeEffect");
-
-                }
-                //this.DisableEffect();
-                return;
-            }
-            if (!_LaBplayer.HasMessage("ChangeEffect"))
-            {
-                _LaBplayer.AddMessage("ChangeEffect", (x) =>
-                {
-                    if(TargetType == RoleTypeId.None)
+                    if (!_LaBplayer.HasMessage("ChangeEffect"))
                     {
-                        return new string[]
+                        _LaBplayer.AddMessage("ChangeEffect", (x) =>
                         {
+                            if (TargetType == RoleTypeId.None)
+                            {
+                                return new string[]
+                                {
                             $""
-                        };
+                                };
+                            }
+                            return new string[]
+                            {
+                            $"<pos=40%><voffset=-1em%><color=yellow><size=27>变身剩余时间: {TimeLeft.ToString("F0")} 目前外表:{Scp5k.Scp5k_Control.ColorChangerRole.RoleTrans[TargetType]}</size></color></pos></voffset>"
+                            };
+                        }, this.TimeLeft, ScreenLocation.Center);
                     }
-                    return new string[]
+                    if (_player == null || TargetType == LastTargetType)
+                        yield break;
+                    if (TargetType == RoleTypeId.None)
                     {
-                            $"<pos=40%><voffset=-1em%><color=yellow><size=27>变身剩余时间: {this.TimeLeft.ToString("F0")} 目前外表:{Scp5k.Scp5k_Control.ColorChangerRole.RoleTrans[TargetType]}</size></color></pos></voffset>"
-                    };
-                },this.TimeLeft,ScreenLocation.Center);
+                        _player.ChangeAppearance(LastType); // 恢复原始外观
+                        LastTargetType = TargetType = LastType;
+                        this.DisableEffect();
+                        yield break;
+                    }
+                    // 只在目标变更时更新
+                    _player.ChangeAppearance(TargetType);
+                    LastTargetType = TargetType;
+                }catch (Exception ex)
+                {
+                    Log.Warn(ex);
+                }
+                if(TimeLeft <= 0)
+                {
+                    this.DisableEffect();
+                    yield break;
+                }
+                TimeLeft -= 1;
             }
-            if (_player == null || TargetType == LastTargetType)
-                return;
-            if(TargetType == RoleTypeId.None)
-            {
-                _player.ChangeAppearance(LastType); // 恢复原始外观
-                LastTargetType = TargetType = LastType;
-                this.DisableEffect();
-                return;
-            }
-            // 只在目标变更时更新
-            _player.ChangeAppearance(TargetType);
-            LastTargetType = TargetType;
         }
 
-        protected override void DisableEffect()
+        public void DisableEffect()
         {
-            if (_player == null || Hub == null)
+            if (_player == null)
                 return;
 
             // 延迟执行，避免角色切换冲突
@@ -150,21 +156,11 @@ namespace Next_generationSite_27.UnionP
 
                 _LaBplayer.AddMessage("ChangeEffectEnd", "<pos=40%><voffset=-1em%><color=yellow><size=27>打回原型</size></color></pos></voffset>", 2f, ScreenLocation.Center);
             }
-
-            base.DisableEffect();
         }
 
         public void ChangeTarget(RoleTypeId target)
         {
             TargetType = target;
-        }
-
-        bool ISpectatorDataPlayerEffect.GetSpectatorText(out string display)
-        {
-            display = TargetType == RoleTypeId.None
-                ? "伪装: 无"
-                : $"伪装为: {TargetType}";
-            return true;
         }
     }
     class EffectHelper

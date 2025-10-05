@@ -157,7 +157,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
 
 
-                return IsEnemy(attacker, victim);  // 跳过原始方法执行}
+                __result = IsEnemy(attacker, victim);  // 跳过原始方法执行}
+                return false;
             }
             return true;
         }
@@ -256,7 +257,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 // 尝试获取 Goc 角色 (仅用于判定，Uiu 和 Bot 不再需要)
                 if (!CustomRole.TryGet(Scp5k_Control.GocCID, out var customGocC) ||
                     !CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocP) ||
-                    !CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocSpy))
+                    !CustomRole.TryGet(Scp5k_Control.GocSpyID, out var customGocSpy))
                 {
                     goto cont;
                 }

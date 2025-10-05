@@ -772,7 +772,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹安装完成 预计在{countDown}秒后预热完成! 请务必拆除所有{GOCBomb.installCount}个炸弹", isHeld: true, isSubtitles: true);
                 if (Scp5k.Scp5k_Control.GOCBOmb == null)
                 {
-                    GOCAnim.Gen(new Vector3(13f, 400f, -40f));
+                    GOCAnim.Gen(new Vector3(13f, 450f, -40f));
                     //Exiled.API.Features.Cassie.Message("警告!GOC正在安装奇术核弹 所有人员前往阻止/拆除", isSubtitles: true);
                     Played = true;
                 }

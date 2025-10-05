@@ -10,13 +10,17 @@ using Exiled.API.Features;
 using Exiled.API.Features.Spawn;
 using Exiled.API.Features.Toys;
 using Exiled.Events.Commands.Reload;
+using Exiled.Events.EventArgs.Player;
 using Exiled.Loader;
 using MEC;
 using Mirror;
+using PlayerRoles;
+using PlayerRoles.FirstPersonControl;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -32,6 +36,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
     {
         //public static AssetBundle ass;
         public static Animator _animator;
+        public static GameObject camera;
         public static byte startID = 0;
         public static byte idleID = 0;
         public static byte donateID = 0;
@@ -65,16 +70,22 @@ namespace Next_generationSite_27.UnionP.Scp5k
             GameObject skg = sk.SpawnOrUpdateObject();
             Log.Info($"5kEffect spawned at:{skg.transform.position}");
             var SO = skg.gameObject.GetComponent<SchematicObject>();
-            bool jump = false;
+            //bool jump = false;
             foreach (GameObject gameObject in SO.AttachedBlocks)
             {
-                if (jump) break;
+                //if (jump) break;
                 switch (gameObject.name)
                 {
                     case "GocEffect":
                         {
                             _animator = gameObject.GetComponent<Animator>();
-                            jump = true;
+                            //jump = true;
+                            break;
+                        }
+                    case "camera":
+                        {
+                            camera = gameObject;
+                            //jump = true;
                             break;
                         }
                 }
@@ -90,7 +101,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 item.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 1, 600f);
                 item.EnableEffect(Exiled.API.Enums.EffectType.SoundtrackMute, 1, 600f);
             }
-            jump = false;
+            //jump = false;
             startID = DefaultAudioManager.Instance.PlayGlobalAudioWithFilter(
 "GocNukeStart", loop: false,
 volume: 0.8f,
@@ -224,9 +235,74 @@ autoCleanup: false);
                 }
             }
         }
+        public static void OnchangingRole (ChangingRoleEventArgs ev)
+        {
+            if (ev.IsAllowed)
+            {
+                if (ev.NewRole.IsAlive())
+                {
+                    if (donating)
+                    {
+                        Timing.CallDelayed(0.2f, () =>
+                        {
+                            if (ev.Player.Role.Base is IFpcRole i)
+                            {
+                                i.FpcModule.Motor.GravityController.Gravity = Vector3.zero;
+                            }
+                            ev.Player.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 1, 600f);
+                            ev.Player.EnableEffect(Exiled.API.Enums.EffectType.SoundtrackMute, 1, 600f);
+                            ev.Player.EnableEffect(Exiled.API.Enums.EffectType.Fade, 255, 45f);
+                            Timing.RunCoroutine(CamUpdater(ev.Player), segment: Segment.LateUpdate);
+                        });
+                    }
+                }
+            }
+        }
+        public static IEnumerator<float> CamUpdater(Player player)
+        {
+            var lastEuler = camera.transform.eulerAngles;
+            while (donating)
+            {
+                try
+                {
+                    if (player == null)
+                        break;
+                    if(!player.IsAlive)
+                        break;
+                    Vector3 currentEuler = camera.transform.eulerAngles;
+
+                    // 处理 pitch（上下）
+                    float pitch = currentEuler.x;
+                    if (pitch > 180f) pitch -= 360f;
+                    pitch = -Mathf.Clamp(pitch, -90f, 90f);
+
+                    // 处理 yaw（左右）
+                    float yaw = currentEuler.y;
+                    if (yaw < 0f) yaw += 360f;
+                    if (yaw > 360f) yaw -= 360f;
+
+                    Vector2 rotation = new Vector2(pitch, yaw);
+
+                    // 发送到服务器
+                    player.ReferenceHub.TryOverrideRotation(rotation);
+
+                    lastEuler = currentEuler;
+                    player.ReferenceHub.TryOverridePosition(camera.transform.position);
+
+                    Log.Debug($"[CamUpdater] {player.Nickname} pitch={pitch:F2} yaw={yaw:F2} raw={currentEuler}");
+                }
+                catch (Exception e)
+                {
+                    Log.Warn(e);
+                }
+
+                yield return Timing.WaitForSeconds(0.02f);
+            }
+        }
+
         public static IEnumerator<float> OnKillerScaleChanged(GameObject killer, Animator an)
         {
-
+            Dictionary<Transform, Transform> playerToTransfrom = new Dictionary<Transform,Transform>();
             if (killer == null)
             {
                 Log.Info("killer == null");
@@ -266,8 +342,16 @@ autoCleanup: false);
                     DefaultAudioManager.Instance.FadeOutAudio(startID,2f);
                     startID = 0;
                 }
-                //StaticSpeakerFactory.ClearSpeakers();
+                try
+                {
+                    //StaticSpeakerFactory.ClearSpeakers();
+                    foreach (var item in Player.List.Where(x=>x.IsAlive))
+                    {
 
+                    }
+                } catch (Exception ex){ 
+                    Log.Warn(ex);
+                }
                 if (donateID == 0)
                 {
                     donateID = DefaultAudioManager.Instance.PlayGlobalAudioWithFilter("GocDonateMusic", false, 0.6f, AudioManagerAPI.Features.Enums.AudioPriority.Max, fadeInDuration: 0f, configureSpeaker: (x) => { x.Stop(); }, queue: false);
@@ -288,10 +372,33 @@ autoCleanup: false);
 
                     //}
                 }
+                try
+                {
+                    //StaticSpeakerFactory.ClearSpeakers();
+                    foreach (var item in Player.List)
+                    {
+                        if (item.CameraTransform != null)
+                        {
+                            {
+                                if (item.Role.Base is IFpcRole i)
+                                {
+                                    i.FpcModule.Motor.GravityController.Gravity = Vector3.zero;
+                                }
+                                item.EnableEffect(Exiled.API.Enums.EffectType.Fade, 255, 45f);
+                                Timing.RunCoroutine(CamUpdater(item), segment: Segment.LateUpdate);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex1)
+                {
+                    Log.Warn(ex1);
+                }
             }
             catch (Exception ex)
             {
                 Log.Info(ex.ToString());
+
             }
             while (true)
             {
@@ -332,6 +439,17 @@ autoCleanup: false);
                             yield break;
                     }
                     Log.Info("Kill");
+                    try
+                    {
+                        //StaticSpeakerFactory.ClearSpeakers();
+                        foreach (var item in Player.List)
+                        {
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warn(ex);
+                    }
                     Warhead.Shake();
                     foreach (var player in Player.List)
                     {
@@ -341,6 +459,10 @@ autoCleanup: false);
                     Scp5k_Control.GocNuke = true;
                     foreach (var player in Player.List)
                     {
+                        if (player.Role.Base is IFpcRole i)
+                        {
+                            i.FpcModule.Motor.GravityController.Gravity = FpcGravityController.DefaultGravity;
+                        }
                         player.Kill("Goc奇术");
                     }
                     an.SetBool("donate", false);

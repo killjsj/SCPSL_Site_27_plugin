@@ -542,7 +542,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     }
                                     else
                                     {
-                                        item.Position = Room.Get(Exiled.API.Enums.RoomType.EzCheckpointHallwayA).Position + new UnityEngine.Vector3(0, 3f, 0);
+                                        item.Position = Room.Get(Exiled.API.Enums.RoomType.LczCafe).Position + new UnityEngine.Vector3(0, 3f, 0);
 
                                         Log.Warn("未找到科学家出生点，无法设置 FacilityGuard 位置。");
                                     }
@@ -762,6 +762,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             p.AddMessage("","你是 基金会势力 消灭一切除基金会势力外的成员 \n <color=green>友好:SCP,九尾狐</color>\n<color=red>敌对:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>", 5f, ScreenLocation.CenterTop);
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(SCPFF);
                             ev.Player.VoiceChannel.AddFlags(VoiceChat.VoiceChatChannel.ScpChat);
+                            foreach (var item in SCPFF)
+                            {
+                                ev.Player.SetFriendlyFire(item);
+                            }
                             break;
                         }
 
@@ -800,6 +804,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             p.AddMessage("", "你是 清收势力 与反基金会势力合作 尽可能的逃跑\n<color=yellow>中立:GOC,UIU,ClassD,科学家,保安,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
 
                             ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(EscaperFF);
+                            foreach (var item in EscaperFF)
+                            {
+                                ev.Player.SetFriendlyFire(item);
+                            }
                             break;
                             //Npc
                         }
@@ -849,6 +857,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             {
                                 p.AddMessage("", "你是 反基金会势力 消灭一切基金会团队的成员\n <color=green>友好:GOC,UIU,混沌,安德森机器人</color>\n<color=yellow>中立:ClassD,科学家,保安</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
                                 ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(AntiSCPFF);
+                                foreach (var item in AntiSCPFF)
+                                {
+                                    ev.Player.SetFriendlyFire(item);
+                                }
                                 break;
                             }
                             else
@@ -856,7 +868,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 p.AddMessage("", "你是 GOC势力 消灭一切基金会团队的成员\n <color=green>友好:goc</color>\n<color=yellow>中立:ClassD,科学家,保安,UIU,混沌,安德森机器人</color>\n<color=red>敌对:SCP,九尾狐</color>", 5f, ScreenLocation.CenterTop);
                                 if (ev.Player != null)
                                 {
-                                    ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(GOCFF);
+                                    //ev.Player.FriendlyFireMultiplier = new Dictionary<RoleTypeId, float>(GOCFF);
+                                    foreach (var item in GOCFF)
+                                    {
+                                        ev.Player.SetFriendlyFire(item);
+                                    }
                                     ev.Player.SetCustomRoleFriendlyFire("Goc_C", RoleTypeId.Tutorial, 0);
                                     ev.Player.SetCustomRoleFriendlyFire("Goc_P", RoleTypeId.Tutorial, 0);
                                 }
@@ -871,108 +887,96 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             }
         }
-        public static void VoiceChatting(VoiceChattingEventArgs ev)
-        {
-            if (Is5kRound)
-            {
-                if (ev.Player.LeadingTeam == LeadingTeam.Anomalies)
-                {
-                    var vm = ev.VoiceMessage;
-                    vm.Channel = VoiceChat.VoiceChatChannel.Radio;
-                    foreach (var item in ReferenceHub.AllHubs.Where(x => x.GetTeam() == Team.FoundationForces && x.roleManager.CurrentRole.RoleTypeId != RoleTypeId.FacilityGuard))
-                    {
 
-                        item.connectionToClient.Send<VoiceMessage>(vm, 0);
-                    }
-                }
-            }
-
-        }
         public static void RoundEnding(EndingRoundEventArgs ev)
         {
             if (Is5kRound)
             {
-                ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                GOCAnim.donating = false;
-                Goc_Spy_broadcasted = false;
-                GOCBomb.Inited = false;
-                GOCBomb.Played = false;
-                GOCBomb.installCount = 2;
-                GOCBomb.GOCBombList = new List<GOCBomb>();
-                GOCBomb.installAt = new List<Room>();
-                GOCBomb.installedRoom = new Dictionary<GOCBomb, Room>();
-                GOCBomb.P2B = new Dictionary<Exiled.API.Features.Player, GOCBomb>();
-                GOCBomb.Questions = new List<(string q, string a)>();
-                GOCBomb.QuestionCount = 1;
-                uiu_broadcasted = false;
-                GOCBomb.countDown = GOCBomb.countDownStart;
-                GOCBomb.QuestionPoint = -1;
-                GocNuke = false;
-                if (Scp055Escaped)
+                if (ev.IsAllowed)
                 {
-                    foreach (var s in Player.List)
+                    ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                    GOCAnim.donating = false;
+                    Goc_Spy_broadcasted = false;
+                    GOCBomb.Inited = false;
+                    GOCBomb.Played = false;
+                    GOCBomb.installCount = 2;
+                    GOCBomb.GOCBombList = new List<GOCBomb>();
+                    GOCBomb.installAt = new List<Room>();
+                    GOCBomb.installedRoom = new Dictionary<GOCBomb, Room>();
+                    GOCBomb.P2B = new Dictionary<Exiled.API.Features.Player, GOCBomb>();
+                    GOCBomb.Questions = new List<(string q, string a)>();
+                    GOCBomb.QuestionCount = 1;
+                    uiu_broadcasted = false;
+                    GOCBomb.countDown = GOCBomb.countDownStart;
+                    GOCBomb.QuestionPoint = -1;
+                    GocNuke = false;
+                    if (Scp055Escaped)
                     {
-                        s.AddMessage("", "Normal Ending:055进入了579 宇宙重启");
+                        foreach (var s in Player.List)
+                        {
+                            s.AddMessage("", "Normal Ending:055进入了579 宇宙重启");
+                        }
+                        ev.LeadingTeam = (Exiled.API.Enums.LeadingTeam)4;
                     }
-                    ev.LeadingTeam = (Exiled.API.Enums.LeadingTeam)4;
-                }
-                else if ((Warhead.IsDetonated && GocSpawned) || GocNuke)
-                {
-                    ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
-                    foreach (var s in Player.List)
+                    else if ((Warhead.IsDetonated && GocSpawned) || GocNuke)
                     {
-                        s.AddMessage("", "GOC Ending: GOC成功引爆核弹");
+                        ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
+                        foreach (var s in Player.List)
+                        {
+                            s.AddMessage("", "GOC Ending: GOC成功引爆核弹");
+                        }
                     }
+                    else
+                    {
+                        RoundSummary.SumInfo_ClassList newList = default(RoundSummary.SumInfo_ClassList);
+                        foreach (ReferenceHub hub in ReferenceHub.AllHubs)
+                        {
+                            switch (hub.GetTeam())
+                            {
+                                case Team.SCPs:
+                                case Team.FoundationForces:
+                                    if (hub.GetRoleId() == RoleTypeId.Scp0492)
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        newList.mtf_and_guards++;
+
+                                    }
+                                    break;
+                                case Team.Scientists:
+                                case Team.ClassD:
+                                case Team.ChaosInsurgency:
+                                    newList.chaos_insurgents++;
+                                    break;
+                            }
+                            if (hub.GetRoleId() == RoleTypeId.CustomRole)
+                            {
+                                newList.chaos_insurgents++;
+                            }
+                        }
+                        if (newList.chaos_insurgents != 0 && newList.mtf_and_guards == 0)
+                        {
+                            ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
+                        }
+                        else if (newList.chaos_insurgents == 0 && newList.mtf_and_guards != 0)
+                        {
+                            ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.FacilityForces;
+                        }
+                    }
+                    Is5kRound = false;
                 }
                 else
                 {
-                    RoundSummary.SumInfo_ClassList newList = default(RoundSummary.SumInfo_ClassList);
-                    foreach (ReferenceHub hub in ReferenceHub.AllHubs)
-                    {
-                        switch (hub.GetTeam())
-                        {
-                            case Team.SCPs:
-                            case Team.FoundationForces:
-                                if (hub.GetRoleId() == RoleTypeId.Scp0492)
-                                {
-
-                                }
-                                else
-                                {
-                                    newList.mtf_and_guards++;
-
-                                }
-                                break;
-                            case Team.Scientists:
-                            case Team.ClassD:
-                            case Team.ChaosInsurgency:
-                                newList.chaos_insurgents++;
-                                break;
-                        }
-                        if (hub.GetRoleId() == RoleTypeId.CustomRole)
-                        {
-                            newList.chaos_insurgents++;
-                        }
-                    }
-                    if (newList.chaos_insurgents != 0 && newList.mtf_and_guards == 0)
-                    {
-                        ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
-                    }
-                    else if (newList.chaos_insurgents == 0 && newList.mtf_and_guards != 0)
-                    {
-                        ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.FacilityForces;
-                    }
                 }
-                Is5kRound = false;
+                if (refresher.IsRunning)
+                {
+                    Timing.KillCoroutines(refresher);
+                }
             }
-            else
-            {
-                Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
-            }
-            if (refresher.IsRunning)
-            {
-                Timing.KillCoroutines(refresher);
-            }
+            Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
+
         }
         public static bool uiu_broadcasted = false;
         public static uint UiuCID = 32;
@@ -1775,7 +1779,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             protected override void RoleAdded(Player player)
 
             {
-                player.InfoArea = PlayerInfoArea.Nickname | PlayerInfoArea.Badge | PlayerInfoArea.Role | PlayerInfoArea.UnitName | PlayerInfoArea.PowerStatus;
+                player.InfoArea = PlayerInfoArea.Nickname | PlayerInfoArea.Badge | PlayerInfoArea.Role | PlayerInfoArea.UnitName;
                 base.RoleAdded(player);
             }
         }
@@ -1870,6 +1874,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
 
             public static Dictionary<Player, RoleTypeId> PlayerToRole = new Dictionary<Player, RoleTypeId>();
+            public static Dictionary<Player, ChangeEffect> PlayerToChangeEffect = new Dictionary<Player, ChangeEffect>();
             public static List<SettingBase> MenuInit()
             {
                 var settings = new List<SettingBase>();
@@ -1894,8 +1899,13 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     var targetRole = RoleChangaeableTrans.ElementAt(UTI.SelectedIndex).Key;
                                     PlayerToRole[player] = targetRole;
                                     Log.Info($"Changing Appearance for:{player} to {targetRole}");
-                                    var a = EffectHelper.AddStatusEffectRuntime<Next_generationSite_27.UnionP.ChangeEffect>(player.ReferenceHub.playerEffectsController);
-                                    a.ChangeTarget(targetRole);
+                                if(!PlayerToChangeEffect.TryGetValue(player, out var a))
+                                {
+                                    a = ChangeEffect.Enabled(player.ReferenceHub, 40);
+
+                                }
+                                a.ChangeTarget(targetRole);
+                                    PlayerToChangeEffect.Add(lp, a);
                                 if (targetRole != RoleTypeId.None)
                                 {
                                     if (targetRole == OldRole)
@@ -1903,10 +1913,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                         lp.AddMessage("Changer_Failed_already_is"+DateTime.Now.ToString(), "<size=30><color=red>你已经是这个外表了!</color></size>", 3f, ScreenLocation.Center);
                                         return;
                                     }
-                                    player.EnableEffect(a, 40f);
+                                   
                                 } else
                                 {
-                                    player.DisableEffect< ChangeEffect>();
+                                    a.DisableEffect();
                                 }
 
                             }
@@ -1926,7 +1936,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             {
                 SettingBase.Register(player, Plugin.MenuCache.Where(x=>x.Id== Plugin.Instance.Config.SettingIds[Features.ColorChangerRole]));
-                player.InfoArea = PlayerInfoArea.Nickname | PlayerInfoArea.Badge | PlayerInfoArea.Role | PlayerInfoArea.UnitName | PlayerInfoArea.PowerStatus;
+                player.InfoArea = PlayerInfoArea.Nickname | PlayerInfoArea.Badge | PlayerInfoArea.Role | PlayerInfoArea.UnitName;
 
                 base.RoleAdded(player);
             }

@@ -71,7 +71,7 @@ namespace Next_generationSite_27.UnionP.UI
                         });
                     }
                 }
-                yield return Timing.WaitForSeconds(0.2f);
+                yield return Timing.WaitForSeconds(0.4f);
             }
         }
         ~HSM_hintServ()
@@ -158,6 +158,7 @@ namespace Next_generationSite_27.UnionP.UI
                 RightBoundary = targetX + 100,
                 LeftBoundary = targetX,
                 Strategy = HintServiceMeow.Core.Enum.DynamicHintStrategy.StayInPosition,
+                SyncSpeed = HintServiceMeow.Core.Enum.HintSyncSpeed.Normal
 
             };
             if (duration != 0)

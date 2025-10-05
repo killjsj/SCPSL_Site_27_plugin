@@ -87,6 +87,7 @@ namespace Next_generationSite_27.UnionP
                             {
                                 message_id++;
                                 item1.AddMessage($"BroadcastChat_{message_id}", $"<align=left><size=23>{item}</size></align>", duration: 3f, location: ScreenLocation.MiddleLeft);
+                                item1.SendConsoleMessage(item,"");
                             }
                             c++;
 
@@ -110,6 +111,7 @@ namespace Next_generationSite_27.UnionP
                             {
                                 message_id++;
                                 item1.AddMessage($"BroadcastChat_{message_id}", $"<color=red><align=right><size=23>{item}</size></align></color>",duration:3f, location: ScreenLocation.MiddleRight);
+                                item1.SendConsoleMessage(item,"");
                             }
                             c++;
 
@@ -140,6 +142,7 @@ namespace Next_generationSite_27.UnionP
                                 {
                                     message_id++;
                                     item2.AddMessage($"BroadcastChat_{message_id}", $"<color=yellow><align=center><size=23>{item1}</size></align></color>", duration: 3f, location: ScreenLocation.Middle);
+                                item2.SendConsoleMessage(item1,"");
                                 }
                                 c++;
                             }
@@ -210,7 +213,7 @@ namespace Next_generationSite_27.UnionP
                 string message = string.Join(" ", arguments.ToArray());
 
 
-                message = $"{s.Nickname}:{message}";
+                message = $"{s.Nickname}💭:{message}";
                 ChatStrings.Enqueue(message);
                 response = "Done!";
                 return true;
@@ -241,7 +244,7 @@ namespace Next_generationSite_27.UnionP
 
                 string message = string.Join(" ", arguments.ToArray());
 
-                message = $"(反馈){s.Nickname}:{message}";
+                message = $"(反馈){s.Nickname}💭:{message}";
                 AdminStrings.Enqueue(message);
                 response = "Done!";
                 return true;
@@ -277,7 +280,7 @@ namespace Next_generationSite_27.UnionP
                     response = "消息不能为空";
                     return false;
                 }
-                message = $"(队伍){runner.Nickname}:{message}";
+                message = $"(队伍){runner.Nickname}💭:{message}";
                 switch (runner.Role.Team)
                 {
                     case Team.SCPs:

@@ -30,6 +30,7 @@ namespace Next_generationSite_27.UnionP
         {
             Owner = owner;
             Grenade = grenade;
+            Grenade.PreviousOwner = Owner;
             initialized = true;
         }
 
@@ -67,7 +68,7 @@ namespace Next_generationSite_27.UnionP
                     if (!(collision.collider.gameObject == Owner.GameObject) && (Player.Get(collision.gameObject) != Owner))
                     {
                         Grenade.FuseTime = 0.01f;
-                            Grenade.Explode();
+                            Grenade.Explode(Owner.Footprint);
                             Plugin.active_g--;
                             //ExplosionGrenade.Explode(a.Footprint, Grenade.Position, Grenade, ExplosionType.Grenade);
                         

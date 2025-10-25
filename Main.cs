@@ -61,6 +61,7 @@ namespace Next_generationSite_27.UnionP
     class Plugin : Exiled.API.Features.Plugin<PConfig>
     {
         public static List<SettingBase> MenuCache = new List<SettingBase>();
+        public static Dictionary<Player, List<SettingBase>> PlayerMenuCache = new Dictionary<Player,List<SettingBase>>();
 
         public List<ScpChangeReq> scpChangeReqs = new List<ScpChangeReq>();
         public Stopwatch RoundTime = new Stopwatch();
@@ -219,10 +220,14 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Server.RoundEnded += eventhandle.OnRoundEnd;
 
+            Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating += Scp5k_Control.DeadmanSwitchInitiating;
+            Exiled.Events.Handlers.Player.Escaping += Scp5k_Control.Escaping;
+            Exiled.Events.Handlers.Server.RespawningTeam += Scp5k_Control.RespawningTeam;
             Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
+            Exiled.Events.Handlers.Warhead.ChangingLeverStatus += Scp5k_Control.ChangingLeverStatus;
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
             Exiled.Events.Handlers.Player.ChangingRole += GOCAnim.OnchangingRole;
                 Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
@@ -332,7 +337,11 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
 
             //5k
+            Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating -= Scp5k_Control.DeadmanSwitchInitiating;
             Exiled.Events.Handlers.Warhead.Detonating -= Scp5k_Control.WarheadDetonated;
+            Exiled.Events.Handlers.Player.Escaping -= Scp5k_Control.Escaping;
+            Exiled.Events.Handlers.Server.RespawningTeam -= Scp5k_Control.RespawningTeam;
+            Exiled.Events.Handlers.Warhead.ChangingLeverStatus -= Scp5k_Control.ChangingLeverStatus;
             Exiled.Events.Handlers.Server.EndingRound -= Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
@@ -452,14 +461,14 @@ namespace Next_generationSite_27.UnionP
         [Description("Goc刷新最高人数")]
         public int GocMaxCount { get; set; } = 8;
         [Description("uiu刷新时间(具体:第一波刷新时间+(该配置-UiUSpawnFloatTime+random(UiUSpawnTime*2)) 单位:s)")]
-        public int UiUSpawnTime { get; set; } = 135;
+        public int UiUSpawnTime { get; set; } = 215;
         [Description("uiu刷新浮动时间(具体:第一波刷新时间+(UiUSpawnTime-UiUSpawnFloatTime+random(UiUSpawnFloatTime*2)) 单位:s)")]
 
         public int UiUSpawnFloatTime { get; set; } = 45;
         [Description("uiu刷新最高人数")]
         public int UiuMaxCount { get; set; } = 9;
         [Description("安德森刷新时间(具体:(AndSpawnTime-AndSpawnFloatTime+random(AndSpawnFloatTime*2)) 单位:s)")]
-        public int AndSpawnTime { get; set; } = 480;
+        public int AndSpawnTime { get; set; } = 540;
         [Description("安德森浮动刷新时间(具体:(AndSpawnTime-AndSpawnFloatTime+random(AndSpawnFloatTime*2)) 单位:s)")]
 
         public int AndSpawnFloatTime { get; set; } = 45;
@@ -471,7 +480,7 @@ namespace Next_generationSite_27.UnionP
         [Description("安德森刷新次数")]
         public int AndRefreshMaxCount { get; set; } = 3;
         [Description("落锤开始刷新时间(s)")]
-        public int HammerStartSpawnTime { get; set; } = 6 * 60;
+        public int HammerStartSpawnTime { get; set; } = 430;
         [Description("刷新落锤需要的数量(Scp+基金会人员 < 其他)")]
         public int HammerSpawnCount { get; set; } = 5;
         [Description("落锤最高人数")]

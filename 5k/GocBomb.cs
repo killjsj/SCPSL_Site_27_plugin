@@ -328,7 +328,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 Log.Info($"炸弹要安装在:{item} {item.RoomName} {item.Position}");
             }
-            //QuestionCount += UnityEngine.Random.Range(-5, 6 + 1);
+            QuestionCount += UnityEngine.Random.Range(-5, 6 + 1);
             int baseCount = 30 + UnityEngine.Random.Range(-5, 6); // 25~36
             int totalQuestions = baseCount * installCount * 2; // 生成双倍，增加多样性
             for (int i = 0; i < totalQuestions; i++)
@@ -353,7 +353,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         // 或者在 init 时手动设置
         public static bool Inited = false;
         public static bool Played = false;
-        public static int installCount = 2;
+        public static int installCount = 4;
         public static int installedCount
         {
             get
@@ -366,7 +366,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static Dictionary<GOCBomb, Room> installedRoom = new Dictionary<GOCBomb, Room>();
         public static Dictionary<Exiled.API.Features.Player, GOCBomb> P2B = new Dictionary<Exiled.API.Features.Player, GOCBomb>();
         public static List<(string q, string a)> Questions = new List<(string q, string a)>();
-        public static int QuestionCount = 2;
+        public static int QuestionCount = 15;
         public static int QuestionPoint = -1;
         public Exiled.API.Features.Pickups.Pickup pickup;
         private static readonly object questionLock = new object();
@@ -548,7 +548,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         if (bomb.intering == null || bomb.intering.ReferenceHub != player.ReferenceHub)
                         {
                             SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
-
+                            Plugin.PlayerMenuCache[player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]);
                             return; // 不在互动中，忽略输入
                         }
                         var lp = Player.Get(player.ReferenceHub);
@@ -611,6 +611,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             GocIntering = isGoc;
             var i = Plugin.MenuCache.FirstOrDefault(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]);
             SettingBase.Register(player, new List<SettingBase>() { i });
+            Plugin.PlayerMenuCache[player].Add(i);
+
             if (i != null && i is UserTextInputSetting u)
             {
                 u.UpdateValue("", filter: p => p == player);
@@ -632,6 +634,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 if (player.CurrentRoom != runAt)
                 {
                     lp.AddMessage("Runned", "<pos=20%><color=red><size=27>你已离开房间 安装进度结束</size></color></pos>", 3f, ScreenLocation.Center);
+                    if (lp.HasMessage("problem"))
+                    {
+                        lp.RemoveMessage("problem");
+                    }
                     break;
                 }
                 else
@@ -750,7 +756,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
 
             SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
-
+            Plugin.PlayerMenuCache[player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]);
             P2B.Remove(player); // 👈 清理字典，避免玩家断开后仍占用内存
             yield break;
         }

@@ -1,10 +1,5 @@
 ﻿using AudioManagerAPI.Defaults;
 using AudioManagerAPI.Features.Enums;
-using AudioManagerAPI.Features.Static;
-using AudioManagerAPI.Speakers.Extensions;
-using AutoEvent.Interfaces;
-using CustomRendering;
-using Discord;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Spawn;
@@ -16,8 +11,10 @@ using MEC;
 using Mirror;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
+using PlayerStatsSystem;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
+using Subtitles;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -156,7 +153,7 @@ queue: true,
 fadeInDuration: 1.5f,
 persistent: false,
 lifespan: 0f,
-autoCleanup: false); 
+autoCleanup: false);
             }
 
 
@@ -235,7 +232,7 @@ autoCleanup: false);
                 }
             }
         }
-        public static void OnchangingRole (ChangingRoleEventArgs ev)
+        public static void OnchangingRole(ChangingRoleEventArgs ev)
         {
             if (ev.IsAllowed)
             {
@@ -261,15 +258,20 @@ autoCleanup: false);
         public static IEnumerator<float> CamUpdater(Player player)
         {
             var lastEuler = camera.transform.eulerAngles;
+
+            var start = player.InfoArea;
             while (donating)
             {
                 try
                 {
                     if (player == null)
                         break;
-                    if(!player.IsAlive)
+                    if (!player.IsAlive)
                         break;
+                    player.CurrentItem = null;
+                    player.InfoArea = 0;
                     Vector3 currentEuler = camera.transform.eulerAngles;
+
 
                     // 处理 pitch（上下）
                     float pitch = currentEuler.x;
@@ -298,11 +300,12 @@ autoCleanup: false);
 
                 yield return Timing.WaitForSeconds(0.02f);
             }
+            player.InfoArea = start;
         }
 
         public static IEnumerator<float> OnKillerScaleChanged(GameObject killer, Animator an)
         {
-            Dictionary<Transform, Transform> playerToTransfrom = new Dictionary<Transform,Transform>();
+            Dictionary<Transform, Transform> playerToTransfrom = new Dictionary<Transform, Transform>();
             if (killer == null)
             {
                 Log.Info("killer == null");
@@ -315,7 +318,7 @@ autoCleanup: false);
 
                 yield break;
             }
-            
+
             AnimatorStateInfo stateInfo = an.GetCurrentAnimatorStateInfo(0);
             while (!stateInfo.IsName("donate"))
             {
@@ -339,17 +342,19 @@ autoCleanup: false);
                 }
                 if (startID != 0)
                 {
-                    DefaultAudioManager.Instance.FadeOutAudio(startID,2f);
+                    DefaultAudioManager.Instance.FadeOutAudio(startID, 2f);
                     startID = 0;
                 }
                 try
                 {
                     //StaticSpeakerFactory.ClearSpeakers();
-                    foreach (var item in Player.List.Where(x=>x.IsAlive))
+                    foreach (var item in Player.List.Where(x => x.IsAlive))
                     {
 
                     }
-                } catch (Exception ex){ 
+                }
+                catch (Exception ex)
+                {
                     Log.Warn(ex);
                 }
                 if (donateID == 0)
@@ -424,7 +429,7 @@ autoCleanup: false);
                     }
                     if (error)
                         yield break;
-                    foreach(var player in Player.List)
+                    foreach (var player in Player.List)
                     {
                         player.EnableEffect(Exiled.API.Enums.EffectType.Flashed, 1, 2f);
                     }
@@ -463,12 +468,27 @@ autoCleanup: false);
                         {
                             i.FpcModule.Motor.GravityController.Gravity = FpcGravityController.DefaultGravity;
                         }
-                        player.Kill("Goc奇术");
+                        string text2;
+                            var d = new CustomReasonDamageHandler("goc奇术炸弹", -1f, "");
+                        string str;
+                        if (player.Role.Type.IsScp())
+                        {
+                            NineTailedFoxAnnouncer.ConvertSCP(player.Role.Type, out text2, out str);
+                            Cassie.MessageTranslated($"", $"{str} 已被GOC重新收容。");
+                            d.CassieDeathAnnouncement.Announcement = $"{text2} CONTAINEDSUCCESSFULLY BY G O C";
+                            d.CassieDeathAnnouncement.SubtitleParts = new SubtitlePart[]{
+                            new SubtitlePart(SubtitleType.Custom, new string[]
+                {
+                    $"{str} 已被GOC奇术重新收容"
+                }) };
+                        }
+                        player.ReferenceHub.playerStats.DealDamage(d);
+
                     }
                     an.SetBool("donate", false);
                     donating = false;
-                    
-                    
+
+
                     yield break;
                 }
 
@@ -509,7 +529,7 @@ autoCleanup: false);
             }
             Scp5k.Scp5k_Control.GOCBOmb.GetComponent<SchematicObject>().Destroy();
 
-            
+
             Scp5k.Scp5k_Control.GOCBOmb = null;
 
         }

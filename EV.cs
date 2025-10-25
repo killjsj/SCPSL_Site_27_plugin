@@ -403,7 +403,7 @@ namespace Next_generationSite_27.UnionP
         private IEnumerator<float> LoadConnectMeshesAsync()
         {
             yield return Timing.WaitUntilTrue(() => SeedSynchronizer.MapGenerated);
-            new SimpleRoomNavigation();
+            new RoomGraph();
 
         }
         public Dictionary<Player, Stopwatch> BroadcastTimers = new Dictionary<Player, Stopwatch>();
@@ -518,7 +518,7 @@ namespace Next_generationSite_27.UnionP
                             .ToList();
 
                         Log.Debug($"Ready players count: {readyPlayers.Count}");
-
+                        readyPlayers.ShuffleListSecure();
                         Dictionary<Player, RoleTypeId> initialRoles = readyPlayers.ToDictionary(p => p, p => p.Role.Type);
                         Dictionary<Player, RoleTypeId> finalRoles = new Dictionary<Player, RoleTypeId>(initialRoles);
                         Log.Debug($"notTodaySCP:\n- {string.Join("\n- ", NotTodaySCP)}");
@@ -585,7 +585,7 @@ namespace Next_generationSite_27.UnionP
                                 Log.Debug($"No more SCP slots available. Skipping assignment for {targetScpRole}.");
                                 continue;
                             }
-
+                            preferredHubs.ShuffleListSecure();
                             // 查找当前已经是此SCP角色的玩家
                             Player alreadyScpPlayer = readyPlayers.FirstOrDefault(p => finalRoles[p] == targetScpRole && p.IsConnected);
                             if (alreadyScpPlayer != null)
@@ -914,12 +914,6 @@ namespace Next_generationSite_27.UnionP
         public void Escaping(EscapingEventArgs ev)
         {
             bool flag = ev.Player.Role.Type == RoleTypeId.FacilityGuard;
-            if (flag)
-            {
-                ev.EscapeScenario = EscapeScenario.CustomEscape;
-                ev.NewRole = RoleTypeId.NtfSergeant;
-                ev.IsAllowed = true;
-            }
             if (effects.ContainsKey(ev.Player.ReferenceHub))
             {
                 effects[ev.Player.ReferenceHub].Clear();
@@ -952,6 +946,21 @@ namespace Next_generationSite_27.UnionP
                     }
                     effects[ev.Player.ReferenceHub].Add((item.GetEffectType(), item.Intensity, item.Duration));
 
+                }
+            }
+            if (flag)
+            {
+                if (Scp5k_Control.Is5kRound)
+                {
+                    ev.EscapeScenario = EscapeScenario.CustomEscape;
+                    ev.NewRole = RoleTypeId.ChaosRifleman;
+                    ev.IsAllowed = true;
+                    return;
+                } else
+                {
+                    ev.EscapeScenario = EscapeScenario.CustomEscape;
+                    ev.NewRole = RoleTypeId.NtfSergeant;
+                    ev.IsAllowed = true;
                 }
             }
         }
@@ -1108,6 +1117,8 @@ namespace Next_generationSite_27.UnionP
             {RoleTypeId.FacilityGuard ,new List<ReferenceHub>()},
             {RoleTypeId.ClassD ,new List<ReferenceHub>()}
         };
+            Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
+
             SPD.Clear();
             if (config.RoundEndFF)
             {

@@ -760,6 +760,28 @@ namespace Next_generationSite_27.UnionP
         }
     }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class CreateCommand : ICommand
+    {
+        string ICommand.Command { get; } = "createAwindow";
+
+        string[] ICommand.Aliases { get; } = new[] { "CAW" };
+
+        string ICommand.Description { get; } = "!!! 使用后产生方块";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            var p  =Primitive.Create(PrimitiveType.Cube, runner.Position, null, null, true);
+            p.Collidable = true;
+            p.Visible = true;
+            var BW = p.GameObject.AddComponent<Scp5k_Control.bunker>();
+            BW.Health = 100;
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class ChangeAppearceCommand : ICommand
     {
         string ICommand.Command { get; } = "CAP";
@@ -849,7 +871,7 @@ namespace Next_generationSite_27.UnionP
                 response = "Target room not found.";
                 return false;
             }
-            var nav = SimpleRoomNavigation.Nav;
+            var nav = RoomGraph.InternalNav;
             var re = nav.GetPathRooms(runner.CurrentRoom, Room.Get(targetRoomId));
 
             // 修复：检查路径是否存在
@@ -901,13 +923,13 @@ namespace Next_generationSite_27.UnionP
             var x = float.Parse(arguments.ElementAt(0));
             var y = float.Parse(arguments.ElementAt(1));
             var z = float.Parse(arguments.ElementAt(2));
-            //var pathfinding = Pathfinding.Instance;
+            //var pathfinding = Pathfinding.nav;
 
             //// 获取路径点
             //var re = pathfinding.GetPathPoints(
             //    target.Position, new Vector3(x, y, z)
             //);
-            var nav = SimpleRoomNavigation.Nav;
+            var nav = RoomGraph.InternalNav;
             var re = nav.FindPath(runner.Position,runner.CurrentRoom , new Vector3(x, y, z), Room.Get(new Vector3(x, y, z)));
             // 修复：检查路径是否存在
             if (re == null || re.Count == 0)
@@ -1010,7 +1032,7 @@ namespace Next_generationSite_27.UnionP
 
         string[] ICommand.Aliases { get; } = new[] { "Scp5000Role" };
 
-        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc/GOCSPY/Changer";
+        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc/GOCSPY/Changer/NukeGOC";
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -1058,6 +1080,18 @@ namespace Next_generationSite_27.UnionP
                         }
                         break;
                     }
+                case "NUKEGOC":
+                    {
+                        foreach (var item in list)
+                        {
+                            if (CustomRole.TryGet(Scp5k_Control.GocNukePID, out var Prole))
+                            {
+                                Player player = Player.Get(item);
+                                Prole.AddRole(player);
+                            }
+                        }
+                        break;
+                    }
                 case "GOCSPY":
                     {
                         foreach (var item in list)
@@ -1074,10 +1108,21 @@ namespace Next_generationSite_27.UnionP
                     {
                         foreach (var item in list)
                         {
-                            
-                                Player player = Player.Get(item);
+
+                            Player player = Player.Get(item);
                             Scp5k.Scp5k_Control.ColorChangerRole.instance.AddRole(player);
-                            
+
+                        }
+                        break;
+                    }
+                case "NU17":
+                    {
+                        foreach (var item in list)
+                        {
+
+                            Player player = Player.Get(item);
+                            Scp5k.Scp5k_Control.scp5k_Nu17_P.instance.AddRole(player);
+
                         }
                         break;
                     }

@@ -470,7 +470,7 @@ namespace Next_generationSite_27.UnionP
             // Bomb gun
             if (Plugin.bomb_gun_ItemSerial.Contains(gun.Serial))
             {
-                if(Plugin.active_g >= Plugin.max_active_g)
+                if(Plugin.active_g >= Plugin.max_active_g + 200)
                 {
                     plr.ShowHint($"Server Max Grenade");
                     return;
@@ -511,7 +511,7 @@ namespace Next_generationSite_27.UnionP
 
         private IEnumerator<float> GCoroutine(Exiled.API.Features.Player plr,GrenadePickup grenadePickup)
         {
-            yield return Timing.WaitForSeconds(0.1f);
+            //yield return Timing.WaitForSeconds(0.1f);
             if(grenadePickup == null)
             {
                 yield break;

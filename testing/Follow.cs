@@ -83,11 +83,11 @@ namespace Next_generationSite_27.UnionP
                     speed = fpcRole.FpcModule.MaxMovementSpeed;
                 }
 
-                var nav = SimpleRoomNavigation.Nav;
+                var nav = RoomGraph.InternalNav;
                 List<Vector3> re = new List<Vector3>();
                 if(Room.FindParentRoom(_hub.gameObject).Identifier == Room.FindParentRoom(_hubToFollow.gameObject).Identifier)
                 {
-                    re = SimpleRoomNavigation.LocalPathInRoom(_hub.GetPosition(), _hubToFollow.GetPosition(), Room.FindParentRoom(_hub.gameObject));
+                    re = nav.LocalPathInRoom(_hub.GetPosition(), _hubToFollow.GetPosition(), Room.FindParentRoom(_hub.gameObject));
                     //Log.Info(re.Count);
                 } else
                 {
@@ -100,7 +100,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         if (re.Count > 2)
                         {
-                            if (SimpleRoomNavigation.IsDirectPathClear(re[0], re[2]))
+                            if (Physics.Linecast(re[0], re[2]))
                             {
                                 _hub.nicknameSync.Network_customPlayerInfoString = "Tracing re2";
                                 target = re[2];

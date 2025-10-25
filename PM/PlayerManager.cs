@@ -5,6 +5,7 @@ using Exiled.API.Extensions;
 using Exiled.API.Features.Core.UserSettings;
 using Exiled.API.Features.Roles;
 using Exiled.API.Features.Toys;
+using Exiled.CustomRoles.API.Features;
 using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Scp914;
@@ -24,6 +25,7 @@ using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.HumeShield;
 using PlayerRoles.PlayableScps.Scp079;
+using ProjectMER.Commands.Utility;
 using Respawning;
 using Respawning.Waves;
 using Scp914;
@@ -34,6 +36,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UserSettings.ServerSpecific;
 using Utils;
 using Utils.NonAllocLINQ;
 using VoiceChat.Codec;
@@ -89,6 +92,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole -= ChangingRole;
             Exiled.Events.Handlers.Player.Shot -= Shot;
             Plugin.MenuCache.RemoveAll(x => x.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader] || x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]);
+            Plugin.MenuCache.RemoveAll(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]);
             Exiled.Events.Handlers.Warhead.Starting -= PlayerManager.Starting;
             Exiled.Events.Handlers.Player.DroppingAmmo -= PlayerManager.DroppedAmmo;
             Exiled.Events.Handlers.Player.Verified -= PlayerManager.Verified;
@@ -149,7 +153,18 @@ namespace Next_generationSite_27.UnionP
         {
             if (ev.PlayerDisplay.ReferenceHub == null)
             {
+                    ev.PlayerDisplay.RemoveHint(ev.Hint);
                 return "";
+            } else if (!Room.TryGetRoomAtPosition( ev.PlayerDisplay.ReferenceHub.GetPosition(),out var r))
+            {
+                    ev.PlayerDisplay.RemoveHint(ev.Hint);
+                return "";
+            }
+            else if(r.Base.Name != MapGeneration.RoomName.Lcz914)
+            {
+                    ev.PlayerDisplay.RemoveHint(ev.Hint);
+                return "";
+
             }
             int MaxQueueSize = 6;
             if (Scp914q.Count > MaxQueueSize)
@@ -217,6 +232,8 @@ namespace Next_generationSite_27.UnionP
             }
             return t;
         }
+
+
         public static Queue<(Player p, Scp914KnobSetting knob, bool act)> Scp914q = new Queue<(Player p, Scp914KnobSetting knob, bool act)>();
         public static void ChangingKnobSetting(ChangingKnobSettingEventArgs ev)
         {
@@ -326,6 +343,9 @@ namespace Next_generationSite_27.UnionP
                 {
                     AddExp(ev.Player.Cuffer, 15, false, AddExpReason.CuffedPeopleEscaped);
                 }
+            }
+            if (Scp5k_Control.Is5kRound) {
+                ev.Player.Role.Set(RoleTypeId.ChaosConscript);
             }
         }
         public static void Died(DiedEventArgs ev)
@@ -631,7 +651,7 @@ namespace Next_generationSite_27.UnionP
             {
                 Timing.CallDelayed(0.2f, () =>
                 {
-                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
+                    var nuke = Plugin.PlayerMenuCache[ev.Player].Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
                     var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
                     nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
 
@@ -644,7 +664,7 @@ namespace Next_generationSite_27.UnionP
             {
                 Timing.CallDelayed(0.2f, () =>
                 {
-                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
+                    var nuke = Plugin.PlayerMenuCache[ev.Player].Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
                     var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
                     nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
                 });
@@ -718,60 +738,115 @@ namespace Next_generationSite_27.UnionP
             }
             if (h != null)
             {
-                if (!h.hud.HasHint("Scp914KnobChanged"))
+                if (h.hud.HasHint("Scp914KnobChanged"))
                 {
 
                     h.hud.RemoveHint(Scp914Hint);
                 }
 
             }
-            Timing.CallDelayed(0.4f, () =>
+            
+            {
+                var menuItems = Plugin.MenuCache?
+.Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk])
+?.ToList();
+                List<SettingBase> menuItems2 = new List<SettingBase>();
+                if (true)
+                {
+                    if (menuItems != null && menuItems.Count > 0)
+                    {
+                        foreach (var item in menuItems)
+                        {
+                                if (Plugin.PlayerMenuCache[ev.Player].Contains(item))
+                                {
+                                    menuItems2.Add(item);
+                                }
+                            
+                        }
+                        SettingBase.Unregister(ev.Player, menuItems2);
+                        Plugin.PlayerMenuCache[ev.Player].RemoveAll(x=>menuItems2.Contains(x));
+                    }
+                    else
+                    {
+                        Log.Debug($"[ChangingRole] 未找到 SettingIds[{Features.ScpTalk}] 对应菜单项。");
+                    }
+                }
+
+
+            }
+            if (ev.NewRole.IsScp())
+            {
+                List<SettingBase> menuItems2 = new List<SettingBase>();
+
+                if (Plugin.MenuCache.Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]) != null)
+                {
+                    foreach (var item in Plugin.MenuCache.Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]))
+                    {
+                        if (Plugin.PlayerMenuCache[ev.Player].Contains(item))
+                        {
+                            //if (SettingBase.SyncedList[ev.Player].Contains(item))
+                            
+                                menuItems2.Add(item);
+                            
+                        }
+                    }
+                    SettingBase.Register(ev.Player, menuItems2);
+                    Plugin.PlayerMenuCache[ev.Player].AddRange(menuItems2);
+
+                }
+            }
+            
+                Timing.CallDelayed(0.4f, () =>
             {
                 try
                 {
                     if (ev.Player == null) return;
 
-                    if (ev.Player.IsScp)
-                    {
-                        SettingBase.Register(ev.Player, Plugin.MenuCache.Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]));
-                    }
-                    else
-                    {
-                        var menuItems = Plugin.MenuCache?
-    .Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk])
-    ?.ToList();
-                        if (ev.Player.PreviousRole.IsScp())
-                        {
-                            if (menuItems != null && menuItems.Count > 0)
-                            {
-                                SettingBase.Unregister(ev.Player, menuItems);
-                            }
-                            else
-                            {
-                                Log.Debug($"[ChangingRole] 未找到 SettingIds[{Features.ScpTalk}] 对应菜单项。");
-                            }
-                        }
 
-
-                    }
 
                     if (Plugin.Instance.Config.Level)
                     {
-                        if (ev.Player.PreviousRole == RoleTypeId.Scp079)
+                        if (Plugin.PlayerMenuCache[ev.Player].Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]))
                         {
                             //if (menuItems != null && menuItems.Count > 0)
                             {
                                 SettingBase.Unregister(ev.Player, Plugin.MenuCache.Where((a) => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
+                                Plugin.PlayerMenuCache[ev.Player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]);
 
                             }
                         }
-                        var CandyList = Enum.GetValues(typeof(CandyKindID))
-            .Cast<CandyKindID>()
-            .Where(x => x != CandyKindID.None)
-            //.Select(x => (int)x)
-            .ToList();
-                        var player = ev.Player;
-                        //var PU = Plugin.Instance.connect.QueryUser(player.UserId);
+                        var CandyList = new List<CandyKindID>()
+        {
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Purple,
+             CandyKindID.Purple,
+             CandyKindID.Purple,
+             CandyKindID.Purple,
+             CandyKindID.Red,
+             CandyKindID.Red,
+             CandyKindID.Red,
+             CandyKindID.Green,
+             CandyKindID.Green,
+             CandyKindID.Green,
+             CandyKindID.Blue,
+             CandyKindID.Blue,
+             CandyKindID.Blue,
+             CandyKindID.Pink,
+             CandyKindID.Pink,
+        };
+        var player = ev.Player;
+                        //var PU = Plugin.nav.connect.QueryUser(player.UserId);
                         var level = GetLevel(player);
                         var bufList = new List<EffectType>()
             {
@@ -813,7 +888,7 @@ namespace Next_generationSite_27.UnionP
                                 player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
                                 player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
                             }
-                        }
+                        }//dd:2
 
                         // ====== 41-50级 ======
                         if (level >= 41)
@@ -869,16 +944,12 @@ namespace Next_generationSite_27.UnionP
 
                             {
                                 player.AddItem(ItemType.ArmorLight, 1);
-                            }
+                            }//3
                         }
 
                         // ====== 91-99级 ======
                         if (level >= 91 && level <= 99)
                         {
-                            if ((player.Role.Type == RoleTypeId.ClassD || player.Role.Type == RoleTypeId.Scientist) && Random.Range(0, 100) < 45)
-                            {
-                                player.AddItem(ItemType.ArmorCombat, 1);
-                            }
 
                             if (player.Role.Type == RoleTypeId.FacilityGuard)
                             {
@@ -886,6 +957,7 @@ namespace Next_generationSite_27.UnionP
                                 player.AddItem(ItemType.ArmorLight, 1);
                             }
                         }
+                        if (Scp5k_Control.Is5kRound) return;
                         if (level >= 101)
                         {
                             switch (player.RoleManager.CurrentRole.RoleTypeId)
@@ -899,12 +971,7 @@ namespace Next_generationSite_27.UnionP
                                             //Log.Debug($"ClassD/Scientist {player} Level 101,AddItem fl");
                                             player.AddItem(ItemType.Flashlight, 1);
                                         }
-                                        if (Random.Range(0, 100) >= 50)
-                                        {
-                                            //Log.Debug($"ClassD/Scientist {player} Level 101,AddItem Radio");
-                                            player.AddItem(ItemType.Radio, 1);
-                                        }
-                                        if (Random.Range(0, 100) < 45)
+                                        else if(Random.Range(0, 100) < 45)
                                         {
                                             player.AddItem(ItemType.KeycardZoneManager, 1); // 绿卡
 
@@ -955,7 +1022,10 @@ namespace Next_generationSite_27.UnionP
                                         {
                                             player.AddItem(ItemType.SCP500, 1);
                                         }
-                                        player.AddItem(ItemType.Medkit, 2);
+                                        else
+                                        {
+                                            player.AddItem(ItemType.Medkit, 2);
+                                        }
                                         break;
                                     }
                             }
@@ -1043,8 +1113,12 @@ namespace Next_generationSite_27.UnionP
                                         float adjusted = level >= 220 ? original * 0.75f : original;
                                         field.SetValue(r.DoorLockChanger, adjusted);
                                         SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
+                                        Plugin.PlayerMenuCache[player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]);
+
 
                                         SettingBase.Register(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader]));
+                                        Plugin.PlayerMenuCache[player].AddRange(Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader]));
+
                                         break;
                                     }
                             }
@@ -1121,33 +1195,48 @@ namespace Next_generationSite_27.UnionP
             {
                 foreach (var player in Player.List)
                 {
-                    if (player == null) continue;
+                    if (player == null)
+                        continue;
+
                     try
                     {
-                        if (player.CurrentRoom != null)
-                        {
-                            if (player.CurrentRoom.Type != RoomType.Lcz914)
-                            {
-                                var a = player.GetHUD() as HSM_hintServ;
-                                if (a != null)
-                                {
-                                    a.hud.RemoveHint(Scp914Hint);
-                                }
-                            }
-                        }
-
                         // 缓存常用属性
                         var hub = player.ReferenceHub;
                         var role = player.Role;
                         var roleType = role?.Type ?? RoleTypeId.None;
+                        var room = player.CurrentRoom;
+                        var hsm = HSM_hintServ.GetPlayerHUD(player) as HSM_hintServ;
+                        var hud = hsm?.hud;
 
-                        if (roleType == RoleTypeId.FacilityGuard)
+                        // ==================== 914 区域提示清理 ====================
+                        try
                         {
-                            HandleGuardEscape(player, hub);
+                            if (room == null || room.Type != RoomType.Lcz914)
+                            {
+                                var a = player.GetHUD() as HSM_hintServ;
+                                a?.hud?.RemoveHint(Scp914Hint);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Warn($"[HUD914] {player.Nickname}: {e.Message}");
                         }
 
+                        // ==================== Guard逃生逻辑 ====================
+                        if (roleType == RoleTypeId.FacilityGuard)
+                            HandleGuardEscape(player, hub);
+
+                        // ==================== 第二层 HUD 检查 ====================
+                        if (hud != null && (room == null || room.Type != RoomType.Lcz914))
+                        {
+                            if (hud.HasHint("Scp914KnobChanged"))
+                                hud.RemoveHint(Scp914Hint);
+                        }
+
+                        // ==================== 徽章同步 ====================
                         HandleBadgeSync(player, hub);
 
+                        // ==================== 观察者追踪 ====================
                         if (role is SpectatorRole spectatorRole)
                         {
                             HandleSpectatorTracking(player, spectatorRole);
@@ -1155,41 +1244,42 @@ namespace Next_generationSite_27.UnionP
                         else if (role is OverwatchRole overwatch)
                         {
                             HandleSpectatorTracking(player, overwatch);
-
                         }
                         else
                         {
-                            var h = player.GetHUD() as HSM_hintServ;
+                            // ✅ 加空判断
+                            if (hud != null)
                             {
-                                h.hud.RemoveHint(SpawnHint);
-                                h.hud.RemoveHint(NtfSpawnHint);
-                                h.hud.RemoveHint(ChaosSpawnHint);
+                                hud.RemoveHint(SpawnHint);
+                                hud.RemoveHint(NtfSpawnHint);
+                                hud.RemoveHint(ChaosSpawnHint);
                             }
                         }
 
-                        if (roleType.IsScp() && role.Base is IFpcRole fpcRole)
-                        {
+                        // ==================== SCP 自动回血 ====================
+                        if (roleType.IsScp() && role?.Base is IFpcRole fpcRole)
                             HandleScpStandHeal(player, fpcRole);
-                        }
 
+                        // ==================== 更新名字显示 ====================
                         UpdatePlayerDisplayName(player);
                     }
                     catch (Exception e)
                     {
-                        // 可选：记录异常，避免整个循环中断
-                        Log.Error($"Error refreshing player {player.Nickname}: {e}");
+                        Log.Error($"[RefreshAllPlayers] {player?.Nickname ?? "Unknown"}: {e.GetType().Name} - {e.Message}");
                     }
                 }
+
                 yield return Timing.WaitForSeconds(0.25f);
             }
         }
+
         private static void HandleGuardEscape(Player player, ReferenceHub hub)
         {
             if (!Escape.CanEscape(hub, out var role, out var zone))
                 return;
 
             var humanRole = role as PlayerRoles.HumanRole;
-            var newRole = RoleTypeId.NtfSergeant;
+            var newRole = Scp5k_Control.Is5kRound ? RoleTypeId.ChaosRifleman : RoleTypeId.NtfSergeant;
             var currentRoleType = hub.roleManager.CurrentRole.RoleTypeId;
             var escapeScenario = Escape.EscapeScenarioType.Scientist;
 
@@ -1224,7 +1314,6 @@ namespace Next_generationSite_27.UnionP
             if (!badges.TryGetValue(player.UserId, out var badgeData))
                 return;
 
-            // 跳过飞行测试失败的玩家
             if (testing.FlightFailed.PlayerToBadge.ContainsKey(player.UserId))
                 return;
             if (hub.serverRoles.Network_myText == null)
@@ -1239,22 +1328,23 @@ namespace Next_generationSite_27.UnionP
             }
 
             // 同步颜色
-            if (hub.serverRoles.Network_myColor != badgeData.color)
+            //if (hub.serverRoles.Network_myColor != badgeData.color)
             {
-                if (badgeData.color == "rainbow")
+                if (badgeData.color.Contains( "rainbow"))
                 {
                     if (!rainbowC.ContainsKey(player))
                     {
-                        rainbowC[player] = Timing.RunCoroutine(rainbowTime(player));
+                        rainbowC[player] = Timing.RunCoroutine(rainbowTime(player,colors));
                     }
                     else if (!rainbowC[player].IsRunning)
                     {
-                        rainbowC[player] = Timing.RunCoroutine(rainbowTime(player));
+                        rainbowC[player] = Timing.RunCoroutine(rainbowTime(player, colors));
                     }
                 }
                 else
                 {
-                    player.RankColor = badgeData.color;
+                    rainbowC[player] = Timing.RunCoroutine(rainbowTime(player, badgeData.color));
+
                 }
             }
         }
@@ -1314,43 +1404,40 @@ namespace Next_generationSite_27.UnionP
 
         private static void HandleScpStandHeal(Player player, IFpcRole fpcRole)
         {
-            if (!Plugin.Instance.Config.ScpStandAddHP) return;
-            if (!ScpStandHP.ContainsKey(player))
-            {
-                ScpStandHP[player] = (Stopwatch.StartNew(), 0.0, player.Position);
-            }
-            if (player.Position == ScpStandHP[player].lastPos)
-            {
-                if (!ScpStandHP.ContainsKey(player))
-                {
-                    ScpStandHP[player] = (Stopwatch.StartNew(), 0, player.Position);
-                }
-                else
-                {
-                    var (stopwatch, lastHealTime, lastPos) = ScpStandHP[player];
-                    double elapsed = stopwatch.Elapsed.TotalSeconds;
+            if (!Plugin.Instance.Config.ScpStandAddHP)
+                return;
 
-                    if (elapsed >= Plugin.Instance.Config.ScpStandAddHPTime)
+            double interval = 1.0; // 每秒回血检查一次
+
+            if (!ScpStandHP.TryGetValue(player, out var data))
+                ScpStandHP[player] = (Stopwatch.StartNew(), 0.0, player.Position);
+
+            var (stopwatch, lastHealTime, lastPos) = ScpStandHP[player];
+            double elapsed = stopwatch.Elapsed.TotalSeconds;
+
+            // 判断是否移动（允许0.05米以内的浮动）
+            if (Vector3.Distance(player.Position, lastPos) < 0.5f)
+            {
+                // 站够指定时间开始回血
+                if (elapsed >= Plugin.Instance.Config.ScpStandAddHPTime)
+                {
+                    if (elapsed - lastHealTime >= interval)
                     {
-                        double interval = 1.0;
-                        if (elapsed - lastHealTime >= interval)
-                        {
-                            player.AddRegeneration(0, Plugin.Instance.Config.ScpStandAddHPCount / 5, 5, 1, 1);
-                            ScpStandHP[player] = (stopwatch, elapsed, player.Position);
-                        }
+                        player.Heal(Plugin.Instance.Config.ScpStandAddHPCount);
+                        ScpStandHP[player] = (stopwatch, elapsed, player.Position);
+
+                        Log.Debug($"[ScpStandHeal] {player.Nickname} healed {Plugin.Instance.Config.ScpStandAddHPCount} HP");
                     }
                 }
             }
             else
             {
-                // 移动了，重置计时器
-                if (ScpStandHP.TryGetValue(player, out var data))
-                {
-                    data.Item1.Restart();
-                    ScpStandHP[player] = (data.stand, data.lastTime, player.Position);
-                }
+                // 移动了，重置计时
+                stopwatch.Restart();
+                ScpStandHP[player] = (stopwatch, 0.0, player.Position);
             }
         }
+
 
         private static void UpdatePlayerDisplayName(Player player)
         {
@@ -1426,9 +1513,9 @@ namespace Next_generationSite_27.UnionP
                 return r;
             }),
             XCoordinate = 0,
-            YCoordinate = 150
+            YCoordinate = 190
         };
-        public static IEnumerator<float> rainbowTime(Player player)
+        public static IEnumerator<float> rainbowTime(Player player,List<string> colors)
         {
             if (player == null)
             {
@@ -1474,6 +1561,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
                     }
+
                 }
                 else
                 {
@@ -1497,6 +1585,19 @@ namespace Next_generationSite_27.UnionP
                 if (Misc.TryParseColor(player.RankColor, out var color))
                 {
                     upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align>";
+                }
+                if (player.UniqueRole != "")
+                {
+                    var showing = "";
+                    CustomRole role = CustomRole.Get(player.UniqueRole);
+                    if(role.CustomInfo == "")
+                    {
+                        showing = role.Name;
+                    } else
+                    {
+                        showing = role.CustomInfo;
+                    }
+                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=yellow>你是: {showing}</color></size> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                 }
             }
 
@@ -1625,23 +1726,23 @@ namespace Next_generationSite_27.UnionP
                 if (ChaosBig.IsAnimationPlaying)
                 {
                     var LeftTime = ChaosBig.AnimationDuration - WaveCalc.Elapsed.TotalSeconds;
-                    upLine = $"<size=25><color=#ffffc0cb><b>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#008000ff>🚗混沌</color></size>";
+                    upLine = $"<size=22><color=#ffffc0cb><b>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#008000ff>🚗混沌</color></size>";
                 }
                 if (NtfBig.IsAnimationPlaying)
                 {
                     var LeftTime = NtfBig.AnimationDuration - WaveCalc.Elapsed.TotalSeconds;
-                    upLine = $"<size=25><color=#ffffc0cb>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#0000ffff>🚁九尾狐</color></size>";
+                    upLine = $"<size=22><color=#ffffc0cb>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#0000ffff>🚁九尾狐</color></size>";
                 }
 
                 if (ChaosSmall.IsAnimationPlaying)
                 {
                     var LeftTime = ChaosSmall.AnimationDuration - WaveCalc.Elapsed.TotalSeconds;
-                    upLine = $"<size=25><color=#ffffc0cb>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#008000ff>🚗混沌增援</color></size>";
+                    upLine = $"<size=22><color=#ffffc0cb>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#008000ff>🚗混沌增援</color></size>";
                 }
                 if (NtfSmall.IsAnimationPlaying)
                 {
                     var LeftTime = NtfSmall.AnimationDuration - WaveCalc.Elapsed.TotalSeconds;
-                    upLine = $"<size=25><color=#ffffc0cb>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#0000ffff>🚁九尾狐增援</color></size>";
+                    upLine = $"<size=22><color=#ffffc0cb>你将在{LeftTime.ToString("F0")}秒后复活为:</b></color><color=#0000ffff>🚁九尾狐增援</color></size>";
                 }
 
             }
@@ -1673,13 +1774,15 @@ namespace Next_generationSite_27.UnionP
         }
         public static void Verified(VerifiedEventArgs ev)
         {
+
+            sql.Update(ev.Player.UserId, ev.Player.Nickname, last_time: DateTime.Now,ip:ev.Player.IPAddress);
+
+            
             var PU = Plugin.Instance.connect.QueryUser(ev.Player.UserId);
             if (PU.uid == 0)
             {
                 return;
             }
-            sql.Update(ev.Player.UserId, ev.Player.Nickname, last_time: DateTime.Now);
-
             if (PU.last_time.HasValue)
             {
                 if (PU.last_time?.DayOfYear != DateTime.Now.DayOfYear || PU.last_time?.Year != DateTime.Now.Year)
@@ -1691,12 +1794,12 @@ namespace Next_generationSite_27.UnionP
 
             }
             var PA = sql.QueryAdmin(userid: ev.Player.UserId);
+                    (string player_name, string port, string permissions, DateTime expiration_date, bool is_permanent, string notes)? target = null;
             if (PA != null)
             {
 
                 if (PA.Count > 0)
                 {
-                    (string player_name, string port, string permissions, DateTime expiration_date, bool is_permanent, string notes)? target = null;
                     foreach (var item in PA)
                     {
                         if (item.port == ServerStatic.ServerPort.ToString() || item.port == "0")
@@ -1718,11 +1821,12 @@ namespace Next_generationSite_27.UnionP
                             {
                                 Log.Info($"player {ev.Player} get group:{UserGroup.Name} due AdminSystem");
                                 ev.Player.Group = UserGroup.Clone();
+                                ev.Player.RankName = $"({UserGroup.Name})";
                             }
                         }
                         else
                         {
-                            Log.Info($"failed to get group! target:{UserGroup.Name}");
+                            Log.Info($"failed to get group! target:{target.Value.permissions}");
                         }
                     }
                 }
@@ -1736,7 +1840,25 @@ namespace Next_generationSite_27.UnionP
                     {
                         if (item.is_permanent || item.expiration_date <= DateTime.Now)
                         {
-                            badges[ev.Player.UserId] = item;
+                            var text = item.badge;
+                            if (target != null && target.HasValue)
+                            {
+                                                            Log.Info($"get group:{target.Value.permissions} due badgeSystem");
+                                var UserGroup = ServerStatic.PermissionsHandler.GetGroup(target.Value.permissions);
+                                if (UserGroup != null)
+                                {
+                                        text += $"({UserGroup.Name})";
+                                    
+                                }
+                                else
+                                {
+                                    Log.Info($"failed to get group! target:{target.Value.permissions}");
+                                }
+                            }
+                            
+                                    List<string> colors = new List<string>();
+                            item.color.Split(',').ForEach(c => colors.Add(c));
+                            badges[ev.Player.UserId] = (item.player_name, text, colors, item.expiration_date,item.is_permanent,item.notes);
                             break;
                         }
                     }
@@ -1763,7 +1885,7 @@ namespace Next_generationSite_27.UnionP
             Scp079Gener
         }
 
-        public static Dictionary<string, (string player_name, string badge, string color, DateTime expiration_date, bool is_permanent, string notes)> badges = new Dictionary<string, (string player_name, string badge, string color, DateTime expiration_date, bool is_permanent, string notes)>();
+        public static Dictionary<string, (string player_name, string badge, List<string> color, DateTime expiration_date, bool is_permanent, string notes)> badges = new Dictionary<string, (string player_name, string badge, List< string> color, DateTime expiration_date, bool is_permanent, string notes)>();
         public static void AddLevel(Player player, int level)
         {
             var pU = sql.QueryUser(player.UserId);
@@ -2088,7 +2210,13 @@ namespace Next_generationSite_27.UnionP
                             "."
                                 }), ServerLogs.ServerLogType.RemoteAdminActivity_GameChanging, false);
                                 sql.InsertBanRecord(targetUserID, targetUserID, runner.UserId, runner.Nickname, text, DateTime.Now, end_time: DateTime.Now.AddSeconds(num), ServerStatic.ServerPort.ToString());
-
+                                foreach (var item in Player.List)
+                                {
+                                    if(item.UserId == targetUserID)
+                                    {
+                                        item.Kick(text);
+                                    }
+                                }
 
                                 num2 += 1;
                                 response = "Done! " + string.Concat(new string[]
@@ -2240,13 +2368,50 @@ namespace Next_generationSite_27.UnionP
                     return false;
                 }
                 response = "Done!";
-                var Pbans = sql.QueryAllBan(arguments.At(0));
-                if (Pbans == null)
+                List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out _, false);
+                if (list == null || list.Count <= 0)
                 {
-                    foreach (var arg in Pbans)
+                    string targetUserID = arguments.At(0);
+                    string text = string.Empty;
+                            var Pbans = sql.QueryAllBan(targetUserID);
+
+                            if (Pbans != null)
+                            {
+                                foreach (var arg in Pbans)
+                                {
+                                    response += $"{arg.start_time} 到 {arg.end_time} by:{arg.issuer_name} reason:{arg.reason} \n";
+                                }
+                            }
+                            return true;
+                }
+                else
+                {
+                    //if (array == null)
+                    if (!sender.CheckPermission(new PlayerPermissions[]
                     {
-                        response += $"{arg.start_time} , {arg.end_time} by:{arg.issuer_name} reason:{arg.reason}";
+                PlayerPermissions.KickingAndShortTermBanning,
+                PlayerPermissions.BanningUpToDay,
+                PlayerPermissions.LongTermBanning
+                    }, out response))
+                    {
+                        return false;
                     }
+                    var target = list[0];
+                    if(target == null)
+                    {
+                        response = "Fialed To get target";
+                        return false;
+                    }
+                    var Pbans = sql.QueryAllBan(target.authManager.UserId);
+
+                    if (Pbans != null)
+                    {
+                        foreach (var arg in Pbans)
+                        {
+                            response += $"{arg.start_time} 到 {arg.end_time} by:{arg.issuer_name} reason:{arg.reason} \n";
+                        }
+                    }
+                    return true;
                 }
                 return true;
             }

@@ -41,8 +41,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Unity.Jobs;
 using UnityEngine;
+using UserSettings.ServerSpecific;
 using Utils.Networking;
 using static HarmonyLib.Code;
 using static PlayerStatsSystem.DamageHandlerBase;
@@ -60,6 +62,48 @@ namespace Next_generationSite_27.UnionP
     
     class Plugin : Exiled.API.Features.Plugin<PConfig>
     {
+
+        public static IEnumerable<SettingBase> Register(Player player, IEnumerable<SettingBase> settings)
+        {
+            var playerMenu = GetPlayerRegistered(player);
+            var result = SettingBase.Register(player, settings).ToList();
+            foreach (var item in settings)
+            {
+                Log.Info("Registering settings for player: " + player.Nickname + $" setting:{item}");
+
+            }
+            playerMenu.AddRange(result);
+            return result;
+        }
+
+        public static IEnumerable<SettingBase> Unregister(Player player, IEnumerable<SettingBase> settings = null)
+        {
+            var playerMenu = GetPlayerRegistered(player);
+            if (playerMenu.Count == 0)
+                return Enumerable.Empty<SettingBase>();
+
+            var result = SettingBase.Unregister(player, settings).ToList();
+            foreach (var item in settings)
+            {
+                Log.Info("Unregistering settings for player: " + player.Nickname + $" setting:{item}");
+            }
+            playerMenu.RemoveAll(x => result.Contains(x));
+            return result;
+        }
+
+        public static List<SettingBase> GetPlayerRegistered(Player player)
+        {
+            if (!Plugin.PlayerMenuCache.TryGetValue(player, out var playerMenu))
+            {
+                playerMenu = new List<SettingBase>();
+                Plugin.PlayerMenuCache[player] = playerMenu;
+            }
+            foreach (var item in playerMenu)
+            {
+                Log.Info("GetPlayerRegistered:player: " + player.Nickname + $" has setting:{item}");
+            }
+            return playerMenu;
+        }
         public static List<SettingBase> MenuCache = new List<SettingBase>();
         public static Dictionary<Player, List<SettingBase>> PlayerMenuCache = new Dictionary<Player,List<SettingBase>>();
 
@@ -73,6 +117,26 @@ namespace Next_generationSite_27.UnionP
         public static List<ReferenceHub> ScpPlayer = new List<ReferenceHub>();
         public EventHandle eventhandle;
 
+        public static List<CoroutineHandle> ClearOnEnd = new List<CoroutineHandle>();
+        public static CoroutineHandle RunCoroutine(IEnumerator<float> coroutine,bool StopOnEnd = true)
+        {
+            var ch= Timing.RunCoroutine(coroutine);
+            if (StopOnEnd)
+            {
+                ClearOnEnd.Add(ch);
+            }
+            return ch;
+        }
+        public static void RestartingRound()
+        {
+            foreach (var item in ClearOnEnd)
+            {
+                if (item.IsRunning)
+                {
+                    Timing.KillCoroutines(item);
+                }
+            }
+        }
 
         public override PluginPriority Priority => PluginPriority.Lower;
         public static Harmony harmony { get; private set; }
@@ -91,7 +155,7 @@ namespace Next_generationSite_27.UnionP
         public static void vote_start(string vote_name, long vote_time)
         {
             //player.Broadcast
-            var c = MEC.Timing.RunCoroutine(vote_coroutine(vote_name, vote_time));
+            var c = Timing.RunCoroutine(vote_coroutine(vote_name, vote_time));
             //c.s
         }
         private static IEnumerator<float> vote_coroutine(string vote_name, long vote_time)
@@ -201,6 +265,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Verified += eventhandle.Verified;
             //Exiled.Events.Handlers.Player.DroppedItem += eventhandle.DroppedItem;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
+            Exiled.Events.Handlers.Server.RestartingRound += RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
             Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
 
@@ -305,6 +370,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Joined -= eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam -= eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers -= eventhandle.WaitingForPlayers;
+            Exiled.Events.Handlers.Server.RestartingRound -= RestartingRound;
             Exiled.Events.Handlers.Player.Shot -= eventhandle.Shot;
             //Exiled.Events.Handlers.Player.DroppedItem -= eventhandle.DroppedItem;
             Exiled.Events.Handlers.Player.Hurting -= superSCP.Hurting;

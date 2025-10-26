@@ -359,7 +359,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             var attacker = __instance.Attacker.Hub;
             var victim = ply;
-            Log.Info($"1");
 
             // 出生保护：攻击者受保护 → 无法造成伤害
             if (DisableSpawnProtect(attacker, victim))
@@ -369,18 +368,15 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             if (CheckFriendlyFirePlayerRules(__instance.Attacker, ply, out float ffMultiplier))
             {
-                Log.Info($"ffMultiplier:{ffMultiplier}");
-                Log.Info($"__instance.Damage:{__instance.Damage}");
+                //Log.Info($"ffMultiplier:{ffMultiplier}");
+                //Log.Info($"__instance.Damage:{__instance.Damage}");
                 __instance.Damage *= ffMultiplier;
-                Log.Info($"__instance.Damage *  f:{__instance.Damage}");
+                //Log.Info($"__instance.Damage *  f:{__instance.Damage}");
                 return false;
             }
-            // 判断是否为“敌人”（使用你的自定义 IsEnemy）
-            Log.Info($"2");
             bool isEnemy = HitboxIdentityPatch.IsEnemy(attacker, victim);
             if (!isEnemy)
             {
-            Log.Info($"2.5");
                 return true;
             }
             // 设置 IsFriendlyFire：只有非敌人（友军）才设为 true

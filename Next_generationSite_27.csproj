@@ -59,10 +59,15 @@
     </Reference>
     <Reference Include="Assembly-CSharp, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp.dll</HintPath>
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Assembly-CSharp-Publicized.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+    </Reference>
+    <Reference Include="Assembly-CSharp-Publicized, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Assembly-CSharp-Publicized.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="AudioManagerAPI">
       <HintPath>.\AudioManagerAPI.dll</HintPath>
@@ -74,31 +79,31 @@
       <HintPath>packages\BouncyCastle.Cryptography.2.6.2\lib\net461\BouncyCastle.Cryptography.dll</HintPath>
     </Reference>
     <Reference Include="CommandSystem.Core, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\CommandSystem.Core.dll</HintPath>
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\CommandSystem.Core.dll</HintPath>
     </Reference>
     <Reference Include="DnsClient">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\DnsClient.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.API, Version=9.7.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\Exiled.API.dll</HintPath>
+    <Reference Include="Exiled.API, Version=9.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Exiled.API.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.CreditTags, Version=9.7.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\Exiled.CreditTags.dll</HintPath>
+    <Reference Include="Exiled.CreditTags, Version=9.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Exiled.CreditTags.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.CustomItems, Version=9.7.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\Exiled.CustomItems.dll</HintPath>
+    <Reference Include="Exiled.CustomItems, Version=9.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Exiled.CustomItems.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.CustomRoles, Version=9.7.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\Exiled.CustomRoles.dll</HintPath>
+    <Reference Include="Exiled.CustomRoles, Version=9.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Exiled.CustomRoles.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.Events, Version=9.7.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\Exiled.Events.dll</HintPath>
+    <Reference Include="Exiled.Events, Version=9.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Exiled.Events.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.Loader, Version=9.7.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\Exiled.Loader.dll</HintPath>
+    <Reference Include="Exiled.Loader, Version=9.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Exiled.Loader.dll</HintPath>
     </Reference>
-    <Reference Include="Exiled.Permissions, Version=9.7.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\Exiled.Permissions.dll</HintPath>
+    <Reference Include="Exiled.Permissions, Version=9.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\Exiled.Permissions.dll</HintPath>
     </Reference>
     <Reference Include="Google.Protobuf, Version=3.31.1.0, Culture=neutral, PublicKeyToken=a7d26565bac4d604, processorArchitecture=MSIL">
       <HintPath>packages\Google.Protobuf.3.31.1\lib\net45\Google.Protobuf.dll</HintPath>
@@ -116,8 +121,8 @@
     <Reference Include="K4os.Hash.xxHash, Version=1.0.8.0, Culture=neutral, PublicKeyToken=32cd54395057cec3, processorArchitecture=MSIL">
       <HintPath>packages\K4os.Hash.xxHash.1.0.8\lib\net462\K4os.Hash.xxHash.dll</HintPath>
     </Reference>
-    <Reference Include="LabApi, Version=1.1.1.0, Culture=neutral, processorArchitecture=AMD64">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\LabApi.dll</HintPath>
+    <Reference Include="LabApi, Version=1.1.4.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\LabApi.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=9.0.0.7, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Bcl.AsyncInterfaces.9.0.7\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
@@ -135,7 +140,7 @@
       <HintPath>packages\MySql.Data.9.4.0\lib\net48\MySql.Data.dll</HintPath>
     </Reference>
     <Reference Include="NorthwoodLib, Version=1.4.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\NorthwoodLib.dll</HintPath>
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\NorthwoodLib.dll</HintPath>
     </Reference>
     <Reference Include="Pooling">
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\Pooling.dll</HintPath>
@@ -401,7 +406,7 @@
       <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\SCP Secret Laboratory Dedicated Server\SCPSL_Data\Managed\UnityEngine.UIModule.dll</HintPath>
     </Reference>
     <Reference Include="YamlDotNet, Version=11.0.0.0, Culture=neutral, PublicKeyToken=ec19458f3c15af5e, processorArchitecture=MSIL">
-      <HintPath>packages\ExMod.Exiled.9.7.0\lib\net48\YamlDotNet.dll</HintPath>
+      <HintPath>packages\ExMod.Exiled.9.10.0\lib\net48\YamlDotNet.dll</HintPath>
     </Reference>
     <Reference Include="ZstdSharp, Version=0.8.6.0, Culture=neutral, PublicKeyToken=8d151af33a4ad5cf, processorArchitecture=MSIL">
       <HintPath>packages\ZstdSharp.Port.0.8.6\lib\net462\ZstdSharp.dll</HintPath>

@@ -589,7 +589,7 @@ namespace Next_generationSite_27.UnionP
                                             if (AlphaWarheadController.Singleton.Info.InProgress)
                                             {
                                                 SR.Energy = 0;
-                                                Timing.RunCoroutine(ClearPower(SR));
+                                                Plugin.RunCoroutine(ClearPower(SR));
                                                 AlphaWarheadController.Singleton.CancelDetonation(player.ReferenceHub);
                                                 player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>核弹已取消!</color>", 3), true);
                                                 return;
@@ -607,7 +607,7 @@ namespace Next_generationSite_27.UnionP
                                                     return;
                                                 }
                                                 SR.Energy = 0;
-                                                Timing.RunCoroutine(ClearPower(SR));
+                                                Plugin.RunCoroutine(ClearPower(SR));
                                                 AlphaWarheadController.Singleton.InstantPrepare();
                                                 AlphaWarheadController.Singleton.StartDetonation(false, false, player.ReferenceHub);
                                                 AlphaWarheadController.Singleton.IsLocked = false;
@@ -651,7 +651,7 @@ namespace Next_generationSite_27.UnionP
             {
                 Timing.CallDelayed(0.2f, () =>
                 {
-                    var nuke = Plugin.PlayerMenuCache[ev.Player].Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
+                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
                     var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
                     nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
 
@@ -664,7 +664,7 @@ namespace Next_generationSite_27.UnionP
             {
                 Timing.CallDelayed(0.2f, () =>
                 {
-                    var nuke = Plugin.PlayerMenuCache[ev.Player].Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
+                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
                     var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
                     nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
                 });
@@ -746,25 +746,18 @@ namespace Next_generationSite_27.UnionP
 
             }
             
-            {
+            
                 var menuItems = Plugin.MenuCache?
 .Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk])
 ?.ToList();
-                List<SettingBase> menuItems2 = new List<SettingBase>();
                 if (true)
                 {
                     if (menuItems != null && menuItems.Count > 0)
                     {
-                        foreach (var item in menuItems)
-                        {
-                                if (Plugin.PlayerMenuCache[ev.Player].Contains(item))
-                                {
-                                    menuItems2.Add(item);
-                                }
-                            
-                        }
-                        SettingBase.Unregister(ev.Player, menuItems2);
-                        Plugin.PlayerMenuCache[ev.Player].RemoveAll(x=>menuItems2.Contains(x));
+                    if (Plugin.GetPlayerRegistered(ev.Player).Any(x => menuItems.Contains(x)))
+                    {
+                        Plugin.Unregister(ev.Player, menuItems);
+                    }
                     }
                     else
                     {
@@ -773,45 +766,35 @@ namespace Next_generationSite_27.UnionP
                 }
 
 
-            }
-            if (ev.NewRole.IsScp())
-            {
-                List<SettingBase> menuItems2 = new List<SettingBase>();
+            
 
-                if (Plugin.MenuCache.Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]) != null)
-                {
-                    foreach (var item in Plugin.MenuCache.Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]))
-                    {
-                        if (Plugin.PlayerMenuCache[ev.Player].Contains(item))
-                        {
-                            //if (SettingBase.SyncedList[ev.Player].Contains(item))
-                            
-                                menuItems2.Add(item);
-                            
-                        }
-                    }
-                    SettingBase.Register(ev.Player, menuItems2);
-                    Plugin.PlayerMenuCache[ev.Player].AddRange(menuItems2);
-
-                }
-            }
             
                 Timing.CallDelayed(0.4f, () =>
             {
                 try
                 {
                     if (ev.Player == null) return;
+                    if (ev.Player.IsScp)
+                    {
 
+                        if (menuItems != null)
+                        {
+                            if (!Plugin.GetPlayerRegistered(ev.Player).Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]))
+                            {
+                                Plugin.Register(ev.Player, menuItems);
+                            }
+
+                        }
+                    }
 
 
                     if (Plugin.Instance.Config.Level)
                     {
-                        if (Plugin.PlayerMenuCache[ev.Player].Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]))
+                        if (Plugin.GetPlayerRegistered(ev.Player).Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]))
                         {
                             //if (menuItems != null && menuItems.Count > 0)
                             {
-                                SettingBase.Unregister(ev.Player, Plugin.MenuCache.Where((a) => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
-                                Plugin.PlayerMenuCache[ev.Player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]);
+                                Plugin.Unregister(ev.Player, Plugin.MenuCache.Where((a) => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
 
                             }
                         }
@@ -1112,13 +1095,8 @@ namespace Next_generationSite_27.UnionP
                                         float original = (float)field.GetValue(r.DoorLockChanger);
                                         float adjusted = level >= 220 ? original * 0.75f : original;
                                         field.SetValue(r.DoorLockChanger, adjusted);
-                                        SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
-                                        Plugin.PlayerMenuCache[player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]);
-
-
-                                        SettingBase.Register(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader]));
-                                        Plugin.PlayerMenuCache[player].AddRange(Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader]));
-
+                                        Plugin.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
+                                        Plugin.Register(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader]));
                                         break;
                                     }
                             }
@@ -1556,7 +1534,17 @@ namespace Next_generationSite_27.UnionP
                         SpecCount = SpecList[SR.SpectatedPlayer].Count;
                     }
                     upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  称号: <color=white>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
-                    downLine = $"<align=center><size=25><color=green>UID:{GetUid(SR.SpectatedPlayer)}</color> | <color=yellow>你正在观看 {SR.SpectatedPlayer.Nickname} </color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                    if (SR.SpectatedPlayer.UniqueRole != "")
+                    {
+                        var showing = "";
+                        CustomRole role = CustomRole.Get(SR.SpectatedPlayer.UniqueRole);
+                            showing = role.Name;
+                        
+                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(SR.SpectatedPlayer)}</color> | <color=yellow>{SR.SpectatedPlayer.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {GetTodayTimer(SR.SpectatedPlayer).Hours.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Minutes.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Seconds.ToString("D2")}</color> | <color=yellow>扮演: {showing}</color>  | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                    } else
+                    {
+                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(SR.SpectatedPlayer)}</color> | <color=yellow>{SR.SpectatedPlayer.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {GetTodayTimer(SR.SpectatedPlayer).Hours.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Minutes.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Seconds.ToString("D2")}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                    }
                     if (Misc.TryParseColor(SR.SpectatedPlayer.RankColor, out var color))
                     {
                         upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
@@ -1590,14 +1578,8 @@ namespace Next_generationSite_27.UnionP
                 {
                     var showing = "";
                     CustomRole role = CustomRole.Get(player.UniqueRole);
-                    if(role.CustomInfo == "")
-                    {
                         showing = role.Name;
-                    } else
-                    {
-                        showing = role.CustomInfo;
-                    }
-                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=yellow>你是: {showing}</color></size> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=yellow>你是: {showing}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                 }
             }
 
@@ -2155,7 +2137,7 @@ namespace Next_generationSite_27.UnionP
                 }
                 string[] array;
                 List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out array, false);
-                if (list == null || list.Count < 0)
+                if (list == null || list.Count <= 0)
                 {
                     string targetUserID = arguments.At(0);
                     string text = string.Empty;

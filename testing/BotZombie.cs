@@ -63,7 +63,7 @@ namespace Next_generationSite_27.UnionP
         public Npc Zombie { get; set; }
         public Player Owner { get; set; }
         public Dictionary<Player,float> Hatreds = new Dictionary<Player,float>();
-        public float tick = 0.3f;
+        public float tick = 0.2f;
         public bool tracking = false;
         public float LockIn = 1f;
         public float DoorOpenRange = 2f;

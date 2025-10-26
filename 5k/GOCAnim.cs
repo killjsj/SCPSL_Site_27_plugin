@@ -109,7 +109,7 @@ fadeInDuration: 1f,
 persistent: false,
 lifespan: 0f,
 autoCleanup: false);
-            Timing.RunCoroutine(In(_animator));
+            Plugin.RunCoroutine(In(_animator));
             Scp5k.Scp5k_Control.GOCBOmb = skg;
 
         }
@@ -181,7 +181,7 @@ autoCleanup: false);
                 DefaultAudioManager.Instance.FadeOutAudio(idleID, 15f);
                 idleID = 0;
             }
-            endC = Timing.RunCoroutine(quit(_animator));
+            endC = Plugin.RunCoroutine(quit(_animator));
         }
         [Server]
 
@@ -227,7 +227,7 @@ autoCleanup: false);
                 if (child.gameObject.name == "killer")
                 {
                     Log.Info("RunCoroutine");
-                    Timing.RunCoroutine(OnKillerScaleChanged(child.gameObject, _animator));
+                    Plugin.RunCoroutine(OnKillerScaleChanged(child.gameObject, _animator));
                     break;
                 }
             }

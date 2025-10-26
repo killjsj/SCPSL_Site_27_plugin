@@ -495,7 +495,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     intering = p;
                     p.AddMessage("GocBomb", "<color=yellow><size=27>正在拆除炸弹</size></color>");
-                    Timing.RunCoroutine(playerCode(ep, ep.CurrentRoom, false));
+                    Plugin.RunCoroutine(playerCode(ep, ep.CurrentRoom, false));
                 }
                 else
                 {
@@ -511,7 +511,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             intering = p;
                             p.AddMessage("GocBomb", "<color=yellow><size=27>正在安装炸弹</size></color>");
-                            Timing.RunCoroutine(playerCode(ep, ep.CurrentRoom, true));
+                            Plugin.RunCoroutine(playerCode(ep, ep.CurrentRoom, true));
                         }
                     }
                     else
@@ -547,8 +547,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         }
                         if (bomb.intering == null || bomb.intering.ReferenceHub != player.ReferenceHub)
                         {
-                            SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
-                            Plugin.PlayerMenuCache[player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]);
+                            Plugin.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
                             return; // 不在互动中，忽略输入
                         }
                         var lp = Player.Get(player.ReferenceHub);
@@ -610,8 +609,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             GocIntering = isGoc;
             var i = Plugin.MenuCache.FirstOrDefault(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]);
-            SettingBase.Register(player, new List<SettingBase>() { i });
-            Plugin.PlayerMenuCache[player].Add(i);
+            Plugin.Register(player, new List<SettingBase>() { i });
 
             if (i != null && i is UserTextInputSetting u)
             {
@@ -755,8 +753,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 u1.RequestClear(P);
             }
 
-            SettingBase.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
-            Plugin.PlayerMenuCache[player].RemoveAll(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]);
+            Plugin.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));
             P2B.Remove(player); // 👈 清理字典，避免玩家断开后仍占用内存
             yield break;
         }

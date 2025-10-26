@@ -23,7 +23,7 @@ namespace Next_generationSite_27.UnionP
 
         public bool CanBeDisplayed => true;
 
-        protected override void OnTick()
+        public override void OnTick()
         {
             var p = Player.Get(Hub);
             if (p != null)
@@ -123,6 +123,7 @@ namespace Next_generationSite_27.UnionP
                     yield break;
                 }
                 TimeLeft -= 1;
+                yield return Timing.WaitForSeconds(0.9f);
             }
         }
 

@@ -45,9 +45,8 @@ namespace Next_generationSite_27
         public (string name, int? highscore, DateTime? time) QuerySnake(string userid)
         {
             if (!connected)
-                return (string.Empty, 0, null);
+                return (string.Empty, null, null);
 
-            // 从 user 表直接读取 highscore 和 Snack_Create_time
             string query = @"
                 SELECT 
                     name, 
@@ -66,13 +65,13 @@ namespace Next_generationSite_27
                     {
                         if (reader.Read())
                         {
+                            int nameOrdinal = reader.GetOrdinal("name");
+                            int highscoreOrdinal = reader.GetOrdinal("highscore");
                             int timeOrdinal = reader.GetOrdinal("Snack_Create_time");
 
-                            string name = reader["name"].ToString();
-                            int highscore = reader.GetInt32("highscore");
-                            DateTime? time = reader.IsDBNull(timeOrdinal)
-                                ? (DateTime?)null
-                                : reader.GetDateTime(timeOrdinal);
+                            string name = reader.IsDBNull(nameOrdinal) ? string.Empty : reader.GetString(nameOrdinal);
+                            int? highscore = reader.IsDBNull(highscoreOrdinal) ? (int?)null : reader.GetInt32(highscoreOrdinal);
+                            DateTime? time = reader.IsDBNull(timeOrdinal) ? (DateTime?)null : reader.GetDateTime(timeOrdinal);
 
                             return (name, highscore, time);
                         }
@@ -90,7 +89,7 @@ namespace Next_generationSite_27
             }
 
             // 用户不存在或无数据
-            return (string.Empty, 0, null);
+            return (string.Empty, null, null);
         }
         public (int uid, string name, int level, int experience, double? experience_multiplier, string ip, DateTime? last_time, TimeSpan? total_duration, TimeSpan? today_duration) QueryUser(string userid)
         {

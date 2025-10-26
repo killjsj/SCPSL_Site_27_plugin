@@ -990,10 +990,13 @@ namespace Next_generationSite_27.UnionP
 
                             break;
                         }
-                }
+                } 
 
-                ev.Wave.Timer.SetTime(0);
+                    ev.Wave.Timer.SetTime(0);
                 //RespawnedTeam(new RespawnedTeamEventArgs(newW, players));
+
+            } else
+            {
 
             }
         }
@@ -1117,7 +1120,6 @@ namespace Next_generationSite_27.UnionP
             {RoleTypeId.FacilityGuard ,new List<ReferenceHub>()},
             {RoleTypeId.ClassD ,new List<ReferenceHub>()}
         };
-            Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
 
             SPD.Clear();
             if (config.RoundEndFF)
@@ -1561,7 +1563,7 @@ namespace Next_generationSite_27.UnionP
             }
             Cleaned = false;
             GC.Collect();
-            MEC.Timing.RunCoroutine(rounder());
+            Plugin.RunCoroutine(rounder());
         No:
             BroadcasterHandler = MEC.Timing.RunCoroutine(Broadcaster());
 

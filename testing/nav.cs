@@ -9,11 +9,12 @@ using UnityEngine;
 
 namespace Next_generationSite_27.UnionP
 {
+    // 完整优化版 RoomGraph，可直接替换使用
     public class RoomGraph
     {
         public static RoomGraph Instance;
         public Dictionary<Room, RoomNode> Nodes { get; private set; } = new Dictionary<Room, RoomNode>();
-        private bool building = false;
+        private volatile bool building = false;
         public bool Built => Nodes.Count > 0 && !building;
 
         public static InternalNavigator InternalNav = new InternalNavigator();
@@ -24,59 +25,58 @@ namespace Next_generationSite_27.UnionP
             BuildAsync();
         }
 
-        // 异步构建图（防止卡顿）
+        // ---------------- 异步构建（批次 + 预分配 + 减少 GC） ----------------
         public void BuildAsync()
         {
             if (building) return;
             building = true;
-            Nodes.Clear();
             Timing.RunCoroutine(_BuildRoutine());
         }
 
         private IEnumerator<float> _BuildRoutine()
         {
             Log.Info("[RoomGraph] 开始构建房间图...");
-            var connectedPairs = new HashSet<RoomPair>();
+            Nodes.Clear();
 
-            foreach (var room in Room.List)
+            var rooms = Room.List.Where(r => r != null).ToArray();
+            Nodes = new Dictionary<Room, RoomNode>(rooms.Length);
+
+            int batch = 0;
+            // 建立节点
+            foreach (var room in rooms)
             {
-                if (room == null) continue;
                 Nodes[room] = new RoomNode(room);
-                yield return Timing.WaitForOneFrame;
+                if (++batch % 16 == 0) yield return Timing.WaitForOneFrame;
             }
 
-            // --- 门连接 ---
-            foreach (var door in Door.List.ToList())
+            // 门连边
+            var connectedPairs = new HashSet<RoomPair>(rooms.Length * 2);
+            batch = 0;
+            foreach (var door in Door.List)
             {
-                if (door == null) continue;
+                if (door == null || door.Rooms == null) continue;
 
-                var rooms = door.Rooms?.ToList();
-                if (rooms == null || rooms.Count < 2)
-                {
-                    // 单向门（电梯等）跳过
-                    continue;
-                }
-
-                var rA = rooms.ElementAtOrDefault(0);
-                var rB = rooms.ElementAtOrDefault(1);
+                var arr = door.Rooms.ToArray();
+                if (arr.Length < 2) continue; // 单向门
+                var rA = arr[0];
+                var rB = arr[1];
                 if (rA == null || rB == null) continue;
+                if (!Nodes.TryGetValue(rA, out var aNode) || !Nodes.TryGetValue(rB, out var bNode)) continue;
 
-                if (!Nodes.ContainsKey(rA) || !Nodes.ContainsKey(rB)) continue;
-
-                var edgeAB = new RoomEdge(Nodes[rA], Nodes[rB], door);
-                var edgeBA = new RoomEdge(Nodes[rB], Nodes[rA], door);
-                Nodes[rA].Edges.Add(edgeAB);
-                Nodes[rB].Edges.Add(edgeBA);
+                var edgeAB = new RoomEdge(aNode, bNode, door);
+                var edgeBA = new RoomEdge(bNode, aNode, door);
+                aNode.Edges.Add(edgeAB);
+                bNode.Edges.Add(edgeBA);
                 connectedPairs.Add(new RoomPair(rA.Identifier, rB.Identifier));
 
-                yield return Timing.WaitForSeconds(0.01f);
+                if (++batch % 32 == 0) yield return Timing.WaitForOneFrame;
             }
 
-            // --- 邻近房间连接 ---
-            foreach (var room in Room.List)
+            // 邻近房间连边（跳过已连接对）
+            batch = 0;
+            foreach (var room in rooms)
             {
                 if (room == null || !Nodes.TryGetValue(room, out var nodeA)) continue;
-
                 foreach (var neighbor in room.NearestRooms)
                 {
                     if (neighbor == null || neighbor == room) continue;
@@ -91,54 +91,52 @@ namespace Next_generationSite_27.UnionP
                     nodeB.Edges.Add(edgeB);
                     connectedPairs.Add(pair);
                 }
-
-                yield return Timing.WaitForOneFrame;
+                if (++batch % 16 == 0) yield return Timing.WaitForOneFrame;
             }
 
             building = false;
             Log.Info($"[RoomGraph] 构建完成: {Nodes.Count} 个房间, {Nodes.Sum(n => n.Value.Edges.Count)} 条边。");
+            yield break;
         }
 
-        // --- 跨房间寻路（A*） ---
+        // ---------------- 跨房间 A*（使用快速优先队列 + lazy update） ----------------
         public List<Room> GetRoomPath(Room start, Room end)
         {
-            if (start == null || end == null || !Built)
-                return null;
-
-            var open = new PriorityQueue<RoomNode, float>();
-            var came = new Dictionary<RoomNode, RoomEdge>();
-            var g = new Dictionary<RoomNode, float>();
-            var f = new Dictionary<RoomNode, float>();
-
-            foreach (var n in Nodes.Values)
-            {
-                g[n] = float.MaxValue;
-                f[n] = float.MaxValue;
-            }
+            if (start == null || end == null || !Built) return null;
+            if (start == end) return new List<Room> { start };
 
             var s = Nodes[start];
             var e = Nodes[end];
-            g[s] = 0;
-            f[s] = Vector3.Distance(s.Position, e.Position);
-            open.Enqueue(s, f[s]);
+
+            var open = new FastPriorityQueue<RoomNode>();
+            var came = new Dictionary<RoomNode, RoomEdge>(Nodes.Count);
+            var g = new Dictionary<RoomNode, float>(Nodes.Count);
+            var visited = new HashSet<RoomNode>();
+
+            foreach (var n in Nodes.Values) g[n] = float.MaxValue;
+
+            g[s] = 0f;
+            open.Enqueue(s, Vector3.Distance(s.Position, e.Position));
 
             while (open.Count > 0)
             {
                 var cur = open.Dequeue();
-                if (cur == e)
-                    return ReconstructRoomPath(came, cur, s);
+                if (visited.Contains(cur)) continue; // lazy-dequeued duplicate
+                visited.Add(cur);
+
+                if (cur == e) return ReconstructRoomPath(came, cur, s);
 
                 foreach (var edge in cur.Edges)
                 {
                     if (!IsEdgePassable(edge)) continue;
                     var nb = edge.To;
                     var cost = g[cur] + Vector3.Distance(cur.Position, edge.ConnectionPoint);
-                    if (cost < g[nb])
+                    if (cost + 0.0001f < g[nb])
                     {
                         came[nb] = edge;
                         g[nb] = cost;
-                        f[nb] = cost + Vector3.Distance(nb.Position, e.Position);
-                        open.EnqueueOrUpdate(nb, f[nb]);
+                        var f = cost + Vector3.Distance(nb.Position, e.Position);
+                        open.Enqueue(nb, f); // 允许重复进入堆，使用 visited 过滤已处理
                     }
                 }
             }
@@ -151,44 +149,43 @@ namespace Next_generationSite_27.UnionP
             var path = new Stack<Room>();
             var current = end;
             path.Push(current.Room);
-
-            RoomEdge edge;
-            while (came.TryGetValue(current, out edge))
+            while (came.TryGetValue(current, out var edge))
             {
                 current = edge.From;
                 path.Push(current.Room);
                 if (current == start) break;
             }
-
             return path.ToList();
         }
 
         private static bool IsEdgePassable(RoomEdge edge)
         {
-            if (edge.Type == RoomEdgeType.Transition)
-                return true;
+            if (edge.Type == RoomEdgeType.Transition) return true;
             if (edge.Door == null) return false;
             return edge.Door.IsOpen || edge.Door.IsCheckpoint || edge.Door.IsElevator;
         }
 
-        // ================== 内部导航器 ===================
+        // ================== 内部导航器（局部寻路） ===================
         public class InternalNavigator
         {
+            private const float NodeConnectDistance = 8f;
+            private const float StartEndConnectDistance = 6f;
+            private const float GridSize = 8f;
+
+            // 帧内缓存（避免重复 Physics 调用）
+            [ThreadStatic] private static Dictionary<(Vector3, Vector3), bool> _rayCache;
+            private static Dictionary<Vector2Int, List<Vector3>> _gridCache = new Dictionary<Vector2Int, List<Vector3>>();
+
             public List<Vector3> FindPath(Vector3 start, Room startRoom, Vector3 end, Room endRoom)
             {
-                if (startRoom == null)
-                    startRoom = Room.Get(start);
-                if (endRoom == null)
-                    endRoom = Room.Get(end);
+                if (startRoom == null) startRoom = Room.Get(start);
+                if (endRoom == null) endRoom = Room.Get(end);
 
-                // 1️⃣ 房间相同 → 直接用内部导航
                 if (startRoom == endRoom)
                     return LocalPathInRoom(start, end, startRoom);
 
-                // 2️⃣ 跨房间 → 用 RoomGraph 的房间路径
-                var rooms = RoomGraph.Instance.GetRoomPath(startRoom, endRoom);
-                if (rooms == null || rooms.Count == 0)
-                    return new List<Vector3> { start, end };
+                var rooms = RoomGraph.Instance?.GetRoomPath(startRoom, endRoom);
+                if (rooms == null || rooms.Count == 0) return new List<Vector3> { start, end };
 
                 var fullPath = new List<Vector3> { start };
                 for (int i = 0; i < rooms.Count - 1; i++)
@@ -199,21 +196,25 @@ namespace Next_generationSite_27.UnionP
                     Vector3 connect = doorEdge?.Position ?? (a.Position + b.Position) * 0.5f;
 
                     var local = LocalPathInRoom(fullPath.Last(), connect, a);
-                    if (local != null)
+                    if (local != null && local.Count > 0)
                         fullPath.AddRange(local.Skip(1));
+                    else
+                        fullPath.Add(connect);
                 }
 
                 var lastPath = LocalPathInRoom(fullPath.Last(), end, endRoom);
-                if (lastPath != null)
+                if (lastPath != null && lastPath.Count > 0)
                     fullPath.AddRange(lastPath.Skip(1));
+                else
+                    fullPath.Add(end);
 
+                ClearRayCache();
                 return fullPath;
             }
 
             public List<Vector3> LocalPathInRoom(Vector3 start, Vector3 end, Room room)
             {
                 var result = new List<Vector3> { start };
-
                 if (IsDirectPathClear(start, end))
                 {
                     result.Add(end);
@@ -227,20 +228,22 @@ namespace Next_generationSite_27.UnionP
                     return result;
                 }
 
-                // 建图
-                var graph = new Dictionary<Vector3, List<Vector3>>();
-                foreach (var p in points)
-                    graph[p] = new List<Vector3>();
+                // 空间分格缓存
+                BuildGridCache(points);
 
-                for (int i = 0; i < points.Count; i++)
+                // 图结构
+                var graph = new Dictionary<Vector3, List<Vector3>>(points.Count + 2);
+                foreach (var p in points) graph[p] = new List<Vector3>();
+
+                // 用网格邻域替代全 O(n^2) 检查
+                foreach (var p in points)
                 {
-                    for (int j = i + 1; j < points.Count; j++)
+                    foreach (var n in GetNeighborsFromGrid(p))
                     {
-                        if (Vector3.Distance(points[i], points[j]) < 8f &&
-                            IsDirectPathClear(points[i], points[j]))
+                        if (p == n) continue;
+                        if (Vector3.Distance(p, n) < NodeConnectDistance && IsDirectPathClear(p, n))
                         {
-                            graph[points[i]].Add(points[j]);
-                            graph[points[j]].Add(points[i]);
+                            graph[p].Add(n);
                         }
                     }
                 }
@@ -250,26 +253,18 @@ namespace Next_generationSite_27.UnionP
                 graph[end] = new List<Vector3>();
                 foreach (var p in points)
                 {
-                    if (Vector3.Distance(start, p) < 6f && IsDirectPathClear(start, p))
-                        graph[start].Add(p);
-                    if (Vector3.Distance(end, p) < 6f && IsDirectPathClear(end, p))
-                        graph[p].Add(end);
+                    if (Vector3.Distance(start, p) < StartEndConnectDistance && IsDirectPathClear(start, p)) graph[start].Add(p);
+                    if (Vector3.Distance(end, p) < StartEndConnectDistance && IsDirectPathClear(end, p)) graph[p].Add(end);
                 }
 
-                // A* 搜索
+                // A* 搜索（使用字典 + List open）
                 var came = new Dictionary<Vector3, Vector3>();
                 var g = new Dictionary<Vector3, float>();
                 var f = new Dictionary<Vector3, float>();
                 var open = new List<Vector3> { start };
 
-                foreach (var p in graph.Keys)
-                {
-                    g[p] = float.MaxValue;
-                    f[p] = float.MaxValue;
-                }
-
-                g[start] = 0;
-                f[start] = Vector3.Distance(start, end);
+                foreach (var p in graph.Keys) { g[p] = float.MaxValue; f[p] = float.MaxValue; }
+                g[start] = 0f; f[start] = Vector3.Distance(start, end);
 
                 while (open.Count > 0)
                 {
@@ -278,9 +273,8 @@ namespace Next_generationSite_27.UnionP
 
                     if (Vector3.Distance(current, end) < 0.5f)
                     {
-                        var path = new List<Vector3>();
+                        var path = new List<Vector3> { end };
                         var c = current;
-                        path.Add(end);
                         while (came.ContainsKey(c))
                         {
                             path.Add(c);
@@ -288,6 +282,7 @@ namespace Next_generationSite_27.UnionP
                         }
                         path.Add(start);
                         path.Reverse();
+                        ClearRayCache();
                         return path;
                     }
 
@@ -299,26 +294,72 @@ namespace Next_generationSite_27.UnionP
                             came[neighbor] = current;
                             g[neighbor] = tentative;
                             f[neighbor] = tentative + Vector3.Distance(neighbor, end);
-                            if (!open.Contains(neighbor))
-                                open.Add(neighbor);
+                            if (!open.Contains(neighbor)) open.Add(neighbor);
                         }
                     }
                 }
 
                 result.Add(end);
+                ClearRayCache();
                 return result;
             }
 
-            // 获取可行走点
+            // ---------------- 空间格子缓存 ----------------
+            private static Vector2Int ToGrid(Vector3 v)
+            {
+                return new Vector2Int(Mathf.FloorToInt(v.x / GridSize), Mathf.FloorToInt(v.z / GridSize));
+            }
+
+            private static void BuildGridCache(IEnumerable<Vector3> points)
+            {
+                _gridCache.Clear();
+                foreach (var p in points)
+                {
+                    var g = ToGrid(p);
+                    if (!_gridCache.TryGetValue(g, out var list)) _gridCache[g] = list = new List<Vector3>();
+                    list.Add(p);
+                }
+            }
+
+            private static IEnumerable<Vector3> GetNeighborsFromGrid(Vector3 p)
+            {
+                var gp = ToGrid(p);
+                for (int dx = -1; dx <= 1; dx++)
+                    for (int dz = -1; dz <= 1; dz++)
+                    {
+                        var key = new Vector2Int(gp.x + dx, gp.y + dz);
+                        if (_gridCache.TryGetValue(key, out var list))
+                            foreach (var v in list) yield return v;
+                    }
+            }
+
+            // ---------------- Physics 缓存 ----------------
+            public static bool IsDirectPathClear(Vector3 from, Vector3 to)
+            {
+                if (_rayCache == null) _rayCache = new Dictionary<(Vector3, Vector3), bool>(64);
+                var key = (from, to);
+                if (_rayCache.TryGetValue(key, out var ok)) return ok;
+                ok = !Physics.Linecast(from, to);
+                _rayCache[key] = ok;
+                return ok;
+            }
+
+            private static void ClearRayCache()
+            {
+                if (_rayCache == null) return;
+                _rayCache.Clear();
+            }
+
+            // ---------------- 可行走点获取（仍保留原思路，但减少分配） ----------------
             private static List<Vector3> GetWalkablePoints(Room room)
             {
                 var list = new List<Vector3>();
                 if (room?.GameObject == null) return list;
 
-                foreach (var c in room.GameObject.GetComponentsInChildren<Collider>(true))
+                var cols = room.GameObject.GetComponentsInChildren<Collider>(true);
+                foreach (var c in cols)
                 {
-                    var box = c as BoxCollider;
-                    if (box != null)
+                    if (c is BoxCollider box)
                     {
                         var corners = GetBoxCorners(box);
                         foreach (var p in corners)
@@ -342,33 +383,22 @@ namespace Next_generationSite_27.UnionP
                 return corners;
             }
 
-            public static bool IsDirectPathClear(Vector3 from, Vector3 to)
-            {
-                return !Physics.Linecast(from, to);
-            }
-
             private static bool IsPositionStandable(Vector3 pos)
             {
+                // 检查脚下是否可站立
                 return Physics.CheckSphere(pos + Vector3.down * 0.1f, 0.3f, -1);
             }
 
-            public List<Room> GetPathRooms(Room start, Room end)
-            {
-                return RoomGraph.Instance.GetRoomPath(start, end);
-            }
-
-            public List<Vector3> FindPath(Vector3 start, Vector3 end, Room endRoom)
-            {
-                return LocalPathInRoom(start, end, endRoom);
-            }
+            public List<Room> GetPathRooms(Room start, Room end) => RoomGraph.Instance?.GetRoomPath(start, end);
+            public List<Vector3> FindPath(Vector3 start, Vector3 end, Room endRoom) => LocalPathInRoom(start, end, endRoom);
         }
     }
 
-    // --- 基础类型 ---
+    // ----------------- 基础类型 -----------------
     public class RoomNode
     {
         public Room Room { get; private set; }
-        public Vector3 Position { get { return Room.Position; } }
+        public Vector3 Position => Room.Position;
         public HashSet<RoomEdge> Edges { get; private set; }
         public RoomNode(Room r)
         {
@@ -416,71 +446,47 @@ namespace Next_generationSite_27.UnionP
         public override int GetHashCode() { return A.GetHashCode() * 31 ^ B.GetHashCode(); }
     }
 
-    public class PriorityQueue<T, P> where P : IComparable<P>
+    // ----------------- 更快的优先队列（允许重复项、lazy 去重） -----------------
+    public class FastPriorityQueue<T> where T : class
     {
-        private readonly List<KeyValuePair<T, P>> _heap = new List<KeyValuePair<T, P>>();
-        public int Count { get { return _heap.Count; } }
+        private readonly List<(T item, float prio)> heap = new List<(T, float)>();
+        public int Count => heap.Count;
 
-        public void Enqueue(T item, P prio)
+        public void Enqueue(T item, float prio)
         {
-            _heap.Add(new KeyValuePair<T, P>(item, prio));
-            HeapifyUp(_heap.Count - 1);
-        }
-
-        public void EnqueueOrUpdate(T item, P prio)
-        {
-            for (int i = 0; i < _heap.Count; i++)
-            {
-                if (EqualityComparer<T>.Default.Equals(_heap[i].Key, item))
-                {
-                    _heap[i] = new KeyValuePair<T, P>(item, prio);
-                    HeapifyUp(i);
-                    HeapifyDown(i);
-                    return;
-                }
-            }
-            Enqueue(item, prio);
-        }
-
-        public T Dequeue()
-        {
-            T top = _heap[0].Key;
-            _heap[0] = _heap[_heap.Count - 1];
-            _heap.RemoveAt(_heap.Count - 1);
-            HeapifyDown(0);
-            return top;
-        }
-
-        private void HeapifyUp(int i)
-        {
+            heap.Add((item, prio));
+            int i = heap.Count - 1;
             while (i > 0)
             {
                 int p = (i - 1) / 2;
-                if (_heap[i].Value.CompareTo(_heap[p].Value) >= 0) break;
-                var tmp = _heap[i];
-                _heap[i] = _heap[p];
-                _heap[p] = tmp;
+                if (heap[p].prio <= prio) break;
+                var tmp = heap[i]; heap[i] = heap[p]; heap[p] = tmp;
                 i = p;
             }
         }
 
-        private void HeapifyDown(int i)
+        public T Dequeue()
         {
+            var top = heap[0].item;
+            var last = heap[heap.Count - 1];
+            heap.RemoveAt(heap.Count - 1);
+            if (heap.Count == 0) return top;
+            heap[0] = last;
+            int i = 0;
             while (true)
             {
-                int l = 2 * i + 1, r = 2 * i + 2, s = i;
-                if (l < _heap.Count && _heap[l].Value.CompareTo(_heap[s].Value) < 0) s = l;
-                if (r < _heap.Count && _heap[r].Value.CompareTo(_heap[s].Value) < 0) s = r;
+                int l = 2 * i + 1, r = l + 1, s = i;
+                if (l < heap.Count && heap[l].prio < heap[s].prio) s = l;
+                if (r < heap.Count && heap[r].prio < heap[s].prio) s = r;
                 if (s == i) break;
-                var tmp = _heap[i];
-                _heap[i] = _heap[s];
-                _heap[s] = tmp;
+                var tmp = heap[i]; heap[i] = heap[s]; heap[s] = tmp;
                 i = s;
             }
+            return top;
         }
     }
 
-    // --- 向后兼容旧接口 ---
+    // ----------------- 向后兼容旧接口 -----------------
     public static class RoomGraphExtensions
     {
         public static List<Vector3> LocalPathInRoom(Vector3 start, Vector3 end, Room room)
@@ -493,6 +499,6 @@ namespace Next_generationSite_27.UnionP
             => RoomGraph.InternalNav.GetPathRooms(startRoom, endRoom);
 
         public static bool IsDirectPathClear(Vector3 from, Vector3 to)
-            => Physics.Linecast(from, to);
+            => RoomGraph.InternalNavigator.IsDirectPathClear(from, to);
     }
 }

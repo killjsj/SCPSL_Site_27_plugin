@@ -285,6 +285,9 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Server.RoundEnded += eventhandle.OnRoundEnd;
 
+            Exiled.Events.Handlers.Player.Left += OnLeft;
+
+
             Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating += Scp5k_Control.DeadmanSwitchInitiating;
             Exiled.Events.Handlers.Player.Escaping += Scp5k_Control.Escaping;
             Exiled.Events.Handlers.Server.RespawningTeam += Scp5k_Control.RespawningTeam;
@@ -351,6 +354,13 @@ namespace Next_generationSite_27.UnionP
             Scp5k.GOCAnim.Load();
             base.OnEnabled();
         }
+        public void OnLeft(LeftEventArgs ev)
+        {
+            if (PlayerMenuCache.ContainsKey(ev.Player))
+            {
+                PlayerMenuCache.Remove(ev.Player);
+            }
+        }
         public override void OnDisabled()
         {
             foreach (var item in baseClasses)
@@ -366,6 +376,8 @@ namespace Next_generationSite_27.UnionP
                     
                 }
             }
+            Exiled.Events.Handlers.Player.Left -= OnLeft;
+
             Exiled.Events.Handlers.Map.Generated -= eventhandle.Generated;
             Exiled.Events.Handlers.Player.Joined -= eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam -= eventhandle.RespawningTeam;

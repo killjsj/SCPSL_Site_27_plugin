@@ -323,7 +323,22 @@ namespace Next_generationSite_27.UnionP.Scp5k
             if (Inited) return;
 
             //installCount = UnityEngine.Random.Range(3,5 + 1);
-            installAt = GetFarthestRooms(installCount, ZoneType.HeavyContainment);
+            installAt = new List<Room>()
+            {
+                Room.Get(RoomType.Hcz049),
+                Room.Get(RoomType.Hcz079),
+                Room.Get(RoomType.Hcz939),
+                Room.Get(RoomType.EzIntercom),
+                Room.Get(RoomType.HczElevatorB),
+                Room.Get(RoomType.HczHid),
+                Room.Get(RoomType.HczElevatorA),
+                Room.Get(RoomType.HczNuke),
+                Room.Get(RoomType.Surface),
+            };
+            installAt.ShuffleList();
+            if (installCount < installAt.Count)
+                installAt.RemoveRange(installCount, installAt.Count - installCount);
+
             foreach (var item in installAt)
             {
                 Log.Info($"炸弹要安装在:{item} {item.RoomName} {item.Position}");
@@ -468,12 +483,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public void OnInter(ReferenceHub hub)
         {
             var p = Player.Get(hub);
-            if (!CustomRole.TryGet(Scp5k_Control.GocCID, out var customGocC))
+            if (!CustomRole.TryGet(Scp5k_Control.Goc610CID, out var customGocC))
             {
                 p.AddMessage("Failed", "<color=red><size=27>未获取角色:GocC 请联系技术</size></color>", 3f);
                 return;
             }
-            if (!CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocP))
+            if (!CustomRole.TryGet(Scp5k_Control.Goc610PID, out var customGocP))
             {
                 p.AddMessage("Failed", "<color=red><size=27>未获取角色:GocP 请联系技术</size></color>", 3f);
                 return;
@@ -822,12 +837,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             countDown = countDownStart;
                             break;
                         }
-                        if (!CustomRole.TryGet(Scp5k_Control.GocCID, out var customGocC))
+                        if (!CustomRole.TryGet(Scp5k_Control.Goc610CID, out var customGocC))
                         {
                             Log.Info("Failed to get goc");
 
                         }
-                        if (!CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocP))
+                        if (!CustomRole.TryGet(Scp5k_Control.Goc610PID, out var customGocP))
                         {
                             Log.Info("Failed to get goc");
                         }

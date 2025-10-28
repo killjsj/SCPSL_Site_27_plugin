@@ -498,14 +498,15 @@ namespace Next_generationSite_27.UnionP
         {
 
             testing.FlightFailed.Start();
-            if (targetRole == null || targetRole.Count == 0) // 更标准的空检查
-            {
-                Log.Debug("No target roles to assign. Skipping RoundStarted logic.");
-                return;
-            }
+
             if (config.RoundSelfChoose)
             {
-                Timing.CallDelayed(0.1f, delegate ()
+                if (targetRole == null || targetRole.Count == 0) // 更标准的空检查
+                {
+                    Log.Debug("No target roles to assign. Skipping RoundStarted logic.");
+                    return;
+                }
+                Timing.CallDelayed(0.3f, delegate ()
                 {
                     try
                     {

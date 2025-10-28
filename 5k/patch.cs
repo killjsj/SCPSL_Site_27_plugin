@@ -174,9 +174,17 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 return false;
 
             // 尝试获取 Goc 角色 (仅用于判定，Uiu 和 Bot 不再需要)
-            if (!CustomRole.TryGet(Scp5k_Control.GocCID, out var customGocC) ||
-                !CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocP))
+            if (!CustomRole.TryGet(Scp5k_Control.Goc610CID, out var customGocC) ||
+                !CustomRole.TryGet(Scp5k_Control.Goc610PID, out var customGocP))
             {
+                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out var ffMultiplier))
+                {
+                    if (ffMultiplier > 0)
+                    {
+                        return true;
+                    }
+                }
+                return IsEnemy(attacker.GetTeam(), victim.GetTeam());
                 // 如果无法获取 Goc 角色定义，则回退到默认的队伍判定
                 return HitboxIdentity.IsEnemy(attacker.GetTeam(), victim.GetTeam());
             }
@@ -198,17 +206,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 return true;
             }
-            else if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces)
-            {
-                return false;
-            }
-            else if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies)
-            {
-                return false;
-            }
             else
             {
-                if(AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint,victim,out var ffMultiplier))
+                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out var ffMultiplier))
                 {
                     if (ffMultiplier > 0)
                     {
@@ -217,6 +217,15 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
                 return IsEnemy(attacker.GetTeam(), victim.GetTeam());
             }
+            if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces)
+            {
+                return false;
+            }
+            else if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies)
+            {
+                return false;
+            }
+            
         }
         public static bool IsEnemy(Team attackerTeam, Team victimTeam)
         {
@@ -255,83 +264,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
             {
                 Player attacker = Player.Get(attackerFootprint.Hub);
                 Player victim = Player.Get(victimHub);
-                // 尝试获取 Goc 角色 (仅用于判定，Uiu 和 Bot 不再需要)
-                if (!CustomRole.TryGet(Scp5k_Control.GocCID, out var customGocC) ||
-                    !CustomRole.TryGet(Scp5k_Control.GocPID, out var customGocP) ||
-                    !CustomRole.TryGet(Scp5k_Control.GocSpyID, out var customGocSpy))
+                var FF = FFManager.GetFF(attacker, victim);
+                if(FF != -1)
                 {
-                    goto cont;
-                }
-
-                // 判定攻击者是否为 Goc
-                bool isAttackerGoc = customGocC.Check(attacker) || customGocP.Check(attacker) ||
-                                     attacker.UniqueRole == customGocC.Name || attacker.UniqueRole == customGocP.Name ||
-                                     attacker.UniqueRole == customGocSpy.Name || attacker.UniqueRole == customGocP.Name;
-
-                // 判定受害者是否为 Goc
-                bool isVictimGoc = customGocC.Check(victim) || customGocP.Check(victim) ||
-                                   victim.UniqueRole == customGocC.Name || victim.UniqueRole == customGocP.Name ||
-                                   victim.UniqueRole == customGocSpy.Name || victim.UniqueRole == customGocP.Name;
-                if (isAttackerGoc)
-                {
-                    if(!isVictimGoc)
-                    {
-                        ffMultiplier = 1;
-                        return true;
-                    }
-                    else
-                    {
-                        ffMultiplier = 0;
-                        return true;
-                    }
-                }
-                else if (isVictimGoc)
-                {
-                    if(victim.UniqueRole == customGocSpy.Name)
-                    {
-                        ffMultiplier = 0.7f;
-                        return true;
-                    }else
-                    {
-                        ffMultiplier = 1;
-                        return true;
-                    }
-                        
-                }
-            cont:
-
-                if (attacker == victim)
-                {
-                    //Log.Debug("CheckFriendlyFirePlayerRules, Attacker player was equal to Victim, likely suicide");
-                    return false;
-                }
-
-                //Log.Debug($"CheckFriendlyFirePlayerRules, Attacker role {attacker.Role} and Victim {victim.Role}");
-
-                // Check victim's UniqueRole for custom FF multiplier
-                if (!string.IsNullOrEmpty(victim.UniqueRole) &&
-                    victim.CustomRoleFriendlyFireMultiplier.TryGetValue(victim.UniqueRole, out Dictionary<RoleTypeId, float> victimPairedData) &&
-                    victimPairedData.TryGetValue(attacker.Role, out ffMultiplier))
-                {
-                    //Log.Info($"victim:{ffMultiplier}");
-
-                    return true;
-                }
-
-                // Check attacker's UniqueRole for custom FF multiplier
-                if (!string.IsNullOrEmpty(attacker.UniqueRole) &&
-                    attacker.CustomRoleFriendlyFireMultiplier.TryGetValue(attacker.UniqueRole, out Dictionary<RoleTypeId, float> attackerPairedData) &&
-                    attackerPairedData.TryGetValue(victim.Role, out ffMultiplier))
-                {
-                    //Log.Info($"attacker:{ffMultiplier}");
-                    return true;
-                }
-
-                // Default FF logic for SCP or other roles without unique roles
-                if (!attacker.FriendlyFireMultiplier.IsEmpty() &&
-                    attacker.FriendlyFireMultiplier.TryGetValue(victim.Role, out ffMultiplier))
-                {
-                    return true;
+                    ffMultiplier = FF;
+                    return FF > 0f;
                 }
             }
             catch (Exception ex)
@@ -340,7 +277,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
 
             // Default to NW logic
-            return HitboxIdentity.IsDamageable(attackerFootprint.Role, victimHub.roleManager.CurrentRole.RoleTypeId);
+            return HitboxIdentityPatch.IsEnemy(attackerFootprint.Hub, victimHub);
         }
     
         [HarmonyPatch("ProcessDamage")]

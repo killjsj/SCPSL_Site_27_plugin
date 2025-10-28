@@ -413,6 +413,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="5k\FFManager.cs" />
     <Compile Include="5k\GocBomb.cs" />
     <Compile Include="5k\GOCAnim.cs" />
     <Compile Include="5k\patch.cs" />

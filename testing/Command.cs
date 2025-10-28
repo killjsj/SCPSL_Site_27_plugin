@@ -504,7 +504,7 @@ namespace Next_generationSite_27.UnionP
                     return false;
                 }
             }
-            Scp5k_Control.Is5kRound = true;
+            Scp5k_Control.IsForce5kRound = true;
             Round.Restart();
             response = $"done!";
             return true;
@@ -1072,7 +1072,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         foreach (var item in list)
                         {
-                            if (CustomRole.TryGet(Scp5k_Control.GocPID, out var Prole))
+                            if (CustomRole.TryGet(Scp5k_Control.Goc610PID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);

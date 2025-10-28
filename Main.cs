@@ -291,6 +291,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating += Scp5k_Control.DeadmanSwitchInitiating;
             Exiled.Events.Handlers.Player.Escaping += Scp5k_Control.Escaping;
             Exiled.Events.Handlers.Server.RespawningTeam += Scp5k_Control.RespawningTeam;
+            Exiled.Events.Handlers.Player.Dying += Scp5k_Control.Died;
             Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
@@ -416,6 +417,7 @@ namespace Next_generationSite_27.UnionP
 
             //5k
             Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating -= Scp5k_Control.DeadmanSwitchInitiating;
+            Exiled.Events.Handlers.Player.Dying -= Scp5k_Control.Died;
             Exiled.Events.Handlers.Warhead.Detonating -= Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Player.Escaping -= Scp5k_Control.Escaping;
             Exiled.Events.Handlers.Server.RespawningTeam -= Scp5k_Control.RespawningTeam;

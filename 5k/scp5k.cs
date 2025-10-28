@@ -373,12 +373,35 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 ev.EscapeScenario = EscapeScenario.ClassD;
             }
         }
+        public static bool IsMotherDied = false;
+        public static void Died(DyingEventArgs ev)
+        {
+            if (Is5kRound)
+            {
+                if (ev.IsAllowed)
+                {
+                    if (ev.Player.UniqueRole == scp5k_Scp610_mother.instance.Name)
+                    {
+                        IsMotherDied = true;
+                        foreach (var p in Player.List)
+                        {
+                            if (p.UniqueRole == scp5k_Scp610.instance.Name)
+                            {
+                                p.Kill("Mother is dead");
+                            }
+                        }
+                        Round.EndRound();
+                    }
+                }
+            }
+        }
         public static void PlayerDamaged(Exiled.Events.EventArgs.Player.HurtingEventArgs ev)
         {
             if (Is5kRound)
             {
                 if (ev.Attacker != null)
                 {
+                    
                     if (ev.DamageHandler.Base is Scp096DamageHandler DH)
                     {
                         DH.Damage = 99;
@@ -444,7 +467,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             string str;
                             NineTailedFoxAnnouncer.ConvertSCP(ev.Player.Role.Type, out text2, out str);
                             Cassie.MessageTranslated($"{text2} CONTAINEDSUCCESSFULLY BY G O C", $"{str} 已被GOC重新收容。");
-                            GocKilled += 1;
+                            GocKilledScp += 1;
                         }
                         else if (scp5k_Bot.ins.Check(ev.Attacker))
                         {
@@ -459,7 +482,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
             }
         }
-        public static int GocKilled = 0;
+        public static int GocKilledScp = 0;
         public static int UiUSpawnTime = config.UiUSpawnTime - config.UiUSpawnFloatTime + UnityEngine.Random.Range(0, config.UiUSpawnFloatTime * 2);
         public static int AndSpawnTime = config.AndSpawnTime - config.AndSpawnFloatTime + UnityEngine.Random.Range(0, config.AndSpawnFloatTime * 2);
         public static bool UiuDownloadBroadcasted = false;
@@ -526,15 +549,19 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         statusTimer = 0f;
 
                         int ntfScp = 0;
-                        int lightRunner = 0;
+                        //int lightRunner = 0;
                         int chaos = 0;
+                        int Scp610C = 0;
 
-                        foreach (var hub in ReferenceHub.AllHubs)
+                        foreach (var hub in Player.List)
                         {
-                            var role = hub.roleManager.CurrentRole.RoleTypeId;
+                            var role = hub.Role.Type;
 
                             if (!role.IsAlive()) continue;
-
+                            if(hub.UniqueRole == scp5k_Scp610_mother.instance.Name || hub.UniqueRole == scp5k_Scp610.instance.Name)
+                            {
+                                Scp610C ++;
+                            }
                             switch (role)
                             {
                                 case RoleTypeId.NtfCaptain:
@@ -554,9 +581,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 case RoleTypeId.FacilityGuard:
                                 case RoleTypeId.ClassD:
                                 case RoleTypeId.Scientist:
-                                    lightRunner++;
-                                    break;
-
                                 case RoleTypeId.ChaosConscript:
                                 case RoleTypeId.ChaosMarauder:
                                 case RoleTypeId.ChaosRepressor:
@@ -568,7 +592,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                         chaos += SpecRolesCount;
 
-                        if (ntfScp == 0 && chaos == 0 && lightRunner == 0)
+                        if (ntfScp == 0 && chaos == 0 )
                         {
                             Log.Info("[RoundCheck] 所有阵营灭绝 → 结束回合。");
                             Round.EndRound(true);
@@ -578,19 +602,18 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             Log.Info("[RoundCheck] NTF/SCP 全灭，Chaos 胜利。");
                             Round.EndRound(true);
                         }
-                        else if (chaos == 0 && lightRunner == 0 && ntfScp != 0)
+                        else if (chaos == 0  && ntfScp != 0)
                         {
                             Log.Info("[RoundCheck] Chaos + Light 全灭，NTF/SCP 胜利。");
                             Round.EndRound(true);
                         }
-                        else if (chaos == 0 && lightRunner != 0 && ntfScp == 0)
-                        {
-                            Log.Info("[RoundCheck] 仅剩 Light 阵营，结束回合。");
+                        if (Scp610C >= Player.List.Where(x => x.IsAlive).Count() - 2) { 
+                            Log.Info("[RoundCheck] Scp610胜利。");
                             Round.EndRound(true);
-                        }
 
+                        }
                         // GOC 胜利条件检测
-                        if (Nuke_GOC_COunt && !Player.List.Any(x => x.IsScp))
+                        if (Nuke_GOC_COunt && !Player.List.Any(x => x.IsScp) || IsMotherDied)
                         {
                             Nuke_GOC_WinCon = true;
                             Round.EndRound();
@@ -1240,12 +1263,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static bool HammerSpawnedBroadcast = false;
         public static bool IsO5NukeEnd = true;
         public static bool IsForce5kRound = false;
+        public static int startedScpCount = 0;
         static CoroutineHandle refresher;
         public static void RoundStarted()
         {
             Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
             Is5kRound = Is5kRound | IsForce5kRound;
-
+            GocKilledScp = 0;
+            IsMotherDied = false;
                     GocNuke = false;
             IsForce5kRound = false;
             UiuEscaped = false;
@@ -1334,7 +1359,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                 Scp5k.Scp5k_Control.ColorChangerRole.instance.AddRole(Luck2);
 
                             }
-                            if (Player.List.Where(x => x.Role.Team == Team.SCPs).ToList().Count() > 5)
+                            startedScpCount = Player.List.Where(x => x.Role.Team == Team.SCPs).ToList().Count();
+                            if (startedScpCount > 5)
                             {
                                 var Luck1 = Player.List.Where(x => x.Role.Team != Team.SCPs).ToList().RandomItem();
                                 Luck1.RoleManager.ServerSetRole(RoleTypeId.Scp3114, RoleChangeReason.RoundStart);
@@ -1761,6 +1787,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     uiu_broadcasted = false;
                     GOCBomb.countDown = GOCBomb.countDownStart;
                     GOCBomb.QuestionPoint = -1;
+                    
                     if (Scp055Escaped)
                     {
                         foreach (var s in Player.List)
@@ -1784,45 +1811,78 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             s.AddMessage("", "GOC Ending: GOC成功引爆奇术核弹");
                         }
+                    } else if (IsMotherDied)
+                    {
+                        ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
+                        foreach (var s in Player.List)
+                        {
+                            s.AddMessage("", "GOC Ending: GOC成功消灭scp610");
+                        }
                     }
                     else
                     {
                         RoundSummary.SumInfo_ClassList newList = default(RoundSummary.SumInfo_ClassList);
-                        foreach (ReferenceHub hub in ReferenceHub.AllHubs)
+                        int ntfScp = 0;
+                        //int lightRunner = 0;
+                        int chaos = 0;
+                        int Scp610C = 0;
+
+                        foreach (var hub in Player.List)
                         {
-                            switch (hub.GetTeam())
+                            var role = hub.Role.Type;
+
+                            if (!role.IsAlive()) continue;
+                            if (hub.UniqueRole == scp5k_Scp610_mother.instance.Name || hub.UniqueRole == scp5k_Scp610.instance.Name)
                             {
-                                case Team.SCPs:
-                                case Team.FoundationForces:
-                                    if (hub.GetRoleId() == RoleTypeId.Scp0492)
-                                    {
-
-                                    }
-                                    else
-                                    {
-                                        newList.mtf_and_guards++;
-
-                                    }
-                                    break;
-                                case Team.Scientists:
-                                case Team.ClassD:
-                                case Team.ChaosInsurgency:
-                                    newList.chaos_insurgents++;
-                                    break;
+                                Scp610C++;
                             }
-                            if (hub.GetRoleId() == RoleTypeId.CustomRole)
+                            switch (role)
                             {
-                                newList.chaos_insurgents++;
+                                case RoleTypeId.NtfCaptain:
+                                case RoleTypeId.NtfPrivate:
+                                case RoleTypeId.NtfSergeant:
+                                case RoleTypeId.NtfSpecialist:
+                                case RoleTypeId.Scp049:
+                                case RoleTypeId.Scp079:
+                                case RoleTypeId.Scp096:
+                                case RoleTypeId.Scp106:
+                                case RoleTypeId.Scp173:
+                                case RoleTypeId.Scp3114:
+                                case RoleTypeId.Scp939:
+                                    ntfScp++;
+                                    break;
+
+                                case RoleTypeId.FacilityGuard:
+                                case RoleTypeId.ClassD:
+                                case RoleTypeId.Scientist:
+                                case RoleTypeId.ChaosConscript:
+                                case RoleTypeId.ChaosMarauder:
+                                case RoleTypeId.ChaosRepressor:
+                                case RoleTypeId.ChaosRifleman:
+                                    chaos++;
+                                    break;
                             }
                         }
-                        if (newList.chaos_insurgents != 0 && newList.mtf_and_guards == 0)
+                        if (Scp610C >= Player.List.Where(x => x.IsAlive).Count() - 2)
+                        {
+                            foreach (var s in Player.List)
+                            {
+                                s.AddMessage("", "SCP610 Ending: scp610占领了这里");
+                            }
+                            ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.Anomalies;
+                            return;
+
+                        }
+                        chaos += SpecRolesCount;
+                        if (chaos != 0 && ntfScp == 0)
                         {
                             ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
                         }
-                        else if (newList.chaos_insurgents == 0 && newList.mtf_and_guards != 0)
+                        else if (chaos == 0 && ntfScp != 0)
                         {
                             ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.FacilityForces;
                         }
+
                     }
                     //Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
                     

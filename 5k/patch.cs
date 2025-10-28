@@ -172,12 +172,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
             // 安全检查：如果玩家对象不存在，返回 false（无法造成伤害）
             if (a == null || v == null)
                 return false;
-
+            float ffMultiplier = 0;
             // 尝试获取 Goc 角色 (仅用于判定，Uiu 和 Bot 不再需要)
             if (!CustomRole.TryGet(Scp5k_Control.Goc610CID, out var customGocC) ||
                 !CustomRole.TryGet(Scp5k_Control.Goc610PID, out var customGocP))
             {
-                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out var ffMultiplier))
+                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out  ffMultiplier))
                 {
                     if (ffMultiplier > 0)
                     {
@@ -189,26 +189,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 return HitboxIdentity.IsEnemy(attacker.GetTeam(), victim.GetTeam());
             }
 
-            // 判定攻击者是否为 Goc
-            bool isAttackerGoc = customGocC.Check(a) || customGocP.Check(a) ||
-                                 a.UniqueRole == customGocC.Name || a.UniqueRole == customGocP.Name;
-
-            // 判定受害者是否为 Goc
-            bool isVictimGoc = customGocC.Check(v) || customGocP.Check(v) ||
-                               v.UniqueRole == customGocC.Name || v.UniqueRole == customGocP.Name;
-
-            // 核心逻辑：
-            if (isAttackerGoc)
-            {
-                return !isVictimGoc;
-            }
-            else if (isVictimGoc)
-            {
-                return true;
-            }
-            else
-            {
-                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out var ffMultiplier))
+                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out  ffMultiplier))
                 {
                     if (ffMultiplier > 0)
                     {
@@ -216,7 +197,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                 }
                 return IsEnemy(attacker.GetTeam(), victim.GetTeam());
-            }
+            
             if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces)
             {
                 return false;

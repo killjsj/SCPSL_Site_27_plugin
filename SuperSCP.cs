@@ -67,7 +67,7 @@ namespace Next_generationSite_27.UnionP
             {
                 if (!Plugin.enableSSCP) { break; }
 
-                foreach (var item in Player.List.Where(x => x.IsScp))
+                foreach (var item in Player.Enumerable.Where(x => x.IsScp))
                 {
                     if (!PatchedPlayers.Contains(item))
                     {

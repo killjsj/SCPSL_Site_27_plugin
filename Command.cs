@@ -189,7 +189,7 @@ namespace Next_generationSite_27.UnionP
                 return false;
             }
             List<Player> SCPList = new List<Player>();
-            foreach (var item in Player.List)
+            foreach (var item in Player.Enumerable)
             {
                 if (item.IsScp)
                 {

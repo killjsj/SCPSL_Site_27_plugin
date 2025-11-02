@@ -577,7 +577,7 @@ namespace Next_generationSite_27.UnionP.testing
             }
 
             var availableTarget = new List<Player>();
-            foreach (var item in Player.List)
+            foreach (var item in Player.Enumerable)
             {
                 if (!item.IsAlive && !FlightFailed.PlayerToBadge.ContainsKey(item.UserId) && !FlightFailed.BattleReqs.Any(x => x.From == item || x.To == item || x.To_backup == item.UserId))
                 {

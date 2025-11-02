@@ -1,4 +1,5 @@
-﻿using AutoEvent;
+﻿using AudioManagerAPI.Defaults;
+using AutoEvent;
 using AutoEvent.API.Enums;
 using AutoEvent.Events;
 using AutoEvent.Interfaces;
@@ -138,7 +139,7 @@ namespace Next_generationSite_27.UnionP
             }
         }
 
-        public override PluginPriority Priority => PluginPriority.Lower;
+        public override PluginPriority Priority => PluginPriority.Low;
         public static Harmony harmony { get; private set; }
         // --- bomb gun ---
         public static int active_g { get; set; } = 0;
@@ -173,7 +174,7 @@ namespace Next_generationSite_27.UnionP
            
             for (int i = (int)vote_time; i != 0; i--)
             {
-                foreach (var item in Player.List)
+                foreach (var item in Player.Enumerable)
                 {
                     if (vote_control[0].Contains(item) || vote_control[1].Contains(item))
                     {
@@ -298,6 +299,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
             Exiled.Events.Handlers.Warhead.ChangingLeverStatus += Scp5k_Control.ChangingLeverStatus;
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
+            Exiled.Events.Handlers.Map.AnnouncingScpTermination += Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole += GOCAnim.OnchangingRole;
                 Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
 
@@ -348,11 +350,22 @@ namespace Next_generationSite_27.UnionP
 
             CustomRole.RegisterRoles(assembly:Assembly);
             CustomItem.RegisterItems();
+            //RemoteAdmin.CommandProcessor.RemoteAdminCommandHandler.RegisterCommand();
             max_active_g = Config.maxbomb;
             harmony = new Harmony("Killjsj.plugin.site27plugin");
             harmony.PatchAll();
             AutoEvent.AutoEvent.EventManager.RegisterInternalEvents();
             Scp5k.GOCAnim.Load();
+            DefaultAudioManager.RegisterAudio("decont_1", () =>
+File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_1.wav"));
+            DefaultAudioManager.RegisterAudio("decont_5", () =>
+                File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_5.wav"));
+            DefaultAudioManager.RegisterAudio("decont_10", () =>
+                File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_10.wav"));
+            DefaultAudioManager.RegisterAudio("decont_countdown", () =>
+    File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_countdown.wav"));
+            DefaultAudioManager.RegisterAudio("decont_begun", () =>
+File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
             base.OnEnabled();
         }
         public void OnLeft(LeftEventArgs ev)
@@ -426,6 +439,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
             Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
+            Exiled.Events.Handlers.Map.AnnouncingScpTermination -= Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole -= GOCAnim.OnchangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
 
@@ -680,7 +694,7 @@ namespace Next_generationSite_27.UnionP
                 }
             }
 
-            foreach (Player player in Player.List)
+            foreach (Player player in Player.Enumerable)
             {
                 player.GiveLoadout(Config.PrisonerLoadouts);
                 var p = SpawnPoints.Where(r => r.name == "Spawnpoint").ToList().RandomItem().transform;
@@ -709,7 +723,7 @@ namespace Next_generationSite_27.UnionP
         {
             for (int time = 2; time > 0; time--)
             {
-                foreach (Player player in Player.List)
+                foreach (Player player in Player.Enumerable)
                 {
                     player.ClearBroadcasts();
                     if (player.HasLoadout(Config.JailorLoadouts))
@@ -728,14 +742,14 @@ namespace Next_generationSite_27.UnionP
 
         protected override bool IsRoundDone()
         {
-            bool end = EventTime.TotalSeconds >= totalTime || Player.List.Count(r => r.Role == RoleTypeId.ClassD) == 0 || Player.List.Count(r => r.Role == RoleTypeId.NtfCaptain) == 0;
+            bool end = EventTime.TotalSeconds >= totalTime || Player.Enumerable.Count(r => r.Role == RoleTypeId.ClassD) == 0 || Player.Enumerable.Count(r => r.Role == RoleTypeId.NtfCaptain) == 0;
             return end;
         }
 
         protected override void ProcessFrame()
         {
-            string dClassCount = Player.List.Count(r => r.Role == RoleTypeId.ClassD).ToString();
-            string mtfCount = Player.List.Count(r => r.Role.Team == Team.FoundationForces).ToString();
+            string dClassCount = Player.Enumerable.Count(r => r.Role == RoleTypeId.ClassD).ToString();
+            string mtfCount = Player.Enumerable.Count(r => r.Role.Team == Team.FoundationForces).ToString();
             var showEventTime = TimeSpan.FromSeconds(totalTime - EventTime.TotalSeconds);
             string time = $"{showEventTime.Minutes:00}:{showEventTime.Seconds:00}";
             if (showEventTime.TotalSeconds % 90 == 0)
@@ -751,7 +765,7 @@ namespace Next_generationSite_27.UnionP
                     Pickup.CreateAndSpawn(ItemType.Medkit, item.transform.position);
                 }
             }
-            foreach (Player player in Player.List)
+            foreach (Player player in Player.Enumerable)
             {
                 player.ClearBroadcasts();
                 player.Broadcast(1, Translation.Cycle.
@@ -763,12 +777,12 @@ namespace Next_generationSite_27.UnionP
 
         protected override void OnFinished()
         {
-            if (EventTime.TotalSeconds >= 300 || Player.List.Count(r => r.Role == RoleTypeId.NtfCaptain) == 0)
+            if (EventTime.TotalSeconds >= 300 || Player.Enumerable.Count(r => r.Role == RoleTypeId.NtfCaptain) == 0)
             {
                 Extensions.Broadcast(Translation.PrisonersWin.Replace("{time}", $"{EventTime.Minutes:00}:{EventTime.Seconds:00}"), 10);
             }
 
-            if (Player.List.Count(r => r.Role == RoleTypeId.ClassD) == 0)
+            if (Player.Enumerable.Count(r => r.Role == RoleTypeId.ClassD) == 0)
             {
                 Extensions.Broadcast(Translation.JailersWin.Replace("{time}", $"{EventTime.Minutes:00}:{EventTime.Seconds:00}"), 10);
             }

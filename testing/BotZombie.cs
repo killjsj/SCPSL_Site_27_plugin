@@ -118,7 +118,7 @@ namespace Next_generationSite_27.UnionP
                     if (!tracking)
                     {
                             Follow(Owner);
-                        foreach (var item in Player.List.Where(x => !x.IsScp))
+                        foreach (var item in Player.Enumerable.Where(x => !x.IsScp))
                         {
                             if (Vector3.Distance(item.Position, Zombie.Position) <= 10f)
                             {

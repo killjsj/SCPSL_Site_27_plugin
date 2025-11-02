@@ -815,7 +815,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     if (countDown <= 0)
                     {
                         countDown = 0;
-                        foreach (var item in Player.List)
+                        foreach (var item in Player.Enumerable)
                         {
                             if (item.HasMessage("donationCount"))
                             {
@@ -846,7 +846,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             Log.Info("Failed to get goc");
                         }
-                        foreach (var item in Player.List)
+                        foreach (var item in Player.Enumerable)
                         {
                             bool isGocActing = false;
                             if (customGocC != null && customGocP != null)
@@ -892,7 +892,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 countDown -= countDownTick;
             }
             CountdownStarted = false;
-            foreach (var item in Player.List)
+            foreach (var item in Player.Enumerable)
             {
                 if (item.HasMessage("donationCount"))
                 {

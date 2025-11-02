@@ -240,7 +240,7 @@ namespace Next_generationSite_27.UnionP
             Scp914q.Enqueue((ev.Player, ev.KnobSetting, false));
 
             // 安全遍历所有玩家，并检查 CurrentRoom 是否存在
-            foreach (var player in Player.List.Where(player => player.CurrentRoom?.RoomName != MapGeneration.RoomName.Lcz914))
+            foreach (var player in Player.Enumerable.Where(player => player.CurrentRoom?.RoomName != MapGeneration.RoomName.Lcz914))
             {
                 try
                 {
@@ -269,7 +269,7 @@ namespace Next_generationSite_27.UnionP
             Scp914q.Enqueue((ev.Player, ev.KnobSetting, true));
 
             // 安全遍历所有玩家，并检查 CurrentRoom 是否存在
-            foreach (var player in Player.List)
+            foreach (var player in Player.Enumerable)
             {
                 try
                 {
@@ -300,7 +300,7 @@ namespace Next_generationSite_27.UnionP
         {
             if (ev.Generator.LastActivator != null)
             {
-                foreach (var item in Player.List.Where(x => x.Role.Team == ev.Generator.LastActivator.Role.Team))
+                foreach (var item in Player.Enumerable.Where(x => x.Role.Team == ev.Generator.LastActivator.Role.Team))
                 {
                     if (GetLevel(item) > 10)
                     {
@@ -311,7 +311,7 @@ namespace Next_generationSite_27.UnionP
         }
         public static void RoundEnded(RoundEndedEventArgs ev)
         {
-            foreach (var item in Player.List)
+            foreach (var item in Player.Enumerable)
             {
                 if (GetLevel(item) > 10)
                 {
@@ -1171,7 +1171,7 @@ namespace Next_generationSite_27.UnionP
         {
             while (true)
             {
-                foreach (var player in Player.List)
+                foreach (var player in Player.Enumerable)
                 {
                     if (player == null)
                         continue;
@@ -2192,7 +2192,7 @@ namespace Next_generationSite_27.UnionP
                             "."
                                 }), ServerLogs.ServerLogType.RemoteAdminActivity_GameChanging, false);
                                 sql.InsertBanRecord(targetUserID, targetUserID, runner.UserId, runner.Nickname, text, DateTime.Now, end_time: DateTime.Now.AddSeconds(num), ServerStatic.ServerPort.ToString());
-                                foreach (var item in Player.List)
+                                foreach (var item in Player.Enumerable)
                                 {
                                     if(item.UserId == targetUserID)
                                     {

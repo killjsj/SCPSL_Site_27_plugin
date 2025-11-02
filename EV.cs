@@ -482,7 +482,7 @@ namespace Next_generationSite_27.UnionP
             {
                 ServerConsole.FriendlyFire = true;
                 ServerConfigSynchronizer.RefreshAllConfigs();
-                foreach (var item in Player.List)
+                foreach (var item in Player.Enumerable)
                 {
                     item.AddMessage("RoundEnd",config.RoundEndFFText,location:ScreenLocation.CenterTop,duration:2);
                 }
@@ -512,7 +512,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         Log.Debug("Starting RoundStarted role assignment logic.");
 
-                        var readyPlayers = Player.List
+                        var readyPlayers = Player.Enumerable
                             .Where(x => !SPD.Contains(x.ReferenceHub) &&
                                         x.ReferenceHub.authManager.InstanceMode != ClientInstanceMode.Unverified &&
                                         x.ReferenceHub.nicknameSync.NickSet)
@@ -817,7 +817,7 @@ namespace Next_generationSite_27.UnionP
             }
             try
             {
-                if (Player.List.Count() >= Config.EnableSuperScpCount && Config.EnableSuperScp)
+                if (Player.Enumerable.Count() >= Config.EnableSuperScpCount && Config.EnableSuperScp)
                 {
                     Plugin.enableSSCP = true;
                     Plugin.plugin.superSCP.start();
@@ -1010,7 +1010,7 @@ namespace Next_generationSite_27.UnionP
         {
             if (config.RoundSelfChoose) { 
             st = true;
-            foreach (var item in Player.List)
+            foreach (var item in Player.Enumerable)
             {
                 if (item.Role.Type != RoleTypeId.Overwatch)
                 {
@@ -1137,7 +1137,7 @@ namespace Next_generationSite_27.UnionP
 
             //var method = typeof(CharacterClassManager)
 
-
+            GameObject.Find("StartRound").transform.localScale = Vector3.zero;
 
             EventSystem.current.SetSelectedGameObject(null);
             PrefabManager.RegisterPrefabs();
@@ -1672,7 +1672,7 @@ namespace Next_generationSite_27.UnionP
                 else
                 {
                     BroadcastCounter = 0;
-                    foreach (var item in Player.List)
+                    foreach (var item in Player.Enumerable)
                     {
                         item.Broadcast(new Exiled.API.Features.Broadcast()
                         {
@@ -1738,7 +1738,7 @@ namespace Next_generationSite_27.UnionP
                     TextVar,
                     "</color>"
                 }));
-                foreach (Exiled.API.Features.Player player in Enumerable.Where<Exiled.API.Features.Player>(Exiled.API.Features.Player.List, (Exiled.API.Features.Player p) => p.Role.Team == Team.SCPs && p.IsAlive))
+                foreach (Exiled.API.Features.Player player in Enumerable.Where<Exiled.API.Features.Player>(Exiled.API.Features.Player.Enumerable, (Exiled.API.Features.Player p) => p.Role.Team == Team.SCPs && p.IsAlive))
                 {
                     sb.Append(string.Format("|<size=32><color={0}>{1} </color> :  <color={2}>{3}HP</color></size>| ", new object[]
                     {

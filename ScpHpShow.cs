@@ -200,7 +200,7 @@ namespace Next_generationSite_27.UnionP
                         else if (targetScp.Role.Type == RoleTypeId.Scp0492)
                         {
                             // 始终显示1个SCP049-2
-                            return "    " + ZombieText.Replace("{count}", Player.List.Count(x=>x.Role.Type == RoleTypeId.Scp0492).ToString());
+                            return "    " + ZombieText.Replace("{count}", Player.Enumerable.Count(x=>x.Role.Type == RoleTypeId.Scp0492).ToString());
                         }
                         else
                         {

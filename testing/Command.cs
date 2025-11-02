@@ -1,4 +1,6 @@
 ﻿using AdminToys;
+using AudioManagerAPI.Defaults;
+using AudioManagerAPI.Features.Static;
 using CommandSystem;
 using CommandSystem.Commands.RemoteAdmin;
 using Discord;
@@ -12,12 +14,15 @@ using Exiled.API.Features.Roles;
 using Exiled.API.Features.Toys;
 using Exiled.CustomItems.API.Features;
 using Exiled.CustomRoles.API.Features;
-using GameCore;
+//using System.Media;
 using GameObjectPools;
 using InventorySystem;
 using InventorySystem.Items;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Arguments.Scp079Events;
+using LabApi.Events.Handlers;
+//using LabApi.Features.Wrappers;
+using LightContainmentZoneDecontamination;
 using MapGeneration;
 using MEC;
 using Microsoft.Win32;
@@ -36,6 +41,7 @@ using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp079.Pinging;
 using PlayerRoles.PlayableScps.Scp3114;
 using PlayerRoles.PlayableScps.Scp939;
+using PlayerRoles.Spectating;
 using PlayerRoles.Subroutines;
 using PlayerStatsSystem;
 using ProjectMER.Commands.ToolGunLike;
@@ -46,6 +52,7 @@ using ProjectMER.Features.Serializable.Schematics;
 using RelativePositioning;
 using RemoteAdmin;
 using Respawning.NamingRules;
+using Subtitles;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -60,11 +67,15 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using Utf8Json.Formatters;
 using Utils;
+using VoiceChat.Codec;
+using VoiceChat.Networking;
 using static HintServiceMeow.Core.Models.HintContent.AutoContent;
+using static LightContainmentZoneDecontamination.DecontaminationController;
 using static Next_generationSite_27.UnionP.RoomGraph;
 using static UnityEngine.GraphicsBuffer;
 using static UnityEngine.UI.CanvasScaler;
 using Log = Exiled.API.Features.Log;
+using Player = Exiled.API.Features.Player;
 
 namespace Next_generationSite_27.UnionP 
 {
@@ -378,7 +389,7 @@ namespace Next_generationSite_27.UnionP
                 {
                     var rol = p.Role as Exiled.API.Features.Roles.Scp079Role;
 
-                    foreach (var item in Player.List.Where((x) => !x.IsScp))
+                    foreach (var item in Player.Enumerable.Where((x) => !x.IsScp))
                     {
                         //PingAbility._syncPos = new RelativePosition(item.Position);
                         //PingAbility._syncNormal = item.Position;
@@ -483,6 +494,37 @@ namespace Next_generationSite_27.UnionP
         new DefaultPingProcessor()
 };
     }
+    //[CommandHandler(typeof(RemoteAdminCommandHandler))]
+    //class StartRoundTest1Command : ICommand
+    //{
+    //    string ICommand.Command { get; } = "SRT";
+
+    //    string[] ICommand.Aliases { get; } = new[] { "" };
+
+    //    string ICommand.Description { get; } = "!!! Debug Command";
+
+    //    bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+    //    {
+    //        var runner = Player.Get(sender);
+    //        if (runner != null)
+    //        {
+    //            if (runner.KickPower < 12)
+    //            {
+    //                response = "你没权 （player.KickPower < 12）";
+    //                return false;
+    //            }
+    //        }
+    //        foreach (var item in ReferenceHub.AllHubs)
+    //        {
+    //            //item.characterClassManager.RpcRoundStarted();
+
+    //        }
+    //        RoundStart.singleton.NetworkTimer = -1;
+    //        response = $"done!";
+    //        return true;
+
+    //    }
+    //}
     [CommandHandler(typeof(GameConsoleCommandHandler))]
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class Scp5kstartCommand : ICommand
@@ -578,7 +620,7 @@ namespace Next_generationSite_27.UnionP
             ObjectDestroyMessage objectDestroyMessage = default(ObjectDestroyMessage);
             objectDestroyMessage.netId = Recontainer.ActivatorWindow.Base.netId;
             ObjectDestroyMessage message = objectDestroyMessage;
-            foreach (Player item in Player.List)
+            foreach (Player item in Player.Enumerable)
             {
                 item.Connection.Send(message);
             }
@@ -1032,7 +1074,7 @@ namespace Next_generationSite_27.UnionP
 
         string[] ICommand.Aliases { get; } = new[] { "Scp5000Role" };
 
-        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc/GOCSPY/Changer/NukeGOC";
+        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc/GOCSPY/Changer/NukeGOC/NU7";
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -1115,13 +1157,13 @@ namespace Next_generationSite_27.UnionP
                         }
                         break;
                     }
-                case "NU17":
+                case "NU7":
                     {
                         foreach (var item in list)
                         {
 
                             Player player = Player.Get(item);
-                            Scp5k.Scp5k_Control.scp5k_Nu17_P.instance.AddRole(player);
+                            Scp5k.Scp5k_Control.scp5k_Nu7_P.instance.AddRole(player);
 
                         }
                         break;

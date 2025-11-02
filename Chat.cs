@@ -83,7 +83,7 @@ namespace Next_generationSite_27.UnionP
                             {
                                 break;
                             }
-                            foreach (var item1 in Player.List)
+                            foreach (var item1 in Player.Enumerable)
                             {
                                 message_id++;
                                 item1.AddMessage($"BroadcastChat_{message_id}", $"<align=left><size=23>{item}</size></align>", duration: 3f, location: ScreenLocation.MiddleLeft);
@@ -107,7 +107,7 @@ namespace Next_generationSite_27.UnionP
                             {
                                 break;
                             }
-                            foreach (var item1 in Player.List.Where(x => x.RemoteAdminAccess))
+                            foreach (var item1 in Player.Enumerable.Where(x => x.RemoteAdminAccess))
                             {
                                 message_id++;
                                 item1.AddMessage($"BroadcastChat_{message_id}", $"<color=red><align=right><size=23>{item}</size></align></color>",duration:3f, location: ScreenLocation.MiddleRight);
@@ -135,7 +135,7 @@ namespace Next_generationSite_27.UnionP
                                 {
                                     break;
                                 }
-                                foreach (var item2 in Player.List.Where(x =>
+                                foreach (var item2 in Player.Enumerable.Where(x =>
                             {
                                 return x.Role.Team == item.Key || (x.Role.Team == Team.ClassD && item.Key == Team.ChaosInsurgency) || (x.Role.Team == Team.Scientists && item.Key == Team.FoundationForces);
                             }))

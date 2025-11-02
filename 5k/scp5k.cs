@@ -1,4 +1,6 @@
-﻿using Decals;
+﻿using AudioManagerAPI.Defaults;
+using AudioManagerAPI.Features.Speakers;
+using Decals;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
@@ -14,16 +16,19 @@ using Exiled.API.Features.Toys;
 using Exiled.CustomItems.API.EventArgs;
 using Exiled.CustomItems.API.Features;
 using Exiled.CustomRoles.API.Features;
+using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using Exiled.Events.EventArgs.Warhead;
 using Footprinting;
 using GameObjectPools;
+using Interactables.Interobjects.DoorUtils;
 using InventorySystem.Items.Firearms;
 using InventorySystem.Items.Firearms.Extensions;
 using InventorySystem.Items.Firearms.Modules;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Handlers;
+using LightContainmentZoneDecontamination;
 using MapGeneration;
 using MapGeneration.StaticHelpers;
 using MEC;
@@ -38,12 +43,15 @@ using PlayerRoles.FirstPersonControl.Spawnpoints;
 using PlayerRoles.PlayableScps.Scp079;
 using PlayerRoles.PlayableScps.Scp079.Pinging;
 using PlayerRoles.PlayableScps.Scp106;
+using PlayerRoles.Spectating;
 using PlayerStatsSystem;
 using ProjectMER.Commands.Modifying.Rotation;
+using ProjectMER.Commands.Utility;
 using ProjectMER.Events.Handlers;
 using ProjectMER.Features.Objects;
 using RelativePositioning;
 using Respawning;
+using Respawning.NamingRules;
 using Respawning.Waves;
 using Respawning.Waves.Generic;
 using RoundRestarting;
@@ -64,6 +72,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Rendering;
 using VoiceChat.Networking;
+using YamlDotNet.Core.Tokens;
 using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 using static RoundSummary;
 using Object = UnityEngine.Object;
@@ -87,7 +96,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static void OnUIUEscaped()
         {
-            foreach (var s in Player.List)
+            foreach (var s in Player.Enumerable)
             {
                 s.AddMessage("UIU_ESCAPED" + DateTime.Now.ToString(), "<size=40><color=red>UIU已撤离</color></size>");
             }
@@ -115,6 +124,177 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 return 0.2f; // 默认极慢速度（无人时）
             }
         }
+        public static Stopwatch Decont_Counter = new Stopwatch();
+        public static bool Decont_NextIsOepn
+        {
+            get => _Decont_NextIsOepn; set
+            {
+                _Decont_NextIsOepn = value;
+                Decont_Counter.Restart();
+            }
+        }
+        public static bool _Decont_NextIsOepn = true;
+        //public static double DecontTotalSeconds = 480;
+        //public static double DecontOepnSeconds = 320;
+        public static double DecontTotalSeconds = 310;
+        public static double DecontOepnSeconds = 60;
+        public static IEnumerator<float> DecontUpdate()
+        {
+            if (!Is5kRound)
+            {
+                yield break;
+            }
+            while (!Round.InProgress)
+            {
+                yield return Timing.WaitForSeconds(1f);
+            }
+            while (!Map.IsLczDecontaminated)
+            {
+                if (Round.IsEnded)
+                {
+                    yield break;
+                }
+                yield return Timing.WaitForSeconds(1f);
+            }
+
+            Log.Info("IsLczDecontaminated");
+            Decont_NextIsOepn = true;
+            while (Round.InProgress)
+            {
+                try
+                {
+                    if (Decont_NextIsOepn)
+                    {
+                        DecontaminationController.Singleton.Network_elevatorsLockedText = $"下一次开放:{DecontOepnSeconds - Decont_Counter.Elapsed.TotalSeconds:F0}";
+                        if (Decont_Counter.Elapsed.TotalSeconds >= DecontOepnSeconds)
+                        {
+                            Decont_NextIsOepn = false;
+                            DecontaminationController.Singleton.DecontaminationOverride = DecontaminationController.DecontaminationStatus.Disabled;
+                            Cassie.MessageTranslated("LIGHT CONTAINMENT Decontamination has been stoped .", "轻收容已重新开放.");
+                        }
+                    }
+                    else
+                    {
+                        DecontaminationController.Singleton.Network_elevatorsLockedText = $"下一次封闭:{DecontTotalSeconds - Decont_Counter.Elapsed.TotalSeconds:F0}";
+                        //switch (Decont_Counter.Elapsed.TotalSeconds)
+                        {
+                            if ((int)Decont_Counter.Elapsed.TotalSeconds == DecontTotalSeconds - 5 * 60 + 5)
+                            {
+                                DefaultAudioManager.Instance.PlayGlobalAudioWithFilter("decont_5", false, 1f, AudioManagerAPI.Features.Enums.AudioPriority.Max, x =>
+                                {
+                                    if (x is ISpeakerWithPlayerFilter filterSpeaker)
+                                    {
+                                        filterSpeaker.SetValidPlayers(p =>p.Zone == FacilityZone.LightContainment || (p.CurrentlySpectating != null && p.CurrentlySpectating.Zone == FacilityZone.LightContainment));
+
+                                    }
+                                });
+
+
+                                List<SubtitlePart> list = new List<SubtitlePart>(1);
+                                list.Add(new SubtitlePart(SubtitleType.DecontaminationMinutes, new string[]
+{
+                                                                "5"
+}));
+                                foreach (ReferenceHub referenceHub in ReferenceHub.AllHubs)
+                                {
+                                    if (IsAudibleForClient(referenceHub))
+                                    {
+                                        new SubtitleMessage(list.ToArray()).SendToSpectatorsOf(referenceHub, true);
+                                    }
+                                }
+                                //break;
+                            }
+                            else if ((int)Decont_Counter.Elapsed.TotalSeconds == DecontTotalSeconds - 1 * 60 + 5)
+                            {
+                                DefaultAudioManager.Instance.PlayGlobalAudioWithFilter("decont_1", false, 1f, AudioManagerAPI.Features.Enums.AudioPriority.Max, x =>
+                                {
+                                    if (x is ISpeakerWithPlayerFilter filterSpeaker)
+                                    {
+                                        filterSpeaker.SetValidPlayers(p =>p.Zone == FacilityZone.LightContainment || (p.CurrentlySpectating != null && p.CurrentlySpectating.Zone == FacilityZone.LightContainment));
+
+                                    }
+                                });
+
+                                List<SubtitlePart> list = new List<SubtitlePart>(1);
+                                list.Add(new SubtitlePart(SubtitleType.Decontamination1Minute, null));
+                                foreach (ReferenceHub referenceHub in ReferenceHub.AllHubs)
+                                {
+                                    if (IsAudibleForClient(referenceHub))
+                                    {
+                                        new SubtitleMessage(list.ToArray()).SendToSpectatorsOf(referenceHub, true);
+                                    }
+                                }
+                                //break;
+                            }
+                            else if ((int)Decont_Counter.Elapsed.TotalSeconds == DecontTotalSeconds - 38)
+                            {
+                                DefaultAudioManager.Instance.PlayGlobalAudioWithFilter("decont_countdown", false, 1f, AudioManagerAPI.Features.Enums.AudioPriority.Max, x =>
+                                {
+                                    if (x is ISpeakerWithPlayerFilter filterSpeaker)
+                                    {
+                                        filterSpeaker.SetValidPlayers(p =>p.Zone == FacilityZone.LightContainment || (p.CurrentlySpectating != null && p.CurrentlySpectating.Zone == FacilityZone.LightContainment));
+                                    }
+                                });
+                                List<SubtitlePart> list = new List<SubtitlePart>(1);
+                                list.Add(new SubtitlePart(SubtitleType.DecontaminationCountdown, null));
+                                foreach (ReferenceHub referenceHub in ReferenceHub.AllHubs)
+                                {
+                                    if (IsAudibleForClient(referenceHub))
+                                    {
+                                        new SubtitleMessage(list.ToArray()).SendToSpectatorsOf(referenceHub, true);
+                                    }
+                                }
+                                //break;
+                            }
+
+                            else if ((int)Decont_Counter.Elapsed.TotalSeconds == DecontTotalSeconds - 28)
+                            {
+                                DoorEventOpenerExtension.TriggerAction(DoorEventOpenerExtension.OpenerEventType.DeconEvac);
+                            }
+                        }
+                        if ((int)Decont_Counter.Elapsed.TotalSeconds >= DecontTotalSeconds)
+                        {
+                            Decont_NextIsOepn = true;
+                            DecontaminationController.Singleton.DecontaminationOverride = DecontaminationController.DecontaminationStatus.Forced;
+                            DoorEventOpenerExtension.TriggerAction(DoorEventOpenerExtension.OpenerEventType.DeconFinish);
+                            DefaultAudioManager.Instance.PlayGlobalAudioWithFilter("decont_begun", false, 1f, AudioManagerAPI.Features.Enums.AudioPriority.Max, x =>
+                            {
+                                if (x is ISpeakerWithPlayerFilter filterSpeaker)
+                                {
+                                    filterSpeaker.SetValidPlayers(p => IsAudibleForClient(p.ReferenceHub,true) || p.Zone == FacilityZone.LightContainment || (p.CurrentlySpectating != null && p.CurrentlySpectating.Zone == FacilityZone.LightContainment));
+
+                                }
+                            });
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    Log.Info(e);
+                }
+                yield return Timing.WaitForSeconds(1f);
+            }
+        }
+        private static bool IsAudibleForClient(ReferenceHub hub, bool global = false)
+        {
+            if (global) return true;
+            PlayerRoles.PlayableScps.Scp079.Scp079Role scp079Role = hub.roleManager.CurrentRole as PlayerRoles.PlayableScps.Scp079.Scp079Role;
+            if (scp079Role != null)
+            {
+                return scp079Role.CurrentCamera.Room.Zone == FacilityZone.LightContainment;
+            }
+            if (hub.roleManager.CurrentRole is PlayerRoles.Spectating.SpectatorRole SR)
+            {
+                Player player = Player.Get(SR.SyncedSpectatedNetId);
+                if (!(player.ReferenceHub != hub))
+                {
+                    return false;
+                }
+
+                return player.Zone.GetZone() == FacilityZone.LightContainment;
+            }
+            return hub.GetCurrentZone() == FacilityZone.LightContainment;
+        }
         public static bool Spawn_Nuke_GOC = false;
         public static bool Nuke_GOC_WinCon = false;
         public static bool Nuke_GOC_COunt
@@ -125,7 +305,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 {
                     return false;
                 }
-                return Player.List.Any(x =>
+                return Player.Enumerable.Any(x =>
                 {
                     return x.UniqueRole == GocNukeP.Name || x.UniqueRole == GocNukeC.Name;
                 });
@@ -139,7 +319,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 {
                     return 0;
                 }
-                return Player.List.Count(x =>
+                return Player.Enumerable.Count(x =>
                 {
                     return x.UniqueRole == GocNukeP.Name || x.UniqueRole == GocNukeC.Name;
                 });
@@ -165,29 +345,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             RespawnedCount++;
 
-            // 辅助函数：安全计算要取出的数量（不为负，不超过 players.Count）
-            int SafeTakeCount(int max)
-            {
-                if (players == null || players.Count <= 1)
-                    return 0;
-                return Math.Min(max, Math.Max(0, players.Count - 1));
-            }
-
-            // 辅助函数：从 players 头部安全移除 count 个元素
-            void SafeRemoveHead(int count)
-            {
-                if (count <= 0)
-                    return;
-                if (players.Count >= count)
-                {
-                    players.RemoveRange(0, count);
-                }
-                else
-                {
-                    players.Clear();
-                }
-            }
-
             switch (ev.Wave.Faction)
             {
                 case PlayerRoles.Faction.FoundationStaff:
@@ -197,7 +354,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             if (UnityEngine.Random.Range(0, 100) < 50)
                             {
                                 ev.IsAllowed = false;
-                                Timing.RunCoroutine(HammerSpawnCoroutine(null, players, true));
+                                TrySpawnHammer(players, true);
+                            }
+                            else if(UnityEngine.Random.Range(0, 100) < 50)
+                            {
+                                TrySpawnNu22(players,true,true);
+                                ev.IsAllowed = false;
                             }
                             else
                             {
@@ -212,11 +374,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             if (UnityEngine.Random.Range(0, 100) < 50)
                             {
-                                TrySpawnGoc(players); ev.IsAllowed = false;
+                                TrySpawnUiu(players); ev.IsAllowed = false;
                             }
-                            else
+                            else if (UnityEngine.Random.Range(0,100) < 50)
                             {
-                                // 保持原行为：允许重生
+                                TrySpawnGoc(players); ev.IsAllowed = false;
                             }
                         }
 
@@ -226,25 +388,35 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             ev.Wave.Timer.SetTime(0);
         }
+        public static bool DeadmanSwitchInitiated { get; set; } = false;
+        public static bool Scp610Ending { get; set; } = false;
         public static void DeadmanSwitchInitiating(DeadmanSwitchInitiatingEventArgs ev)
         {
             if (IsO5NukeEnd)
             {
                 return;
             }
-            if(!Is5kRound)
+            if (!Is5kRound)
             {
                 return;
             }
-            if(diedPlayer.Count < GOCBomb.installCount + 1)
+
+            if (diedPlayer.Count < GOCBomb.installCount + 1)
             {
+                return;
+            }
+            if (DeadmanSwitchInitiated)
+            {
+                ev.IsAllowed = false;
                 return;
             }
             ev.IsAllowed = false;
+            DeadmanSwitchInitiated = true;
+            Scp610Ending = true;
             Cassie.MessageTranslated("BY ORDER OF O5 COMMAND . SCP 6 1 0 WILL BE REALLY SEE did INTO the facility", "根据O5指挥部指令 SCP-610即将被投放到设施");
             for (int i = 0; i < 6; i++)
             {
-                Player player = Player.List.Where(x => x.IsAlive && !x.IsScp).GetRandomValue();
+                Player player = Player.Enumerable.Where(x => x.IsAlive && !x.IsScp).GetRandomValue();
                 scp5k_Scp610_mother.instance.AddRole(player);
             }
             Timing.CallDelayed(5f, () =>
@@ -255,7 +427,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Scp610MID = 43;
         [CustomRole(RoleTypeId.Scp0492)]
-        public class scp5k_Scp610_mother : CustomRole
+        public class scp5k_Scp610_mother : CustomRole, IDeathBroadcastable
         {
             public static scp5k_Scp610_mother instance { get; private set; }
             public override uint Id { get => Scp610MID; set => Scp610MID = value; }
@@ -267,8 +439,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
             public override Vector3 Scale { get => base.Scale; set => base.Scale = value; }
+
+            public string CassieBroadcast => "SCP 6 1 0";
+
+            public string ShowingToPlayer => "SCP610";
+
             public override void Init()
             {
+                Scale = new Vector3(1.2f, 1.2f, 1.2f);
                 Description = "杀死所有非scp生物";
                 this.Role = RoleTypeId.Scp0492;
                 MaxHealth = 20000;
@@ -287,6 +465,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public class scp5k_Scp610 : CustomRole
         {
             public static scp5k_Scp610 instance { get; private set; }
+            public string CassieBroadcast => "SCP 6 1 0";
+
+            public string ShowingToPlayer => "SCP610";
             public override uint Id { get => Scp610SID; set => Scp610SID = value; }
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Scp610子体";
@@ -317,7 +498,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static bool Nuke_GOC_Spawned = false;
         public static void WarheadDetonated(Exiled.Events.EventArgs.Warhead.DetonatingEventArgs ev)
         {
-            if (Is5kRound && Nuke_GOC_Spawned && LastChangedWarheadIsGoc && !Player.List.Any(x => x.IsScp))
+            if (Is5kRound && Nuke_GOC_Spawned && LastChangedWarheadIsGoc && !Player.Enumerable.Any(x => x.IsScp))
             {
                 Nuke_GOC_WinCon = true;
                 Round.EndRound(true);
@@ -376,6 +557,21 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static bool IsMotherDied = false;
         public static void Died(DyingEventArgs ev)
         {
+            if (ev.Attacker != null)
+            {
+                if (ev.Player.UniqueRole != "" || ev.Attacker.UniqueRole != "")
+                {
+                    string text2;
+                    string str;
+                    string text3;
+                    string str2;
+                    if (ConvertToDeath(ev.Player, out text2, out str))
+                    {
+                        GetTeamKillText(ev.Attacker, out text3, out str2);
+                        Cassie.MessageTranslated($"SCP {str} CONTAINEDSUCCESSFULLY BY {str2}", $"{text2} 已被{text3}重新收容。");
+                    }
+                }
+            }
             if (Is5kRound)
             {
                 if (ev.IsAllowed)
@@ -383,7 +579,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     if (ev.Player.UniqueRole == scp5k_Scp610_mother.instance.Name)
                     {
                         IsMotherDied = true;
-                        foreach (var p in Player.List)
+                        foreach (var p in Player.Enumerable)
                         {
                             if (p.UniqueRole == scp5k_Scp610.instance.Name)
                             {
@@ -395,13 +591,21 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
             }
         }
+        public static void AnnouncingScpTermination(AnnouncingScpTerminationEventArgs ev)
+        {
+           if (ev.Player.UniqueRole != "" || ev.Attacker.UniqueRole != "")
+            {
+                ev.IsAllowed = false;
+            }
+            
+        }
         public static void PlayerDamaged(Exiled.Events.EventArgs.Player.HurtingEventArgs ev)
         {
             if (Is5kRound)
             {
                 if (ev.Attacker != null)
                 {
-                    
+
                     if (ev.DamageHandler.Base is Scp096DamageHandler DH)
                     {
                         DH.Damage = 99;
@@ -448,39 +652,112 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
                         }
                     }
-                    else if (ev.Player.IsScp)
+                }
+            }
+        }
+        public static bool ConvertToDeath(Player role, out string withoutSpace, out string withSpace)
+        {
+            if (role.UniqueRole != "")
+            {
+                var r = CustomRole.Get(role.UniqueRole);
+                if (r != null)
+                {
+                    if (r is IDeathBroadcastable DB)
                     {
-                        if (scp5k_Uiu_C.ins.Check(ev.Attacker) || scp5k_Uiu_C.ins.Check(ev.Attacker))
-                        {
-                            ev.DamageHandler.CassieDeathAnnouncement.Announcement = "";
-                            ev.DamageHandler.CassieDeathAnnouncement.SubtitleParts = new SubtitlePart[] { };
-                            string text2;
-                            string str;
-                            NineTailedFoxAnnouncer.ConvertSCP(ev.Player.Role.Type, out text2, out str);
-                            Cassie.MessageTranslated($"{text2} CONTAINEDSUCCESSFULLY BY U I U", $"{str} 已被UIU重新收容。");
-                        }
-                        else if (scp5k_Goc_610_C.ins.Check(ev.Attacker) || scp5k_Goc_610_P.ins.Check(ev.Attacker) || scp5k_Goc_2_C.ins.Check(ev.Attacker) || scp5k_Goc_2_P.ins.Check(ev.Attacker) || scp5k_Goc_nuke_C.ins.Check(ev.Attacker) || scp5k_Goc_nuke_P.ins.Check(ev.Attacker))
-                        {
-                            ev.DamageHandler.CassieDeathAnnouncement.Announcement = "";
-                            ev.DamageHandler.CassieDeathAnnouncement.SubtitleParts = new SubtitlePart[] { };
-                            string text2;
-                            string str;
-                            NineTailedFoxAnnouncer.ConvertSCP(ev.Player.Role.Type, out text2, out str);
-                            Cassie.MessageTranslated($"{text2} CONTAINEDSUCCESSFULLY BY G O C", $"{str} 已被GOC重新收容。");
-                            GocKilledScp += 1;
-                        }
-                        else if (scp5k_Bot.ins.Check(ev.Attacker))
-                        {
-                            ev.DamageHandler.CassieDeathAnnouncement.Announcement = "";
-                            ev.DamageHandler.CassieDeathAnnouncement.SubtitleParts = new SubtitlePart[] { };
-                            string text2;
-                            string str;
-                            NineTailedFoxAnnouncer.ConvertSCP(ev.Player.Role.Type, out text2, out str);
-                            Cassie.MessageTranslated($"{text2} CONTAINEDSUCCESSFULLY BY And saw", $"{str} 已被安德森机器人重新收容。");
-                        }
+                        withoutSpace = DB.ShowingToPlayer;
+                        withSpace = DB.CassieBroadcast;
+                        return withoutSpace != "" && withSpace != "";
                     }
                 }
             }
+            if (!role.Role.Type.IsScp())
+            {
+                withoutSpace = string.Empty;
+                withSpace = string.Empty;
+                return false;
+            }
+            if (role.Role == RoleTypeId.Scp0492) {
+                withoutSpace = string.Empty;
+                withSpace = string.Empty;
+                return false;
+            };
+            if (!PlayerRoleLoader.TryGetRoleTemplate<PlayerRoleBase>(role.Role, out var result))
+            {
+                withoutSpace = string.Empty;
+                withSpace = string.Empty;
+                return false;
+            }
+            else
+            {
+                NineTailedFoxAnnouncer.ConvertSCP(result.RoleName, out withoutSpace, out withSpace);
+                withoutSpace = "SCP-" + withoutSpace;
+                withSpace = "SCP " + withSpace;
+                return withoutSpace != "SCP-" && withSpace != "SCP ";
+            }
+        }
+        public static bool GetTeamKillText(in Player Attacker,out string withoutSpace, out string withSpace)
+        {
+            withSpace = "";
+            withoutSpace = "";
+            if (Attacker.UniqueRole != null)
+            {
+                var r = CustomRole.Get(Attacker.UniqueRole);
+                if (r != null)
+                {
+                    if (r is IDeathBroadcaster DB)
+                    {
+                        withoutSpace = DB.ShowingToPlayer;
+                        withSpace = DB.CassieBroadcast;
+                        return true;
+                    }
+                }
+            }
+            switch (Attacker.Role.Team)
+            {
+                case Team.SCPs:
+                case Team.Flamingos:
+                    {
+                        NineTailedFoxAnnouncer.ConvertSCP(Attacker.Role, out withoutSpace, out withSpace);
+                        return true;
+                    }
+                case Team.FoundationForces:
+                    {
+                        UnitNamingRule unitNamingRule;
+                        if (!NamingRulesManager.TryGetNamingRule(Attacker.Role.Team, out unitNamingRule))
+                        {
+                            withSpace = "CONTAINMENTUNIT UNKNOWN";
+                            withoutSpace = "未知";
+                            return true;
+                        }
+                        withSpace = unitNamingRule.TranslateToCassie(Attacker.UnitName);
+                        withSpace = "CONTAINMENTUNIT " + withSpace;
+                        withoutSpace = Attacker.UnitName;
+                        return true;
+                    }
+                case Team.ChaosInsurgency:
+                    withSpace = "CHAOSINSURGENCY";
+                    withoutSpace = "混沌分裂者";
+                    return true;
+                case Team.Scientists:
+                    withSpace = "SCIENCE PERSONNEL";
+                    withoutSpace = "科学家";
+                    return true;
+                case Team.ClassD:
+                    withSpace = "CLASSD PERSONNEL";
+                    withoutSpace = "D级人员";
+                    return true;
+            }
+            return false;
+        }
+        public interface IDeathBroadcastable
+        {
+            public string CassieBroadcast { get; }
+            public string ShowingToPlayer { get; }
+        }
+        public interface IDeathBroadcaster
+        {
+            public string CassieBroadcast { get; }
+            public string ShowingToPlayer { get; }
         }
         public static int GocKilledScp = 0;
         public static int UiUSpawnTime = config.UiUSpawnTime - config.UiUSpawnFloatTime + UnityEngine.Random.Range(0, config.UiUSpawnFloatTime * 2);
@@ -509,8 +786,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             get
             {
-                var t = ReferenceHub.AllHubs.Where(x => x.roleManager.CurrentRole.RoleTypeId == RoleTypeId.Spectator).Select((x) => Player.Get(x)).ToList();
-                t.ShuffleListSecure();
+                var t = Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.Spectator).ToList();
+                t.ShuffleList();
                 return t;
             }
         }
@@ -519,7 +796,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static PConfig config => Plugin.Instance.Config;
         public static IEnumerator<float> Refresher()
         {
-            Log.Info("Refresher instance (Optimized)!");
+            Log.Info("Refresher!");
 
             const float REFRESH_INTERVAL = 2.0f; // 每 2 秒刷新一次
             const float STATUS_CHECK_INTERVAL = 5.0f; // 每 5 秒更新一次阵营统计
@@ -528,14 +805,16 @@ namespace Next_generationSite_27.UnionP.Scp5k
             float waveTimer = 0f;
 
             var tempList = new List<Player>(64);
+            //var sw = Stopwatch.StartNew();
 
             while (true)
             {
+                //sw.Restart();
                 try
                 {
                     if (GOCAnim.donating)
                     {
-                        foreach (var item in Player.List)
+                        foreach (var item in Player.Enumerable)
                         {
                             item.EnableEffect(Exiled.API.Enums.EffectType.SoundtrackMute, 1, 600f);
                             item.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 1, 600f);
@@ -553,14 +832,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         int chaos = 0;
                         int Scp610C = 0;
 
-                        foreach (var hub in Player.List)
+                        foreach (var hub in Player.Enumerable)
                         {
                             var role = hub.Role.Type;
 
                             if (!role.IsAlive()) continue;
-                            if(hub.UniqueRole == scp5k_Scp610_mother.instance.Name || hub.UniqueRole == scp5k_Scp610.instance.Name)
+                            if (hub.UniqueRole == scp5k_Scp610_mother.instance.Name || hub.UniqueRole == scp5k_Scp610.instance.Name)
                             {
-                                Scp610C ++;
+                                Scp610C++;
                             }
                             switch (role)
                             {
@@ -591,35 +870,38 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         }
 
                         chaos += SpecRolesCount;
+                        Log.Info($"[RoundCheck] chaos:{chaos} ntfScp:{ntfScp}");
 
-                        if (ntfScp == 0 && chaos == 0 )
+                        if (ntfScp == 0 && chaos == 0)
                         {
                             Log.Info("[RoundCheck] 所有阵营灭绝 → 结束回合。");
-                            Round.EndRound(true);
+                            Round.EndRound();
                         }
                         else if (ntfScp == 0 && chaos != 0)
                         {
                             Log.Info("[RoundCheck] NTF/SCP 全灭，Chaos 胜利。");
-                            Round.EndRound(true);
+                            Round.EndRound();
                         }
-                        else if (chaos == 0  && ntfScp != 0)
+                        else if (chaos == 0 && ntfScp != 0)
                         {
                             Log.Info("[RoundCheck] Chaos + Light 全灭，NTF/SCP 胜利。");
-                            Round.EndRound(true);
+                            Round.EndRound();
                         }
-                        if (Scp610C >= Player.List.Where(x => x.IsAlive).Count() - 2) { 
+                        if (Scp610C >= Player.Enumerable.Where(x => x.IsAlive).Count() - 2 && Scp610Ending)
+                        {
                             Log.Info("[RoundCheck] Scp610胜利。");
-                            Round.EndRound(true);
+                            Round.EndRound();
 
                         }
                         // GOC 胜利条件检测
-                        if (Nuke_GOC_COunt && !Player.List.Any(x => x.IsScp) || IsMotherDied)
+                        if (Nuke_GOC_count > 0 && !Player.Enumerable.Any(x => x.IsScp) || IsMotherDied)
                         {
                             Nuke_GOC_WinCon = true;
                             Round.EndRound();
                         }
                     }
-                }catch(Exception ex)
+                }
+                catch (Exception ex)
                 {
                     Log.Warn("[Refresher_Ender] " + ex);
 
@@ -628,12 +910,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 // --- 波次与刷新控制 ---
                 waveTimer += REFRESH_INTERVAL;
 
-                    if (!WaveSpawner.AnyPlayersAvailable)
-                    {
-                        yield return Timing.WaitForSeconds(REFRESH_INTERVAL);
-                        continue;
-                    }
-                try { 
+                if (!WaveSpawner.AnyPlayersAvailable)
+                {
+                //Log.Debug($"sw:{sw.Elapsed.TotalSeconds}");
+                    yield return Timing.WaitForSeconds(REFRESH_INTERVAL);
+                    continue;
+                }
+                try
+                {
                     // 临时死亡玩家列表（缓存+洗牌）
                     tempList.Clear();
                     tempList.AddRange(diedPlayer);
@@ -679,7 +963,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 {
                     Log.Warn("[Refresher] " + ex);
                 }
-
+                //Log.Debug($"sw:{sw.Elapsed.TotalSeconds}");
                 yield return Timing.WaitForSeconds(REFRESH_INTERVAL);
             }
         }
@@ -715,7 +999,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 );
             }
         }
-        private static void TrySpawnGoc(List<Player> candidates,bool Is610Time = false)
+        private static void TrySpawnGoc(List<Player> candidates, bool Is610Time = false)
         {
             int count = Math.Min(config.GocMaxCount, candidates.Count);
             var wave = candidates.Take(count).ToList();
@@ -783,7 +1067,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 );
             }
         }
-        private static void TrySpawnHammer(List<Player> candidates)
+        private static void TrySpawnHammer(List<Player> candidates,bool imm = false)
         {
             int chaos = 0, scp = 0;
 
@@ -804,8 +1088,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         w.RespawnTokens--;
 
                     w.Timer.Reset();
-                    Exiled.API.Features.Respawn.SummonNtfChopper();
-                    Timing.RunCoroutine(HammerSpawnCoroutine(w, candidates));
+                    if(!imm) Exiled.API.Features.Respawn.SummonNtfChopper();
+                    Timing.RunCoroutine(HammerSpawnCoroutine(w, candidates, imm));
                 }
             }
         }
@@ -819,24 +1103,23 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     yield return Timing.WaitForSeconds(w.AnimationDuration);
                 }
             }
-            spawntarget.ShuffleList();
             var HammerWave = new List<Player>(spawntarget.Take(Math.Min(config.HammerMaxCount, spawntarget.Count - 1)));
             if (HammerWave.Count == 0)
             {
                 yield break;
             }
             spawntarget.RemoveRange(0, Math.Min(config.HammerMaxCount, spawntarget.Count - 1));
-            scp5k_Nu17_P.instance.AddRole(HammerWave[0]);
+            scp5k_Nu7_P.instance.AddRole(HammerWave[0]);
             spawntarget.RemoveRange(0, 1);
             foreach (var item in HammerWave)
             {
                 if (UnityEngine.Random.Range(0, 100) < 40)
                 {
-                    scp5k_Nu17_S.instance.AddRole(item);
+                    scp5k_Nu7_S.instance.AddRole(item);
                 }
                 else
                 {
-                    scp5k_Nu17_S.instance.AddRole(item);
+                    scp5k_Nu7_S.instance.AddRole(item);
                 }
 
 
@@ -845,31 +1128,36 @@ namespace Next_generationSite_27.UnionP.Scp5k
             if (!HammerSpawnedBroadcast)
             {
                 Cassie.MessageTranslated("Mobile Task Force Unit Nu 7 has entered the facility", "机动特遣队Nu-7小队已进入设施。");
-                HammerSpawnedBroadcast = true;
+                //HammerSpawnedBroadcast = true;
             }
 
             yield break;
         }
-        public static uint Nu17PID = 44;
+        public static uint Nu7PID = 44;
         [CustomRole(RoleTypeId.NtfCaptain)]
-        public class scp5k_Nu17_P : CustomRole
+        public class scp5k_Nu7_P : CustomRole, IDeathBroadcaster
         {
 
-            public static scp5k_Nu17_P instance { get; private set; }
-            public override uint Id { get; set; } = Nu17PID;
+            public static scp5k_Nu7_P instance { get; private set; }
+            public override uint Id { get; set; } = Nu7PID;
             public override int MaxHealth { get; set; }
-            public override string Name { get; set; } = "Nu-17 小队 队长";
+            public override string Name { get; set; } = "Nu-7 小队 队长";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; } = "Nu-17 小队 队长";
+            public override string CustomInfo { get; set; } = "Nu-7 小队 队长";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
+
+            public string CassieBroadcast => "NU 7";
+
+            public string ShowingToPlayer => "Nu-7";
+
             public override void Init()
             {
                 Description = "帮助基金会消灭全部人类";
                 this.Role = RoleTypeId.NtfCaptain;
                 MaxHealth = 450;
-                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-17 小队 队员</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-7 小队 队长</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
                 instance = this;
                 this.Inventory = new List<string>()
@@ -923,27 +1211,30 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 base.RoleAdded(player);
             }
         }
-        public static uint Nu17SID = 45;
+        public static uint Nu7SID = 45;
         [CustomRole(RoleTypeId.NtfSergeant)]
-        public class scp5k_Nu17_S : CustomRole
+        public class scp5k_Nu7_S : CustomRole, IDeathBroadcaster
         {
 
-            public static scp5k_Nu17_S instance { get; private set; }
-            public override uint Id { get; set; } = Nu17SID;
+            public static scp5k_Nu7_S instance { get; private set; }
+            public override uint Id { get; set; } = Nu7SID;
             public override int MaxHealth { get; set; }
-            public override string Name { get; set; } = "Nu-17 小队 重装";
+            public override string Name { get; set; } = "Nu-7 小队 重装";
             public override string Description { get; set; }
-            public override string CustomInfo { get; set; } = "Nu-17 小队 重装";
+            public override string CustomInfo { get; set; } = "Nu-7 小队 重装";
             public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
-            public override Vector3 Scale { get => new Vector3(1.5f, 1, 1.5f); set => base.Scale = value; }
+            //public override Vector3 Scale { get => new Vector3(1.5f, 1, 1.5f); set => base.Scale = value; }
             public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
+            public string CassieBroadcast => "NU 7";
+
+            public string ShowingToPlayer => "Nu-7";
             public override void Init()
             {
                 Description = "帮助基金会消灭全部人类";
                 this.Role = RoleTypeId.NtfSergeant;
                 MaxHealth = 350;
-                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-17 小队 重装</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-7 小队 重装</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
                 instance = this;
                 this.Inventory = new List<string>()
@@ -995,6 +1286,358 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                 base.RoleAdded(player);
             }
+        }
+        public static uint Nu22PID = 50;
+        [CustomRole(RoleTypeId.NtfCaptain)]
+        public class scp5k_Nu22_P : CustomRole, IDeathBroadcaster
+        {
+
+            public static scp5k_Nu22_P instance { get; private set; }
+            public override uint Id { get; set; } = Nu22PID;
+            public override int MaxHealth { get; set; }
+            public override string Name { get; set; } = "Nu-22 小队 队长";
+            public override string Description { get; set; }
+            public override string CustomInfo { get; set; } = "Nu-22 小队 队长";
+            public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
+            public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
+            public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
+
+            public string CassieBroadcast => "NU 22";
+
+            public string ShowingToPlayer => "Nu-22";
+
+            public override void Init()
+            {
+                Description = "帮助基金会消灭全部人类";
+                this.Role = RoleTypeId.NtfCaptain;
+                MaxHealth = 450;
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-22 小队 队长</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
+                this.IgnoreSpawnSystem = true;
+                instance = this;
+                this.Inventory = new List<string>()
+            {
+                string.Format("{0}", ItemType.ArmorHeavy),
+                string.Format("{0}", ItemType.Medkit),
+                string.Format("{0}", ItemType.Jailbird),
+                string.Format("{0}", ItemType.Jailbird),
+                string.Format("{0}", ItemType.KeycardMTFCaptain),
+                string.Format("{0}", ItemType.SCP207),
+                string.Format("{0}", ItemType.GunFRMG0)
+            };
+                base.Init();
+            }
+            // 电脑:
+            //     EzOfficeLarge,
+            //     EzOfficeSmall, 
+            public void SubEvent()
+            {
+                //Exiled.Events.Handlers.Player.Dying += OnDying;
+                //Exiled.Events.Handlers.Player.Hurting += OnHurting;
+                //Exiled.Events.Handlers.Player.Verified += OnVerified;
+                //Exiled.Events.Handlers.Player.ChangingRole += OnChangingRole;
+                //Exiled.Events.Handlers.Map.Decontaminating += OnDecontaminating;
+            }
+            public void UnSubEvent()
+            {
+                //Exiled.Events.Handlers.Player.Dying -= OnDying;
+                //Exiled.Events.Handlers.Player.Hurting -= OnHurting;
+                //Exiled.Events.Handlers.Player.Verified -= OnVerified;
+                //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
+                //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
+            }
+
+            protected override void RoleAdded(Player player)
+
+            {
+                Timing.CallDelayed(0.4f, () =>
+                {
+                    if (player != null)
+                    {
+                        foreach (var item in SCPFF)
+                        {
+                            player.SetFriendlyFire(item);
+
+                        }
+
+                    }
+                });
+
+                base.RoleAdded(player);
+            }
+        }
+        public static uint Nu22SID = 51;
+        [CustomRole(RoleTypeId.NtfSergeant)]
+        public class scp5k_Nu22_S : CustomRole, IDeathBroadcaster
+        {
+
+            public static scp5k_Nu22_S instance { get; private set; }
+            public override uint Id { get; set; } = Nu22SID;
+            public override int MaxHealth { get; set; }
+            public override string Name { get; set; } = "Nu-22 小队 重装";
+            public override string Description { get; set; }
+            public override string CustomInfo { get; set; } = "Nu-22 小队 重装";
+            public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
+            public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
+            //public override Vector3 Scale { get => new Vector3(1.5f, 1, 1.5f); set => base.Scale = value; }
+            public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
+            public string CassieBroadcast => "NU 2 2";
+
+            public string ShowingToPlayer => "Nu-22";
+            public override void Init()
+            {
+                Description = "帮助基金会消灭全部人类";
+                this.Role = RoleTypeId.NtfSergeant;
+                MaxHealth = 350;
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-22 小队 重装</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
+                this.IgnoreSpawnSystem = true;
+                instance = this;
+                this.Inventory = new List<string>()
+            {
+                string.Format("{0}", ItemType.ArmorHeavy),
+                string.Format("{0}", ItemType.Medkit),
+                string.Format("{0}", ItemType.Jailbird),
+                string.Format("{0}", ItemType.KeycardMTFOperative),
+                string.Format("{0}", ItemType.SCP207),
+                string.Format("{0}", ItemType.GunE11SR)
+            };
+                base.Init();
+            }
+            // 电脑:
+            //     EzOfficeLarge,
+            //     EzOfficeSmall, 
+            public void SubEvent()
+            {
+                //Exiled.Events.Handlers.Player.Dying += OnDying;
+                //Exiled.Events.Handlers.Player.Hurting += OnHurting;
+                //Exiled.Events.Handlers.Player.Verified += OnVerified;
+                //Exiled.Events.Handlers.Player.ChangingRole += OnChangingRole;
+                //Exiled.Events.Handlers.Map.Decontaminating += OnDecontaminating;
+            }
+            public void UnSubEvent()
+            {
+                //Exiled.Events.Handlers.Player.Dying -= OnDying;
+                //Exiled.Events.Handlers.Player.Hurting -= OnHurting;
+                //Exiled.Events.Handlers.Player.Verified -= OnVerified;
+                //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
+                //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
+            }
+
+            protected override void RoleAdded(Player player)
+
+            {
+                Timing.CallDelayed(0.4f, () =>
+                {
+                    if (player != null)
+                    {
+                        foreach (var item in SCPFF)
+                        {
+                            player.SetFriendlyFire(item);
+
+                        }
+                        SpeedBuildItem.instance.Give(player);
+                    }
+                });
+
+                base.RoleAdded(player);
+            }
+        }
+        public static uint Scp1440ID = 52;
+        [CustomRole(RoleTypeId.Tutorial)]
+        public class scp5k_Scp1440 : CustomRole, IDeathBroadcastable,IDeathBroadcaster
+        {
+
+            public static scp5k_Scp1440 instance { get; private set; }
+            public override uint Id { get; set; } = Scp1440ID;
+            public override int MaxHealth { get; set; }
+            public override string Name { get; set; } = "SCP-1440";
+            public override string Description { get; set; }
+            public override string CustomInfo { get; set; } = "SCP-1440";
+            public override Exiled.API.Features.Broadcast Broadcast { get => base.Broadcast; set => base.Broadcast = value; }
+            public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
+            //public override Vector3 Scale { get => new Vector3(1.5f, 1, 1.5f); set => base.Scale = value; }
+            public override List<string> Inventory { get => base.Inventory; set => base.Inventory = value; }
+            public string CassieBroadcast => "SCP 1 4 4 0";
+
+            public string ShowingToPlayer => "SCP1440";
+            public override void Init()
+            {
+                Description = "等待设施毁灭";
+                this.Role = RoleTypeId.NtfSergeant;
+                MaxHealth = 2000;
+                Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 SCP-1440</color></size>\n<size=30><color=yellow>等待设施毁灭</color></size>", 4);
+                this.IgnoreSpawnSystem = true;
+                instance = this;
+                this.Inventory = new List<string>()
+            {
+                string.Format("{0}", ItemType.ArmorHeavy),
+            };
+                base.Init();
+            }
+            // 电脑:
+            //     EzOfficeLarge,
+            //     EzOfficeSmall, 
+            public void SubEvent()
+            {
+                //Exiled.Events.Handlers.Player.Dying += OnDying;
+                //Exiled.Events.Handlers.Player.Hurting += OnHurting;
+                //Exiled.Events.Handlers.Player.Verified += OnVerified;
+                //Exiled.Events.Handlers.Player.ChangingRole += OnChangingRole;
+                //Exiled.Events.Handlers.Map.Decontaminating += OnDecontaminating;
+            }
+            public void UnSubEvent()
+            {
+                //Exiled.Events.Handlers.Player.Dying -= OnDying;
+                //Exiled.Events.Handlers.Player.Hurting -= OnHurting;
+                //Exiled.Events.Handlers.Player.Verified -= OnVerified;
+                //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
+                //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
+            }
+
+            protected override void RoleAdded(Player player)
+
+            {
+                Timing.CallDelayed(0.4f, () =>
+                {
+                    if (player != null)
+                    {
+                        foreach (var item in SCPFF)
+                        {
+                            player.SetFriendlyFire(item);
+
+                        }
+                        Timing.RunCoroutine(Scp1440Update(player));
+                        //SpeedBuildItem.instance.Give(player);
+                        if (player.IsNPC)
+                        {
+                            var n = (Npc)Npc.Get(player);
+                            //n.Follow
+                            if (scp5k_Nu22_P.instance.TrackedPlayers.Count > 0)
+                            {
+                                n.Follow(scp5k_Nu22_P.instance.TrackedPlayers.Where(x => x.Zone == ZoneType.Surface).GetRandomValue());
+                            } else
+                            if (scp5k_Nu22_S.instance.TrackedPlayers.Count > 0)
+                            {
+                                n.Follow(scp5k_Nu22_S.instance.TrackedPlayers.Where(x=>x.Zone == ZoneType.Surface).GetRandomValue());
+                            }
+
+                        }
+                    }
+                });
+
+                base.RoleAdded(player);
+            }
+        }
+        public static int Scp1440DestoryTime = 350;
+        public static Stopwatch Scp1440Timer = new Stopwatch();
+
+        public static IEnumerator<float> Scp1440Update(Player player)
+        {
+            Scp1440Timer.Restart();
+            while (true)
+            {
+                if (!player.IsAlive || player.Role.Type != RoleTypeId.Tutorial)
+                {
+                    yield break;
+                }
+                if(((int)Scp1440Timer.Elapsed.TotalSeconds) % 100 == 99)
+                {
+                    Cassie.Message($"SCP-1440目前在: {player.Zone} 所有人员保护SCP-1440",isSubtitles:true);
+                }
+                player.Heal(0.5f);
+                if(Scp1440Timer.Elapsed.TotalSeconds >= Scp1440DestoryTime)
+                {
+                    Cassie.MessageTranslated("The facility is being destroyed in TMINUS 10 seconds . good BY.", "设施将在10秒后毁灭。再见。");
+                    Timing.CallDelayed(10f, () => {
+                        Warhead.Shake();
+                        Timing.CallDelayed(0.2f, () => {
+                            foreach (var item in Player.Enumerable)
+                            {
+                                ServerConsole.Disconnect(item.ReferenceHub.gameObject,"你被从现实中移除了 原因:SCP-1440毁灭了部分现实\n注:服务器正在重启 你可能无法在列表上看到服务器 等一等就好了");
+                            }
+                            Round.Restart(false, false, ServerStatic.NextRoundAction.Restart);
+                        });
+                    });
+
+                    yield break;
+                }
+                yield return Timing.WaitForSeconds(1f);
+            }
+        }
+        private static void TrySpawnNu22(List<Player> candidates, bool forced = false, bool imm = false)
+        {
+            int chaos = 0, scp = 0;
+
+            foreach (var h in ReferenceHub.AllHubs)
+            {
+                var r = h.roleManager.CurrentRole.RoleTypeId;
+                if (!r.IsAlive()) continue;
+                if (r.IsScp() || r.IsNtf()) scp++; else chaos++;
+            }
+
+            if (chaos - scp > config.HammerSpawnCount || forced)
+            {
+                Log.Info("Nu22 wave triggered");
+                var w = WaveManager.Waves.FirstOrDefault(x => x is NtfSpawnWave) as NtfSpawnWave;
+                if (w != null)
+                {
+                    if (w.RespawnTokens > 0)
+                        w.RespawnTokens--;
+
+                    w.Timer.Reset();
+                    if(!imm) Exiled.API.Features.Respawn.SummonNtfChopper();
+                    Timing.RunCoroutine(Nu22SpawnCoroutine(w, candidates,imm));
+                }
+            }
+        }
+            
+        public static bool Nu22Spawned = true;
+        private static IEnumerator<float> Nu22SpawnCoroutine(NtfSpawnWave w, List<Player> spawntarget, bool imm = false)
+        {
+            if (!imm)
+            {
+                if (w != null)
+                {
+                    yield return Timing.WaitForSeconds(w.AnimationDuration);
+                }
+            }
+            var HammerWave = new List<Player>(spawntarget.Take(Math.Min(config.HammerMaxCount, spawntarget.Count - 1)));
+            if (HammerWave.Count == 0)
+            {
+                yield break;
+            }
+            spawntarget.RemoveRange(0, Math.Min(config.HammerMaxCount, spawntarget.Count - 1));
+            scp5k_Nu22_P.instance.AddRole(HammerWave[0]);
+            spawntarget.RemoveRange(0, 1);
+            foreach (var item in HammerWave)
+            {
+                if (UnityEngine.Random.Range(0, 100) < 40)
+                {
+                    scp5k_Nu22_S.instance.AddRole(item);
+                }
+                else
+                {
+                    scp5k_Nu22_S.instance.AddRole(item);
+                }
+
+
+            }
+
+            var n = Npc.Spawn("SCP-1440",RoleTypeId.Tutorial, new Vector3(0, 300, 0));
+            Timing.CallDelayed(0.4f,() =>
+            {
+                n.Position = HammerWave[0].Position;
+
+                scp5k_Scp1440.instance.AddRole(n);
+                //new Scp1440DummyAi(n);
+            });
+            Nu22Spawned = true;
+            if (true)
+            {
+                Cassie.MessageTranslated("Mobile Task Force Unit Nu 2 2 with SCP 1 4 4 0 has entered the facility . Please wait the facilitys destruction .", "机动特遣队Nu-22小队已携带SCP1440进入设施。请等待设施毁灭");
+                //HammerSpawnedBroadcast = true;
+            }
+
+            yield break;
         }
         public static uint SpeedBuildItemID = 5096;
         [CustomItem(ItemType.GrenadeFlash)]
@@ -1124,7 +1767,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             p.GameObject.layer = LayerMask.GetMask("Glass");
             p.Spawn();
- 
+
             var BW = p.GameObject.AddComponent<Scp5k_Control.bunker>();
             BW.Health = 200;
         }
@@ -1267,17 +1910,22 @@ namespace Next_generationSite_27.UnionP.Scp5k
         static CoroutineHandle refresher;
         public static void RoundStarted()
         {
+            //if(FFManager.isInitialized == false)
+                FFManager.InitializeFastLookup();
             Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
             Is5kRound = Is5kRound | IsForce5kRound;
+            DeadmanSwitchInitiated = false;
             GocKilledScp = 0;
             IsMotherDied = false;
-                    GocNuke = false;
+            GocNuke = false;
             IsForce5kRound = false;
             UiuEscaped = false;
             LastChangedWarheadIsGoc = false;
             Scp055Escaped = false;
             HammerSpawned = false;
             IsO5NukeEnd = true;
+            _Decont_NextIsOepn = true;
+            Nu22Spawned = false;
             UiuDownloadBroadcasted = false; Nuke_GOC_Spawned = false;
             HammerSpawnedBroadcast = false;
             Spawn_Nuke_GOC = UnityEngine.Random.Range(0, 100) > 50;
@@ -1303,6 +1951,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             if (Is5kRound)
             {
                 Log.Info("refresher start");
+                Plugin.RunCoroutine(DecontUpdate());
 
                 refresher = Plugin.RunCoroutine(Refresher());
 
@@ -1313,6 +1962,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     {
                         if (Is5kRound)
                         {
+
                             var AEHPossableList = Pickup.List.Where(x => x.Type.IsArmor() && x.Room.Zone == Exiled.API.Enums.ZoneType.HeavyContainment && x.Room.Type != Exiled.API.Enums.RoomType.Hcz079 && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointA && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointB
                             && x.Room.Type != Exiled.API.Enums.RoomType.HczElevatorA && x.Room.Type != Exiled.API.Enums.RoomType.HczElevatorB).ToList();
                             Door s055Pos = Door.List.Where(x => !x.IsGate && !x.IsElevator && x.Room.Type != Exiled.API.Enums.RoomType.Hcz079 && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointA && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointB && x.Room.Zone == Exiled.API.Enums.ZoneType.HeavyContainment && x.Room.Type != Exiled.API.Enums.RoomType.Hcz079 && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointA && x.Room.Type != Exiled.API.Enums.RoomType.HczEzCheckpointB
@@ -1340,41 +1990,41 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             Log.Info($"SCP055 spawned AT:{s5.Room.RoomName} {s5.Room.RoomShape} {s5.Position}");
                             Log.Info($"AEH spawned AT:{aeh.Room.RoomName} {aeh.Room.RoomShape} {aeh.Position}");
                             AEHPos.Destroy();
-                            if (Player.List.Where(x => x.Role.Type == RoleTypeId.Scientist).ToList().Count() > 0)
+                            if (Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.Scientist).ToList().Count() > 0)
                             {
-                                var Luck = Player.List.Where(x => x.Role.Type == RoleTypeId.Scientist).ToList().RandomItem();
+                                var Luck = Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.Scientist).ToList().RandomItem();
                                 if (CustomRole.TryGet(SciID, out var role))
                                 {
                                     role.AddRole(Luck);
                                 }
                             }
-                            if (Player.List.Where(x => x.Role.Type == RoleTypeId.ClassD).ToList().Count() > 3)
+                            if (Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.ClassD).ToList().Count() > 3)
                             {
-                                var Luck1 = Player.List.Where(x => x.Role.Type == RoleTypeId.ClassD).ToList().RandomItem();
+                                var Luck1 = Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.ClassD).ToList().RandomItem();
                                 if (CustomRole.TryGet(GocSpyID, out var role))
                                 {
                                     role.AddRole(Luck1);
                                 }
-                                var Luck2 = Player.List.Where(x => x.Role.Type == RoleTypeId.ClassD && x != Luck1).ToList().RandomItem();
+                                var Luck2 = Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.ClassD && x != Luck1).ToList().RandomItem();
                                 Scp5k.Scp5k_Control.ColorChangerRole.instance.AddRole(Luck2);
 
                             }
-                            startedScpCount = Player.List.Where(x => x.Role.Team == Team.SCPs).ToList().Count();
+                            startedScpCount = Player.Enumerable.Where(x => x.Role.Team == Team.SCPs).ToList().Count();
                             if (startedScpCount > 5)
                             {
-                                var Luck1 = Player.List.Where(x => x.Role.Team != Team.SCPs).ToList().RandomItem();
+                                var Luck1 = Player.Enumerable.Where(x => x.Role.Team != Team.SCPs).ToList().RandomItem();
                                 Luck1.RoleManager.ServerSetRole(RoleTypeId.Scp3114, RoleChangeReason.RoundStart);
                                 Luck1.Position = Room.Get(Exiled.API.Enums.RoomType.Hcz096).Position + new UnityEngine.Vector3(0, 0.5f, 0);
 
 
                             }
-                            else if (Player.List.Count >= 32)
+                            else if (Player.Enumerable.Count() >= 32)
                             {
-                                var Luck1 = Player.List.Where(x => x.Role.Team != Team.SCPs).ToList().RandomItem();
+                                var Luck1 = Player.Enumerable.Where(x => x.Role.Team != Team.SCPs).ToList().RandomItem();
                                 Luck1.RoleManager.ServerSetRole(RoleTypeId.Scp3114, RoleChangeReason.RoundStart);
                                 Luck1.Position = Room.Get(Exiled.API.Enums.RoomType.Hcz096).Position + new UnityEngine.Vector3(0, 0.5f, 0);
                             }
-                            foreach (var item in Player.List)
+                            foreach (var item in Player.Enumerable)
                             {
 
                                 if (item.Role.Type == RoleTypeId.FacilityGuard)
@@ -1596,7 +2246,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             break;
                         }
                 }
-                Timing.CallDelayed(0.4f, () =>
+                Timing.CallDelayed(0.5f, () =>
                 {
                     if (ev.Reason == SpawnReason.RoundStart)
                     {
@@ -1770,7 +2420,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             if (Is5kRound)
             {
-                if (ev.IsAllowed)
+                //Log.Info($"Ending Allow:{ev.IsAllowed}");
+                //if (ev.IsAllowed)
                 {
                     ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
                     GOCAnim.donating = false;
@@ -1787,34 +2438,39 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     uiu_broadcasted = false;
                     GOCBomb.countDown = GOCBomb.countDownStart;
                     GOCBomb.QuestionPoint = -1;
-                    
+
                     if (Scp055Escaped)
                     {
-                        foreach (var s in Player.List)
+                        foreach (var s in Player.Enumerable)
                         {
                             s.AddMessage("", "Normal Ending:055进入了579 宇宙重启");
                         }
+                            ev.IsAllowed = true;
                         ev.LeadingTeam = (Exiled.API.Enums.LeadingTeam)4;
                     }
                     else if ((Warhead.IsDetonated && Nuke_GOC_Spawned) || Nuke_GOC_WinCon)
                     {
+                            ev.IsAllowed = true;
                         ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
-                        foreach (var s in Player.List)
+                        foreach (var s in Player.Enumerable)
                         {
                             s.AddMessage("", "GOC Ending: GOC成功引爆核弹");
                         }
                     }
                     else if ((GocSpawned) || GocNuke)
                     {
+                            ev.IsAllowed = true;
                         ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
-                        foreach (var s in Player.List)
+                        foreach (var s in Player.Enumerable)
                         {
                             s.AddMessage("", "GOC Ending: GOC成功引爆奇术核弹");
                         }
-                    } else if (IsMotherDied)
+                    }
+                    else if (IsMotherDied && Scp610Ending)
                     {
+                            ev.IsAllowed = true;
                         ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
-                        foreach (var s in Player.List)
+                        foreach (var s in Player.Enumerable)
                         {
                             s.AddMessage("", "GOC Ending: GOC成功消灭scp610");
                         }
@@ -1827,7 +2483,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         int chaos = 0;
                         int Scp610C = 0;
 
-                        foreach (var hub in Player.List)
+                        foreach (var hub in Player.Enumerable)
                         {
                             var role = hub.Role.Type;
 
@@ -1863,34 +2519,38 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     break;
                             }
                         }
-                        if (Scp610C >= Player.List.Where(x => x.IsAlive).Count() - 2)
+                        if (Scp610C >= Player.Enumerable.Where(x => x.IsAlive).Count() - 2 && Scp610Ending)
                         {
-                            foreach (var s in Player.List)
+                            foreach (var s in Player.Enumerable)
                             {
                                 s.AddMessage("", "SCP610 Ending: scp610占领了这里");
                             }
                             ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.Anomalies;
+                            ev.IsAllowed = true;
                             return;
 
                         }
                         chaos += SpecRolesCount;
                         if (chaos != 0 && ntfScp == 0)
                         {
+                            ev.IsAllowed = true;
                             ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.ChaosInsurgency;
                         }
                         else if (chaos == 0 && ntfScp != 0)
                         {
+                            ev.IsAllowed = true;
                             ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.FacilityForces;
+                        } else
+                        {
+                            ev.IsAllowed = false;
                         }
 
                     }
                     //Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
-                    
+
                 }
-                else
-                {
-                }
-                if (refresher.IsRunning)
+               
+                if (refresher.IsRunning && ev.IsAllowed)
                 {
                     Timing.KillCoroutines(refresher);
                 }
@@ -2047,7 +2707,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                                     hud.RemoveMessage("UIUdownloading");
                                 }
                             }
-                        } else
+                        }
+                        else
                         {
                             if (hud.HasMessage("UIUdownloading"))
                             {
@@ -2090,8 +2751,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public static bool uiu_broadcasted = false;
         public static uint UiuCID = 32;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Uiu_C : CustomRole
+        public class scp5k_Uiu_C : CustomRole,IDeathBroadcaster
         {
+            public string CassieBroadcast => "U I U";
+
+            public string ShowingToPlayer => "UIU";
             public static scp5k_Uiu_C ins;
             public override uint Id { get; set; } = UiuCID;
             public override int MaxHealth { get; set; }
@@ -2190,8 +2854,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint UiuPID = 28;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Uiu_P : CustomRole
+        public class scp5k_Uiu_P : CustomRole,IDeathBroadcaster
         {
+            public string CassieBroadcast => "U I U";
+
+            public string ShowingToPlayer => "UIU";
             public static scp5k_Uiu_P ins;
 
             public override uint Id { get; set; } = UiuPID;
@@ -2289,10 +2956,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
         [CustomRole(RoleTypeId.Tutorial)]
 
-        public class scp5k_Bot : CustomRole
+        public class scp5k_Bot : CustomRole, IDeathBroadcaster
         {
             public static scp5k_Bot ins;
+            public string CassieBroadcast => "And Saw";
 
+            public string ShowingToPlayer => "安德森机器人";
             public override uint Id { get; set; } = botID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "安德森机器人";
@@ -2424,10 +3093,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Goc610CID = 30;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_610_C : CustomRole
+        public class scp5k_Goc_610_C : CustomRole,IDeathBroadcaster
         {
             public static scp5k_Goc_610_C ins;
+            public string CassieBroadcast => "G O C";
 
+            public string ShowingToPlayer => "GOC";
             public override uint Id { get; set; } = Goc610CID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc 奇术2组 特工";
@@ -2507,10 +3178,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Goc610PID = 31;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_610_P : CustomRole
+        public class scp5k_Goc_610_P : CustomRole,IDeathBroadcaster
         {
             public static scp5k_Goc_610_P ins;
+            public string CassieBroadcast => "G O C";
 
+            public string ShowingToPlayer => "GOC";
             public override uint Id { get; set; } = Goc610PID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc 奇术2组 队长";
@@ -2591,10 +3264,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Goc2CID = 47;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_2_C : CustomRole
+        public class scp5k_Goc_2_C : CustomRole, IDeathBroadcaster
         {
             public static scp5k_Goc_2_C ins;
+            public string CassieBroadcast => "G O C";
 
+            public string ShowingToPlayer => "GOC";
             public override uint Id { get; set; } = Goc2CID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc 奇术1组 特工";
@@ -2758,10 +3433,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint GocNukeCID = 42;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_nuke_C : CustomRole
+        public class scp5k_Goc_nuke_C : CustomRole,IDeathBroadcaster
         {
             public static scp5k_Goc_nuke_C ins;
+            public string CassieBroadcast => "G O C";
 
+            public string ShowingToPlayer => "GOC";
             public override uint Id { get; set; } = GocNukeCID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc 消灭1组 特工";
@@ -2836,8 +3513,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint GocNukePID = 41;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_nuke_P : CustomRole
+        public class scp5k_Goc_nuke_P : CustomRole,IDeathBroadcaster
         {
+            public string CassieBroadcast => "G O C";
+
+            public string ShowingToPlayer => "GOC";
             public static scp5k_Goc_nuke_P ins;
             public override uint Id { get; set; } = GocNukePID;
             public override int MaxHealth { get; set; }
@@ -3162,7 +3842,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                                 }
                                 a.ChangeTarget(targetRole);
-                                PlayerToChangeEffect[lp]= a;
+                                PlayerToChangeEffect[lp] = a;
                                 if (targetRole != RoleTypeId.None)
                                 {
                                     if (targetRole == OldRole)

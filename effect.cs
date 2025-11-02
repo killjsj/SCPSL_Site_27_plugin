@@ -162,6 +162,8 @@ namespace Next_generationSite_27.UnionP
         public void ChangeTarget(RoleTypeId target)
         {
             TargetType = target;
+            _player.ChangeAppearance(target); // 恢复原始外观
+
         }
     }
     class EffectHelper

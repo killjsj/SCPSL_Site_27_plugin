@@ -71,3 +71,27 @@
                                    at Exiled.CustomRoles.API.Features.CustomRole.RemoveRole (Exiled.API.Features.Player player) [0x000c5] in <2425c19f10254478b8dcbcf6ab20fa6a>:0
                                    at Exiled.CustomRoles.API.Features.CustomRole.OnInternalChangingRole (Exiled.Events.EventArgs.Player.ChangingRoleEventArgs ev) [0x0004f] in <2425c19f10254478b8dcbcf6ab20fa6a>:0
                                    at Exiled.Events.Features.Event`1[T].BlendedInvoke (T arg) [0x00059] in <0be07a7bca8e4219b7ec563c4e6bf2af>:0
+
+
+                                   [2025-11-02 09:29:20.937 +08:00] [INFO] [UnionPlugin] Call stack:
+                                   at Next_generationSite_27.UnionP.Scp5k.AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules (Footprinting.Footprint attackerFootprint, ReferenceHub victimHub, System.Single& ffMultiplier) [0x00000] in <f156f1de08294983a80a3bda5a7f549c>:0
+                                   at Next_generationSite_27.UnionP.Scp5k.HitboxIdentityPatch.IsEnemy (ReferenceHub attacker, ReferenceHub victim) [0x00000] in <f156f1de08294983a80a3bda5a7f549c>:0
+                                   at Next_generationSite_27.UnionP.Scp5k.HitboxIdentityPatch.IsEnemyPrefix (ReferenceHub attacker, ReferenceHub victim, System.Boolean& __result) [0x00000] in <f156f1de08294983a80a3bda5a7f549c>:0
+                                   at HitboxIdentity.HitboxIdentity.IsEnemy_Patch1 (ReferenceHub , ReferenceHub ) [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at PlayerRoles.PlayableScps.Scp939.Scp939VisibilityController.ValidateVisibility (ReferenceHub hub) [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at PlayerRoles.FirstPersonControl.NetworkMessages.FpcServerPositionDistributor.GetVisibleRole (ReferenceHub receiver, ReferenceHub target) [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at PlayerRoles.FirstPersonControl.NetworkMessages.FpcServerPositionDistributor.PlayerRoles.FirstPersonControl.NetworkMessages.FpcServerPositionDistributor.WriteAll_Patch0 (ReferenceHub , Mirror.NetworkWriter ) [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at PlayerRoles.FirstPersonControl.NetworkMessages.FpcPositionMessage.Write (Mirror.NetworkWriter writer) [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at PlayerRoles.FirstPersonControl.NetworkMessages.FpcMessagesReadersWriters.WriteFpcPositionMessage (Mirror.NetworkWriter writer, PlayerRoles.FirstPersonControl.NetworkMessages.FpcPositionMessage msg) [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at Mirror.NetworkWriter.Write[T] (T value) [0x00000] in <ef795f1e7d4c4b1db01fba9fd536c444>:0
+                                   at Mirror.NetworkConnection.Send[T] (T message, System.Int32 channelId) [0x00000] in <ef795f1e7d4c4b1db01fba9fd536c444>:0
+                                   at PlayerRoles.FirstPersonControl.NetworkMessages.FpcServerPositionDistributor.LateUpdate () [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at StaticUnityMethods.LateUpdate () [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+[2025-11-02 09:29:20.953 +08:00] [INFO] [UnionPlugin] 匹配到友伤数据：Scp939 vs ClassD，友伤系数：1
+[2025-11-02 09:29:20.969 +08:00] [INFO] [UnionPlugin] FF between killjsj and Dummy is 1
+[2025-11-02 09:29:20.984 +08:00] [INFO] [UnionPlugin] Call stack:
+                                   at Next_generationSite_27.UnionP.Scp5k.AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules (Footprinting.Footprint attackerFootprint, ReferenceHub victimHub, System.Single& ffMultiplier) [0x00000] in <f156f1de08294983a80a3bda5a7f549c>:0
+                                   at Next_generationSite_27.UnionP.Scp5k.HitboxIdentityPatch.IsEnemy (ReferenceHub attacker, ReferenceHub victim) [0x00000] in <f156f1de08294983a80a3bda5a7f549c>:0
+                                   at Next_generationSite_27.UnionP.Scp5k.HitboxIdentityPatch.IsEnemyPrefix (ReferenceHub attacker, ReferenceHub victim, System.Boolean& __result) [0x00000] in <f156f1de08294983a80a3bda5a7f549c>:0
+                                   at HitboxIdentity.HitboxIdentity.IsEnemy_Patch1 (ReferenceHub , ReferenceHub ) [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0
+                                   at PlayerRoles.PlayableScps.Scp939.Ripples.SurfaceRippleTrigger.LateUpdate () [0x00000] in <ad916ef60aba4ecd98e1c73613b47419>:0

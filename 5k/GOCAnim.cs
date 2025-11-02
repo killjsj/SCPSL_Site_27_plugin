@@ -4,6 +4,7 @@ using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Spawn;
 using Exiled.API.Features.Toys;
+using Exiled.CustomRoles.API.Features;
 using Exiled.Events.Commands.Reload;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Loader;
@@ -93,7 +94,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             }
             _animator.SetBool("end", false);
-            foreach (var item in Player.List)
+            foreach (var item in Player.Enumerable)
             {
                 item.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 1, 600f);
                 item.EnableEffect(Exiled.API.Enums.EffectType.SoundtrackMute, 1, 600f);
@@ -348,7 +349,7 @@ autoCleanup: false);
                 try
                 {
                     //StaticSpeakerFactory.ClearSpeakers();
-                    foreach (var item in Player.List.Where(x => x.IsAlive))
+                    foreach (var item in Player.Enumerable.Where(x => x.IsAlive))
                     {
 
                     }
@@ -380,7 +381,7 @@ autoCleanup: false);
                 try
                 {
                     //StaticSpeakerFactory.ClearSpeakers();
-                    foreach (var item in Player.List)
+                    foreach (var item in Player.Enumerable)
                     {
                         if (item.CameraTransform != null)
                         {
@@ -429,7 +430,7 @@ autoCleanup: false);
                     }
                     if (error)
                         yield break;
-                    foreach (var player in Player.List)
+                    foreach (var player in Player.Enumerable)
                     {
                         player.EnableEffect(Exiled.API.Enums.EffectType.Flashed, 1, 2f);
                     }
@@ -447,7 +448,7 @@ autoCleanup: false);
                     try
                     {
                         //StaticSpeakerFactory.ClearSpeakers();
-                        foreach (var item in Player.List)
+                        foreach (var item in Player.Enumerable)
                         {
                         }
                     }
@@ -456,32 +457,20 @@ autoCleanup: false);
                         Log.Warn(ex);
                     }
                     Warhead.Shake();
-                    foreach (var player in Player.List)
+                    foreach (var player in Player.Enumerable)
                     {
                         player.DisableEffect(Exiled.API.Enums.EffectType.Flashed);
                         player.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 6, 10f);
                     }
                     Scp5k_Control.GocNuke = true;
-                    foreach (var player in Player.List)
+                    foreach (var player in Player.Enumerable)
                     {
                         if (player.Role.Base is IFpcRole i)
                         {
                             i.FpcModule.Motor.GravityController.Gravity = FpcGravityController.DefaultGravity;
                         }
-                        string text2;
                             var d = new CustomReasonDamageHandler("goc奇术炸弹", -1f, "");
-                        string str;
-                        if (player.Role.Type.IsScp())
-                        {
-                            NineTailedFoxAnnouncer.ConvertSCP(player.Role.Type, out text2, out str);
-                            Cassie.MessageTranslated($"", $"{str} 已被GOC重新收容。");
-                            d.CassieDeathAnnouncement.Announcement = $"{text2} CONTAINEDSUCCESSFULLY BY G O C";
-                            d.CassieDeathAnnouncement.SubtitleParts = new SubtitlePart[]{
-                            new SubtitlePart(SubtitleType.Custom, new string[]
-                {
-                    $"{str} 已被GOC奇术重新收容"
-                }) };
-                        }
+                                                
                         player.ReferenceHub.playerStats.DealDamage(d);
 
                     }

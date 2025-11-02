@@ -28,6 +28,7 @@ using MapGeneration.Holidays;
 using Mirror;
 using MySqlX.XDevAPI;
 using NorthwoodLib.Pools;
+using Org.BouncyCastle.Math.EC.Multiplier;
 using Org.BouncyCastle.Pkix;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
@@ -153,10 +154,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             if (Scp5k_Control.Is5kRound)
             {
-
-
-
-
                 __result = IsEnemy(attacker, victim);  // 跳过原始方法执行}
                 return false;
             }
@@ -165,39 +162,23 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
         public static bool IsEnemy(ReferenceHub attacker, ReferenceHub victim)
         {
+            if (attacker == Server.Host.ReferenceHub)
+                return true;
+            if ((victim.isServer || victim == Server.Host.ReferenceHub) && !victim.IsDummy)
+            {
+                //ffMultiplier = -1f;
+                return false;
+            }
             // 获取攻击者和受害者的 Player 对象
             var a = Player.Get(attacker);
             var v = Player.Get(victim);
 
             // 安全检查：如果玩家对象不存在，返回 false（无法造成伤害）
             if (a == null || v == null)
-                return false;
-            float ffMultiplier = 0;
-            // 尝试获取 Goc 角色 (仅用于判定，Uiu 和 Bot 不再需要)
-            if (!CustomRole.TryGet(Scp5k_Control.Goc610CID, out var customGocC) ||
-                !CustomRole.TryGet(Scp5k_Control.Goc610PID, out var customGocP))
-            {
-                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out  ffMultiplier))
-                {
-                    if (ffMultiplier > 0)
-                    {
-                        return true;
-                    }
-                }
-                return IsEnemy(attacker.GetTeam(), victim.GetTeam());
-                // 如果无法获取 Goc 角色定义，则回退到默认的队伍判定
-                return HitboxIdentity.IsEnemy(attacker.GetTeam(), victim.GetTeam());
-            }
+                return true;
+            // Always allow damage from Server.Host
 
-                if (AttackerDamageHandlerPatch.CheckFriendlyFirePlayerRules(a.Footprint, victim, out  ffMultiplier))
-                {
-                    if (ffMultiplier > 0)
-                    {
-                        return true;
-                    }
-                }
-                return IsEnemy(attacker.GetTeam(), victim.GetTeam());
-            
+            return FFManager.GetFFQuickCheck(a, v);
             if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces)
             {
                 return false;
@@ -239,17 +220,22 @@ namespace Next_generationSite_27.UnionP.Scp5k
             // Only check friendlyFire if the FootPrint hasn't changed (Fix for Grenade not dealing damage because it's from a dead player)
             if (!attackerFootprint.CompareLife(new Footprint(attackerFootprint.Hub)))
                 return HitboxIdentity.IsDamageable(attackerFootprint.Role, victimHub.roleManager.CurrentRole.RoleTypeId);
-
+            if((victimHub.isServer || victimHub == Server.Host.ReferenceHub) && !victimHub.IsDummy)
+            {
+                ffMultiplier = -1f;
+                return false;
+            }
 
             try
             {
                 Player attacker = Player.Get(attackerFootprint.Hub);
                 Player victim = Player.Get(victimHub);
                 var FF = FFManager.GetFF(attacker, victim);
-                if(FF != -1)
+                Log.Info($"FF between {attacker.Nickname} and {victim.Nickname} is {FF}");
+                if (FF != -1)
                 {
                     ffMultiplier = FF;
-                    return FF > 0f;
+                    return FF >= 0f;
                 }
             }
             catch (Exception ex)
@@ -260,7 +246,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             // Default to NW logic
             return HitboxIdentityPatch.IsEnemy(attackerFootprint.Hub, victimHub);
         }
-    
+
         [HarmonyPatch("ProcessDamage")]
         [HarmonyPrefix]
         public static bool Prefix(AttackerDamageHandler __instance, ReferenceHub ply)
@@ -468,11 +454,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
             if (Scp5k_Control.Is5kRound)
             {
-                if ((adh.Attacker.Hub.roleManager.CurrentRole.RoleTypeId == RoleTypeId.ClassD ||
-                    adh.Attacker.Hub.roleManager.CurrentRole.RoleTypeId == RoleTypeId.Scientist ||
-                    adh.Attacker.Hub.roleManager.CurrentRole.RoleTypeId == RoleTypeId.FacilityGuard)
-
-                    && Scp5k_Control.scp5k_Goc_spy.ins.Check(Player.Get(victim)))
+                if (FFManager.GetFF(Player.Get(adh.Attacker),Player.Get(victim)) > 0)
                 {
                     __result = false;
                 return false;  // 跳过原始方法执行}

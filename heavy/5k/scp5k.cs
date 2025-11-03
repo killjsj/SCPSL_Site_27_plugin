@@ -1786,13 +1786,13 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Plugin.MenuCache.AddRange(m);
             }
         }
-        public static uint O1NID = 59;
+        public static uint O1NID = 60;
         [CustomRole(RoleTypeId.NtfPrivate)]
         public class scp5k_Omega1_N : CustomRole, IDeathBroadcaster
         {
 
             public static scp5k_Omega1_N instance { get; private set; }
-            public override uint Id { get; set; } = O1SID;
+            public override uint Id { get; set; } = O1NID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Omega-1 小队 队员";
             public override string Description { get; set; }

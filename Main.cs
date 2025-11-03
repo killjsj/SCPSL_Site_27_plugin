@@ -64,10 +64,11 @@ namespace Next_generationSite_27.UnionP
     class Plugin : Exiled.API.Features.Plugin<PConfig>
     {
 
-        public static IEnumerable<SettingBase> Register(Player player, IEnumerable<SettingBase> settings)
+        public static IEnumerable<SettingBase> Register(Player player, IEnumerable<SettingBase> settings,bool bypassCheck = false)
         {
             var playerMenu = GetPlayerRegistered(player);
-            var result = SettingBase.Register(player, settings).ToList();
+            
+            var result = SettingBase.Register(player, settings.Where(x=>bypassCheck || !playerMenu.Any(y=>y.Id==x.Id))).ToList();
             foreach (var item in settings)
             {
                 Log.Info("Registering settings for player: " + player.Nickname + $" setting:{item}");
@@ -77,13 +78,13 @@ namespace Next_generationSite_27.UnionP
             return result;
         }
 
-        public static IEnumerable<SettingBase> Unregister(Player player, IEnumerable<SettingBase> settings = null)
+        public static IEnumerable<SettingBase> Unregister(Player player, IEnumerable<SettingBase> settings = null, bool bypassCheck = false)
         {
             var playerMenu = GetPlayerRegistered(player);
             if (playerMenu.Count == 0)
                 return Enumerable.Empty<SettingBase>();
 
-            var result = SettingBase.Unregister(player, settings).ToList();
+            var result = SettingBase.Unregister(player, settings.Where(x => bypassCheck || playerMenu.Any(y => y.Id == x.Id))).ToList();
             foreach (var item in settings)
             {
                 Log.Info("Unregistering settings for player: " + player.Nickname + $" setting:{item}");
@@ -544,6 +545,7 @@ File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
             { Features.AEHKey, 5141 },
             { Features.ColorChangerRole, 1011 },
             { Features.ScpTalk,1021 },
+            { Features.Omega1ChangeGForce,1022 },
         };
         [Description("以下与5k相关 启用5k的概率(0-100)")]
         public int scp5kPercent { get; set; } = 0;
@@ -628,6 +630,7 @@ File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
         Scp5kGOCAnswer,
         ColorChangerRole,
         ScpTalk,
+        Omega1ChangeGForce,
     }
     public class RunningMan : Event<GwangjuRunningManLoader.RunningManConfig, RunningManTranslation>, IEventMap, IEventSound
     {

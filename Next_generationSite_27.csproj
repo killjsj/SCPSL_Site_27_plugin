@@ -409,14 +409,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="5k\FFManager.cs" />
-    <Compile Include="5k\GocBomb.cs" />
-    <Compile Include="5k\GOCAnim.cs" />
-    <Compile Include="5k\patch.cs" />
+    <Compile Include="heavy\5k\FFManager.cs" />
+    <Compile Include="heavy\5k\GocBomb.cs" />
+    <Compile Include="heavy\5k\GOCAnim.cs" />
+    <Compile Include="heavy\5k\patch.cs" />
     <Compile Include="Audio.cs" />
     <Compile Include="BaseClass.cs" />
     <Compile Include="bomb.cs" />
-    <Compile Include="5k\scp5k.cs" />
+    <Compile Include="heavy\5k\scp5k.cs" />
     <Compile Include="Chat.cs" />
     <Compile Include="Command.cs" />
     <Compile Include="configs\Config.cs" />

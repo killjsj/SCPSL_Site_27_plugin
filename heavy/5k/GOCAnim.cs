@@ -27,6 +27,8 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using static Next_generationSite_27.UnionP.heavy.Goc;
+
 
 namespace Next_generationSite_27.UnionP.Scp5k
 {
@@ -111,7 +113,7 @@ persistent: false,
 lifespan: 0f,
 autoCleanup: false);
             Plugin.RunCoroutine(In(_animator));
-            Scp5k.Scp5k_Control.GOCBOmb = skg;
+            GOCBOmb = skg;
 
         }
         public static IEnumerator<float> In(Animator an)
@@ -220,7 +222,7 @@ autoCleanup: false);
             _animator.SetBool("donate", true);
             Log.Info("donate:true");
             //FogController.DisableFogType(FogType.Outside,999f);
-            Transform[] myTransforms = Scp5k.Scp5k_Control.GOCBOmb.GetComponentsInChildren<Transform>();
+            Transform[] myTransforms = GOCBOmb.GetComponentsInChildren<Transform>();
 
 
             foreach (var child in myTransforms)
@@ -462,7 +464,7 @@ autoCleanup: false);
                         player.DisableEffect(Exiled.API.Enums.EffectType.Flashed);
                         player.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 6, 10f);
                     }
-                    Scp5k_Control.GocNuke = true;
+                    GocNuke = true;
                     foreach (var player in Player.Enumerable)
                     {
                         if (player.Role.Base is IFpcRole i)
@@ -516,10 +518,10 @@ autoCleanup: false);
                 if (Round.IsEnded)
                     yield break;
             }
-            Scp5k.Scp5k_Control.GOCBOmb.GetComponent<SchematicObject>().Destroy();
+            GOCBOmb.GetComponent<SchematicObject>().Destroy();
 
 
-            Scp5k.Scp5k_Control.GOCBOmb = null;
+            GOCBOmb = null;
 
         }
     }

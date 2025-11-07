@@ -1097,7 +1097,7 @@ namespace Next_generationSite_27.UnionP
         }
         public bool Cleaned = false;
         GameObject SP;
-        GameObject canvas;
+        //GameObject canvas;
         AdminToys.TextToy textToy; 
         //TeslaOvercon CurrentOvercon = null;
         //TeslaOverconRenderer TeslaOverconRenderer = null;

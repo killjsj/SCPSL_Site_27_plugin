@@ -114,7 +114,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Map.GeneratorActivating -= GeneratorActivating;
             //StaticUnityMethods.OnUpdate -= RefreshAllPlayers;
             Timing.KillCoroutines(rec);
-            base.Delete();
+            //base.Delete();
         }
         public static Dictionary<Player, Player> Scp106CatchPlayers = new Dictionary<Player, Player>();
         public static void EnteringPocketDimension(EnteringPocketDimensionEventArgs ev)

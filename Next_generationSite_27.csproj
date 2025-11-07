@@ -36,7 +36,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
-    <LangVersion>10</LangVersion>
+    <LangVersion>11</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Optimize>true</Optimize>
@@ -423,6 +423,17 @@
     <Compile Include="configs\Translation.cs" />
     <Compile Include="customWeapon.cs" />
     <Compile Include="dude.cs" />
+    <Compile Include="heavy\Gun_JS_L1.cs" />
+    <Compile Include="heavy\SpeedBuildItem.cs" />
+    <Compile Include="heavy\example.cs" />
+    <Compile Include="heavy\Omega1.cs" />
+    <Compile Include="heavy\Nu7.cs" />
+    <Compile Include="heavy\bot.cs" />
+    <Compile Include="heavy\Scanner.cs" />
+    <Compile Include="heavy\BombGun.cs" />
+    <Compile Include="heavy\Goc.cs" />
+    <Compile Include="heavy\IDeathBroadcast.cs" />
+    <Compile Include="heavy\Uiu.cs" />
     <Compile Include="ScpHpShow.cs" />
     <Compile Include="SpawnProject.cs" />
     <Compile Include="EV.cs" />

@@ -85,7 +85,7 @@ namespace Next_generationSite_27.UnionP.SpawnPorject
             Exiled.Events.Handlers.Player.ChangingRole += ChangingRole;
             Exiled.Events.Handlers.Player.Shot += Shot;
             Exiled.Events.Handlers.Server.RespawnedTeam += RespawnedTeam;
-            base.Init();
+            //base.Init();
         }
         public override void Delete()
         {
@@ -94,7 +94,7 @@ namespace Next_generationSite_27.UnionP.SpawnPorject
             Exiled.Events.Handlers.Player.ChangingRole -= ChangingRole;
             Exiled.Events.Handlers.Player.Shot -= Shot;
             Exiled.Events.Handlers.Server.RespawnedTeam -= RespawnedTeam;
-            base.Delete();
+            //base.Delete();
         }
         PConfig Config => Plugin.Instance.Config;
         public Dictionary<Player, CoroutineHandle> ProtectionCoroutines = new Dictionary<Player, CoroutineHandle>();

@@ -7,19 +7,19 @@ using System.Threading.Tasks;
 
 namespace Next_generationSite_27.UnionP
 {
-    public class BaseClass
+    public abstract class BaseClass
     {
         public void StartInit()
         {
+            Log.Info($"initing {this.GetType().FullName}");
             this.Init();
         }
         public void StartDelete()
         {
+            Log.Info($"deleting {this.GetType().FullName}");
             this.Delete();
         }
-        virtual public void Init() {
-            Log.Info($"initing {this.GetType().FullName}");
-        }
-        virtual public void Delete() { }
+        abstract public void Init();
+        abstract public void Delete();
     }
 }

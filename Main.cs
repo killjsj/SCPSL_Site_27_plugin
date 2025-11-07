@@ -294,13 +294,13 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Escaping += Scp5k_Control.Escaping;
             Exiled.Events.Handlers.Server.RespawningTeam += Scp5k_Control.RespawningTeam;
             Exiled.Events.Handlers.Player.Dying += Scp5k_Control.Died;
-            Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
+            //Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
-            Exiled.Events.Handlers.Warhead.ChangingLeverStatus += Scp5k_Control.ChangingLeverStatus;
+            //Exiled.Events.Handlers.Warhead.ChangingLeverStatus += Scp5k_Control.ChangingLeverStatus;
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
-            Exiled.Events.Handlers.Map.AnnouncingScpTermination += Scp5k_Control.AnnouncingScpTermination;
+            //Exiled.Events.Handlers.Map.AnnouncingScpTermination += Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole += GOCAnim.OnchangingRole;
                 Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
 
@@ -432,15 +432,15 @@ File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
             //5k
             Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating -= Scp5k_Control.DeadmanSwitchInitiating;
             Exiled.Events.Handlers.Player.Dying -= Scp5k_Control.Died;
-            Exiled.Events.Handlers.Warhead.Detonating -= Scp5k_Control.WarheadDetonated;
+            //Exiled.Events.Handlers.Warhead.Detonating -= Scp5k_Control.WarheadDetonated;
             Exiled.Events.Handlers.Player.Escaping -= Scp5k_Control.Escaping;
             Exiled.Events.Handlers.Server.RespawningTeam -= Scp5k_Control.RespawningTeam;
-            Exiled.Events.Handlers.Warhead.ChangingLeverStatus -= Scp5k_Control.ChangingLeverStatus;
+            //Exiled.Events.Handlers.Warhead.ChangingLeverStatus -= Scp5k_Control.ChangingLeverStatus;
             Exiled.Events.Handlers.Server.EndingRound -= Scp5k_Control.RoundEnding;
             Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
             Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
             Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
-            Exiled.Events.Handlers.Map.AnnouncingScpTermination -= Scp5k_Control.AnnouncingScpTermination;
+            //Exiled.Events.Handlers.Map.AnnouncingScpTermination -= Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole -= GOCAnim.OnchangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
 

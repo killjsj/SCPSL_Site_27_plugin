@@ -43,6 +43,7 @@ using UnityEngine.DedicatedServer;
 using UnityEngine.EventSystems;
 using UserSettings.ServerSpecific;
 using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
+using static Next_generationSite_27.UnionP.heavy.Goc;
 using static TMPro.TMP_InputField;
 using static UnityEngine.UI.CanvasScaler;
 using Player = Exiled.API.Features.Player;
@@ -451,7 +452,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             if (installedCount == 0 && Played)
             {
-                if (Scp5k_Control.GOCBOmb != null)
+                if (GOCBOmb != null)
                 {
                     GOCAnim.PlayEnd();
                     Played = false;
@@ -483,12 +484,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
         public void OnInter(ReferenceHub hub)
         {
             var p = Player.Get(hub);
-            if (!CustomRole.TryGet(Scp5k_Control.Goc610CID, out var customGocC))
+            if (!CustomRole.TryGet(Goc610CID, out var customGocC))
             {
                 p.AddMessage("Failed", "<color=red><size=27>未获取角色:GocC 请联系技术</size></color>", 3f);
                 return;
             }
-            if (!CustomRole.TryGet(Scp5k_Control.Goc610PID, out var customGocP))
+            if (!CustomRole.TryGet(Goc610PID, out var customGocP))
             {
                 p.AddMessage("Failed", "<color=red><size=27>未获取角色:GocP 请联系技术</size></color>", 3f);
                 return;
@@ -786,9 +787,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
             CountdownStarted = false;
             try
             {
-                Scp5k_Control.GocSpawnable = false;
+                GocSpawnable = false;
                 Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹安装完成 预计在{countDown}秒后预热完成! 请务必拆除所有{GOCBomb.installCount}个炸弹", isHeld: true, isSubtitles: true);
-                if (Scp5k.Scp5k_Control.GOCBOmb == null)
+                if (GOCBOmb == null)
                 {
                     GOCAnim.Gen(new Vector3(13f, 450f, -40f));
                     //Exiled.API.Features.Cassie.Message("警告!GOC正在安装奇术核弹 所有人员前往阻止/拆除", isSubtitles: true);
@@ -837,12 +838,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             countDown = countDownStart;
                             break;
                         }
-                        if (!CustomRole.TryGet(Scp5k_Control.Goc610CID, out var customGocC))
+                        if (!CustomRole.TryGet(Goc610CID, out var customGocC))
                         {
                             Log.Info("Failed to get goc");
 
                         }
-                        if (!CustomRole.TryGet(Scp5k_Control.Goc610PID, out var customGocP))
+                        if (!CustomRole.TryGet(Goc610PID, out var customGocP))
                         {
                             Log.Info("Failed to get goc");
                         }

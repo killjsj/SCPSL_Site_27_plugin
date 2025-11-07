@@ -74,8 +74,13 @@ using static LightContainmentZoneDecontamination.DecontaminationController;
 using static Next_generationSite_27.UnionP.RoomGraph;
 using static UnityEngine.GraphicsBuffer;
 using static UnityEngine.UI.CanvasScaler;
+using static  Next_generationSite_27.UnionP.heavy.Uiu;
+using static  Next_generationSite_27.UnionP.heavy.Goc;
 using Log = Exiled.API.Features.Log;
 using Player = Exiled.API.Features.Player;
+using Next_generationSite_27.UnionP.heavy;
+using static Next_generationSite_27.UnionP.heavy.Nu7;
+using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
 
 namespace Next_generationSite_27.UnionP 
 {
@@ -816,7 +821,7 @@ namespace Next_generationSite_27.UnionP
             var p  =Primitive.Create(PrimitiveType.Cube, runner.Position, null, null, true);
             p.Collidable = true;
             p.Visible = true;
-            var BW = p.GameObject.AddComponent<Scp5k_Control.bunker>();
+            var BW = p.GameObject.AddComponent<bunker>();
             BW.Health = 100;
             response = $"done!";
             return true;
@@ -1114,7 +1119,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         foreach (var item in list)
                         {
-                            if (CustomRole.TryGet(Scp5k_Control.Goc610PID, out var Prole))
+                            if (CustomRole.TryGet(Goc610PID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);
@@ -1126,7 +1131,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         foreach (var item in list)
                         {
-                            if (CustomRole.TryGet(Scp5k_Control.GocNukePID, out var Prole))
+                            if (CustomRole.TryGet(GocNukePID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);
@@ -1138,7 +1143,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         foreach (var item in list)
                         {
-                            if (CustomRole.TryGet(Scp5k_Control.GocSpyID, out var Prole))
+                            if (CustomRole.TryGet(GocSpyID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);
@@ -1163,7 +1168,7 @@ namespace Next_generationSite_27.UnionP
                         {
 
                             Player player = Player.Get(item);
-                            Scp5k.Scp5k_Control.scp5k_Nu7_P.instance.AddRole(player);
+                            scp5k_Nu7_P.instance.AddRole(player);
 
                         }
                         break;
@@ -1172,7 +1177,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         foreach (var item in list)
                         {
-                            if (CustomRole.TryGet(Scp5k_Control.UiuPID, out var Prole))
+                            if (CustomRole.TryGet(UiuPID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);
@@ -1184,7 +1189,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         foreach (var item in list)
                         {
-                            if (CustomRole.TryGet(Scp5k_Control.botID, out var Prole))
+                            if (CustomRole.TryGet(bot.botID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);

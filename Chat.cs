@@ -20,13 +20,13 @@ namespace Next_generationSite_27.UnionP
         {
             a = Timing.RunCoroutine(StaticUnityMethods_OnUpdate());
             Exiled.Events.Handlers.Server.WaitingForPlayers += WaitingForPlayers;
-            base.Init();
+            //base.Init();
         }
         public override void Delete()
         {
             Timing.KillCoroutines(a);
             Exiled.Events.Handlers.Server.WaitingForPlayers -= WaitingForPlayers;
-            base.Delete();
+            //base.Delete();
         }
         public static void WaitingForPlayers()
         {

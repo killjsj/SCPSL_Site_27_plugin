@@ -44,7 +44,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole += ChangingRole;
             Exiled.Events.Handlers.Player.Died += Died;
             Exiled.Events.Handlers.Player.Left += Left;
-            base.Init();
+            //base.Init();
         }
 
         public override void Delete()
@@ -52,7 +52,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole -= ChangingRole;
             Exiled.Events.Handlers.Player.Died -= Died;
             Exiled.Events.Handlers.Player.Left -= Left;
-            base.Delete();
+            //base.Delete();
         }
 
         void Died(DiedEventArgs ev)

@@ -9,6 +9,7 @@ using Exiled.Events.EventArgs.Server;
 using MapGeneration;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
@@ -82,7 +83,7 @@ namespace Next_generationSite_27.UnionP.heavy
 
         public static uint Goc2CID = 47;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_2_C : CustomRole, IDeathBroadcaster
+        public class scp5k_Goc_2_C : CustomRolePlus, IDeathBroadcaster
         {
             public static scp5k_Goc_2_C ins;
             public string CassieBroadcast => "G O C";
@@ -101,7 +102,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 ins = this;
                 Description = "使用奇术核弹毁灭站点";
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 120;
+                MaxHealth = 100;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc 奇术1组 特工</color></size>\n<size=30><color=yellow>使用奇术核弹毁灭站点</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
 
@@ -167,10 +168,12 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint Goc2PID = 48;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_2_P : CustomRole
+        public class scp5k_Goc_2_P : CustomRolePlus,IDeathBroadcaster
         {
             public static scp5k_Goc_2_P ins;
+            public string CassieBroadcast => "G O C";
 
+            public string ShowingToPlayer => "GOC";
             public override uint Id { get; set; } = Goc2PID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Goc 奇术1组 队长";
@@ -184,7 +187,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 Description = "开启奇术核弹毁灭站点";
 
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 150;
+                MaxHealth = 140;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc 奇术1组 队长</color></size>\n<size=30><color=yellow>开启奇术核弹毁灭站点</color></size>", 4);
                 ins = this;
 
@@ -476,7 +479,7 @@ namespace Next_generationSite_27.UnionP.heavy
 
         public static uint GocNukeCID = 42;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_nuke_C : CustomRole, IDeathBroadcaster
+        public class scp5k_Goc_nuke_C : CustomRolePlus, IDeathBroadcaster
         {
             public static scp5k_Goc_nuke_C ins;
             public string CassieBroadcast => "G O C";
@@ -495,7 +498,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 ins = this;
                 Description = "开启核弹并消灭所有SCP撤离";
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 190;
+                MaxHealth = 110;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc 消灭1组 特工</color></size>\n<size=30><color=yellow>开启核弹并消灭所有SCP撤离</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
 
@@ -551,7 +554,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint GocNukePID = 41;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_nuke_P : CustomRole, IDeathBroadcaster
+        public class scp5k_Goc_nuke_P : CustomRolePlus, IDeathBroadcaster
         {
             public string CassieBroadcast => "G O C";
 
@@ -570,7 +573,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 Description = "开启核弹并消灭所有SCP撤离";
                 ins = this;
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 230;
+                MaxHealth = 150;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc 消灭1组 队长</color></size>\n<size=30><color=yellow>开启核弹并消灭所有SCP撤离</color></size>", 4);
 
                 this.IgnoreSpawnSystem = true;
@@ -624,7 +627,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint GocNukeScanID = 57;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_nuke_scan : CustomRole, IDeathBroadcaster
+        public class scp5k_Goc_nuke_scan : CustomRolePlus, IDeathBroadcaster
         {
             public string CassieBroadcast => "G O C";
 
@@ -643,7 +646,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 Description = "消灭所有SCP撤离";
                 ins = this;
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 200;
+                MaxHealth = 100;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc 消灭1组 扫描专员</color></size>\n<size=30><color=yellow>消灭所有SCP撤离</color></size>", 4);
 
                 this.IgnoreSpawnSystem = true;
@@ -844,7 +847,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
 
         [CustomRole(RoleTypeId.ClassD)]
-        public class scp5k_Goc_spy : CustomRole
+        public class scp5k_Goc_spy : CustomRolePlus
         {
             public static scp5k_Goc_spy ins;
             public override uint Id { get; set; } = GocSpyID;
@@ -974,7 +977,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint Goc610CID = 30;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_610_C : CustomRole, IDeathBroadcaster
+        public class scp5k_Goc_610_C : CustomRolePlus, IDeathBroadcaster
         {
             public static scp5k_Goc_610_C ins;
             public string CassieBroadcast => "G O C";
@@ -993,7 +996,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 ins = this;
                 Description = "使用奇术核弹毁灭站点";
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 250;
+                MaxHealth = 120;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc 奇术2组 特工</color></size>\n<size=30><color=yellow>使用奇术核弹毁灭站点</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
 
@@ -1059,7 +1062,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint Goc610PID = 31;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Goc_610_P : CustomRole, IDeathBroadcaster
+        public class scp5k_Goc_610_P : CustomRolePlus, IDeathBroadcaster
         {
             public static scp5k_Goc_610_P ins;
             public string CassieBroadcast => "G O C";
@@ -1078,7 +1081,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 Description = "开启奇术核弹毁灭站点";
 
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 350;
+                MaxHealth = 160;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是Goc 奇术2组 队长</color></size>\n<size=30><color=yellow>开启奇术核弹毁灭站点</color></size>", 4);
                 ins = this;
 

@@ -59,6 +59,11 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 
                         return true;
                     }
+                    else
+                    {
+                        player.Position = raycast.point + raycast.normal * 0.3f;
+                        return true;
+                    }
 
                 } else
                 {

@@ -1,7 +1,10 @@
-﻿using DrawableLine;
+﻿using CustomPlayerEffects;
+using CustomRendering;
+using DrawableLine;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Features.Core.UserSettings;
+using Exiled.API.Features.Roles;
 using MEC;
 using PlayerRoles.Subroutines;
 using ProjectMER.Features.Extensions;
@@ -11,10 +14,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using Utils.Networking;
 
 namespace Next_generationSite_27.UnionP.heavy.ability
 {
-    public class SkynetAbility1 : KeyAbility
+    public class Scp079Ability1 : KeyAbility
     {
         public override KeyCode KeyCode => KeyCode.Mouse3;
 
@@ -22,7 +26,73 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 
         public override string Des => "房间放毒7秒";
 
-        public override int id => 102;
+        public override int id => 106;
+        public override double Time => 20;
+        public override float WaitForDoneTime => 7;
+        public static readonly CachedLayerMask HitregMask = new CachedLayerMask(new string[]
+{
+            "Default",
+            "Hitbox",
+            "Glass",
+            "CCTV",
+            "Door"
+});
+        public override AbilityBase Register(Player player)
+        {
+            var a = new Scp079Ability1(player);
+            a.InternalRegister(player);
+            return a;
+        }
+        public override bool OnTrigger()
+        {
+            if (player.Role is Scp079Role role)
+            {
+                if (role.Energy >= 150)
+                {
+                    role.Energy -= 150;
+                    var r = new Ray(role.Camera.Position + role.Camera.Transform.forward * 0.8f, role.Camera.Transform.forward);
+                    if (Physics.Raycast(r, out var raycast, 45, HitregMask.Mask))
+                    {
+                        var o = Room.Get(raycast.point);
+                        if (o && o.Type != RoomType.Surface)
+                        {
+                            o.LockDown(7);
+                            foreach (var item in o.Players)
+                            {
+                                if (!item.IsScp) { 
+                                    item.EnableEffect(EffectType.Decontaminating, 7f);
+                                    item.EnableEffect<FogControl>(7f);
+                                    item.GetEffect<FogControl>().SetFogType(FogType.Decontamination);
+                                }
+                            }
+
+                        }
+                        else return false;
+                    }
+                    return true;
+                }
+                else return false;
+            }
+            return false;
+        }
+        internal Scp079Ability1(Player player) : base(player)
+        {
+            TotalCount = 1;
+        }
+        public Scp079Ability1() : base()
+        {
+            TotalCount = 1;
+        }
+    }
+    public class DebuggersAbility1 : KeyAbility
+    {
+        public override KeyCode KeyCode => KeyCode.Mouse3;
+
+        public override string Name => "房间放毒";
+
+        public override string Des => "房间放毒7秒";
+
+        public override int id => 106;
         public override double Time => 120;
         public override float WaitForDoneTime => 7;
         public static readonly CachedLayerMask HitregMask = new CachedLayerMask(new string[]
@@ -35,7 +105,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 });
         public override AbilityBase Register(Player player)
         {
-            var a = new SkynetAbility1(player);
+            var a = new DebuggersAbility1(player);
             a.InternalRegister(player);
             return a;
         }
@@ -51,22 +121,25 @@ namespace Next_generationSite_27.UnionP.heavy.ability
                     foreach (var item in o.Players)
                     {
                         item.EnableEffect(EffectType.Decontaminating, 7f);
+                        item.EnableEffect<FogControl>(7f);
+
+                        item.GetEffect<FogControl>().SetFogType(FogType.Decontamination);
                     }
                 }
                 else return false;
             }
             return true;
         }
-        internal SkynetAbility1(Player player) : base(player)
+        internal DebuggersAbility1(Player player) : base(player)
         {
             TotalCount = 1;
         }
-        public SkynetAbility1() : base()
+        public DebuggersAbility1() : base()
         {
             TotalCount = 1;
         }
     }
-    public class SkynetAbility2 : KeyAbility
+    public class DebuggersAbility2 : KeyAbility
     {
         public override KeyCode KeyCode => KeyCode.Mouse2;
 
@@ -74,7 +147,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 
         public override string Des => "房间放毒7秒";
 
-        public override int id => 102;
+        public override int id => 104;
         public override double Time => 75;
         public override float WaitForDoneTime => 12;
         public static readonly CachedLayerMask HitregMask = new CachedLayerMask(new string[]
@@ -87,7 +160,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 });
         public override AbilityBase Register(Player player)
         {
-            var a = new SkynetAbility2(player);
+            var a = new DebuggersAbility2(player);
             a.InternalRegister(player);
             return a;
         }
@@ -107,48 +180,59 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             }
             return true;
         }
-        internal SkynetAbility2(Player player) : base(player)
+        internal DebuggersAbility2(Player player) : base(player)
         {
             TotalCount = 1;
         }
-        public SkynetAbility2() : base()
+        public DebuggersAbility2() : base()
         {
             TotalCount = 1;
         }
     }
-    public class SkynetAbility3 : PassAbility
+    public class DebuggersAbility3 : PassAbility
     {
         //public override KeyCode KeyCode => KeyCode.Mouse2;
 
-        public override string Name => "房间锁门";
+        public override string Name => "范围扫描";
 
-        public override string Des => "房间放毒7秒";
+        public override string Des => "扫描周围35m内的敌人";
 
-        public override int id => 102;
+        public override int id => 105;
         //public override double Time => 75;
         //public override float WaitForDoneTime => 12;
-        public static readonly CachedLayerMask HitregMask = new CachedLayerMask(new string[]
-{
-            "Default",
-            "Hitbox",
-            "Glass",
-            "CCTV",
-            "Door"
-});
+        public static AbilityCooldown cd = new();
         public override AbilityBase Register(Player player)
         {
-            var a = new SkynetAbility3(player);
+            var a = new DebuggersAbility3(player);
             a.InternalRegister(player);
             return a;
         }
+        public override string CustomInfoToShow { get =>
+                $"下一次扫描:{cd.Remaining:F0}";
+             set { } }
         public override void OnCheck(Player player)
         {
+            //base.OnCheck(player);
+            if (cd.IsReady)
+            {
+                cd.Trigger(1.5);
+                foreach (var p in Player.Enumerable)
+                {
+                    if (player != p && Vector3.Distance(player.Position, p.Position) <= 35f)
+                    {
+                        if (HitboxIdentity.IsEnemy(player.ReferenceHub, p.ReferenceHub))
+                        {
+                            new DrawableLineMessage(0.5f, Color.red, new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == player.ReferenceHub);
+                        }
+                    }
+                }
+            }
         }
-        internal SkynetAbility3(Player player) : base(player)
+        internal DebuggersAbility3(Player player) : base(player)
         {
             //TotalCount = 1;
         }
-        public SkynetAbility3() : base()
+        public DebuggersAbility3() : base()
         {
             //TotalCount = 1;
         }

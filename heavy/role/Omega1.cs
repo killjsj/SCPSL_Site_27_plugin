@@ -12,6 +12,7 @@ using Exiled.Events.EventArgs.Player;
 using MapGeneration;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
@@ -34,7 +35,7 @@ namespace Next_generationSite_27.UnionP.heavy
     {
         public static uint O1PID = 59;
         [CustomRole(RoleTypeId.NtfCaptain)]
-        public class scp5k_Omega1_P : CustomRole, IDeathBroadcaster
+        public class scp5k_Omega1_P : CustomRolePlus, IDeathBroadcaster
         {
 
             public static scp5k_Omega1_P instance { get; private set; }
@@ -108,7 +109,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint O1SID = 58;
         [CustomRole(RoleTypeId.NtfSergeant)]
-        public class scp5k_Omega1_S : CustomRole, IDeathBroadcaster
+        public class scp5k_Omega1_S : CustomRolePlus, IDeathBroadcaster
         {
 
             public static scp5k_Omega1_S instance { get; private set; }
@@ -190,9 +191,9 @@ namespace Next_generationSite_27.UnionP.heavy
                 var m = new List<SettingBase>() {
                     new ButtonSetting(Plugin.Instance.Config.SettingIds[Features.Omega1ChangeGForce], "修改引力", "", 0.5f, "使周围50m内所有人受到随机引力改变并给队友上伤害抗性", onChanged: (player, sb) =>
                     {
-                        foreach (var p in Player.Enumerable)
+                        foreach (var p in player.CurrentRoom.Players)
                         {
-                            if (Vector3.Distance(player.Position,p.Position) <= 50f)
+                            //if (Vector3.Distance(player.Position,p.Position) <= 50f)
                             {
                                 if (!HitboxIdentity.IsEnemy(p.ReferenceHub,player.ReferenceHub))
                                 {
@@ -220,7 +221,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint O1NID = 60;
         [CustomRole(RoleTypeId.NtfPrivate)]
-        public class scp5k_Omega1_N : CustomRole, IDeathBroadcaster
+        public class scp5k_Omega1_N : CustomRolePlus, IDeathBroadcaster
         {
 
             public static scp5k_Omega1_N instance { get; private set; }

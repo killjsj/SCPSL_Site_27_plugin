@@ -9,6 +9,7 @@ using Exiled.Events.EventArgs.Player;
 using MapGeneration;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
@@ -32,7 +33,7 @@ namespace Next_generationSite_27.UnionP.heavy
     {
         public static uint Nu7PID = 44;
         [CustomRole(RoleTypeId.NtfCaptain)]
-        public class scp5k_Nu7_P : CustomRole, IDeathBroadcaster
+        public class scp5k_Nu7_P : CustomRolePlus, IDeathBroadcaster
         {
 
             public static scp5k_Nu7_P instance { get; private set; }
@@ -53,7 +54,7 @@ namespace Next_generationSite_27.UnionP.heavy
             {
                 Description = "帮助基金会消灭全部人类";
                 this.Role = RoleTypeId.NtfCaptain;
-                MaxHealth = 450;
+                MaxHealth = 150;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-7 小队 队长</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
                 instance = this;
@@ -105,7 +106,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint Nu7SID = 45;
         [CustomRole(RoleTypeId.NtfSergeant)]
-        public class scp5k_Nu7_S : CustomRole, IDeathBroadcaster
+        public class scp5k_Nu7_S : CustomRolePlus, IDeathBroadcaster
         {
 
             public static scp5k_Nu7_S instance { get; private set; }
@@ -125,7 +126,7 @@ namespace Next_generationSite_27.UnionP.heavy
             {
                 Description = "帮助基金会消灭全部人类";
                 this.Role = RoleTypeId.NtfSergeant;
-                MaxHealth = 350;
+                MaxHealth = 135;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-7 小队 重装</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
                 instance = this;

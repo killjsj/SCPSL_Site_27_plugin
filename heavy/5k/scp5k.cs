@@ -37,6 +37,9 @@ using MapGeneration;
 using MapGeneration.StaticHelpers;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.heavy;
+using Next_generationSite_27.UnionP.heavy.ability;
+using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.SpawnPorject;
 using Next_generationSite_27.UnionP.UI;
 using Org.BouncyCastle.Asn1.Crmf;
@@ -67,13 +70,6 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using static  Next_generationSite_27.UnionP.heavy.Goc;
-using static  Next_generationSite_27.UnionP.heavy.Uiu;
-using static  Next_generationSite_27.UnionP.heavy.Nu7;
-using static  Next_generationSite_27.UnionP.heavy.Omega1;
-using static  Next_generationSite_27.UnionP.heavy.bot;
-using static  Next_generationSite_27.UnionP.heavy.Scannner;
-using static  Next_generationSite_27.UnionP.heavy.BombGun;
 using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -85,11 +81,18 @@ using UnityEngine.Rendering;
 using Utils.Networking;
 using VoiceChat.Networking;
 using YamlDotNet.Core.Tokens;
+using static  Next_generationSite_27.UnionP.heavy.BombGun;
+using static  Next_generationSite_27.UnionP.heavy.bot;
+using static  Next_generationSite_27.UnionP.heavy.Goc;
+using static  Next_generationSite_27.UnionP.heavy.Nu7;
+using static  Next_generationSite_27.UnionP.heavy.Omega1;
+using static  Next_generationSite_27.UnionP.heavy.Mu4;
+using static  Next_generationSite_27.UnionP.heavy.Scannner;
+using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
+using static  Next_generationSite_27.UnionP.heavy.Uiu;
 using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 using static RoundSummary;
 using Object = UnityEngine.Object;
-using Next_generationSite_27.UnionP.heavy;
-using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
 namespace Next_generationSite_27.UnionP.Scp5k
 {
     class Scp5k_Control
@@ -269,7 +272,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             return hub.GetCurrentZone() == FacilityZone.LightContainment;
         }
 
-        public static int RespawnedCount = 0;
+        public static int NtfRespawnedCount = 0;
+        public static int CiRespawnedCount = 0;
         public static void RespawningTeam(RespawningTeamEventArgs ev)
         {
             if (!Is5kRound)
@@ -287,14 +291,15 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 players = diedPlayer.ToList();
             }
 
-            RespawnedCount++;
+            //RespawnedCount++;
 
             switch (ev.Wave.Faction)
             {
                 case PlayerRoles.Faction.FoundationStaff:
                     {
-                        if (RespawnedCount <= 2)
+                        if (NtfRespawnedCount <= 2)
                         {
+                        NtfRespawnedCount++;
                             if (UnityEngine.Random.Range(0, 100) < 50)
                             {
                                 ev.IsAllowed = false;
@@ -309,17 +314,22 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             {
                                 TrySpawnO1(players, true, true); ev.IsAllowed = false;
                             }
-                            else
+                            else if(UnityEngine.Random.Range(0, 100) > 30)
                             {
                                 // 保持原行为：允许重生
+                            } else
+                            {
+
+                                TrySpawnMu4(players, true, true); ev.IsAllowed = false;
                             }
                         }
                         break;
                     }
                 case PlayerRoles.Faction.FoundationEnemy:
                     {
-                        if (RespawnedCount < 2)
+                        if (CiRespawnedCount < 2)
                         {
+                            CiRespawnedCount++;
                             if (UnityEngine.Random.Range(0, 100) < 50)
                             {
                                 TrySpawnUiu(players); ev.IsAllowed = false;
@@ -650,9 +660,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
         public static uint Nu22PID = 50;
         [CustomRole(RoleTypeId.NtfCaptain)]
-        public class scp5k_Nu22_P : CustomRole, IDeathBroadcaster
+        public class scp5k_Nu22_P : CustomRolePlus, IDeathBroadcaster
         {
-
+            //public override List<CustomAbility> CustomAbilities { get => base.CustomAbilities; set => base.CustomAbilities = value; }
             public static scp5k_Nu22_P instance { get; private set; }
             public override uint Id { get; set; } = Nu22PID;
             public override int MaxHealth { get; set; }
@@ -675,6 +685,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是 Nu-22 小队 队长</color></size>\n<size=30><color=yellow>帮助基金会消灭全部人类</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
                 instance = this;
+                //abilities.Add(new SuperJumpAbility());
                 this.Inventory = new List<string>()
             {
                 string.Format("{0}", ItemType.ArmorHeavy),
@@ -1033,7 +1044,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             AndSpawnTime = config.AndSpawnTime - config.AndSpawnFloatTime + UnityEngine.Random.Range(0, config.AndSpawnFloatTime * 2);
             UiuSpawned = false;
             //GocSpawned = false;
-            RespawnedCount = 0;
+            NtfRespawnedCount = 0;
+            CiRespawnedCount = 0;
             GOCBomb.CountdownStarted = false;
             
             if (refresher.IsRunning)

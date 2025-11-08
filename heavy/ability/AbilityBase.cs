@@ -20,6 +20,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
     {
         public abstract string Name { get; }
         public abstract string Des { get; }
+        public virtual string CustomInfoToShow { get; set; }
         public abstract int id { get; }
         public AbilityBase() { }
         public override bool Equals(object obj)

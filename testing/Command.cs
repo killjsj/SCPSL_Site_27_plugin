@@ -28,6 +28,7 @@ using MEC;
 using Microsoft.Win32;
 using Mirror;
 using NetworkManagerUtils.Dummies;
+using Next_generationSite_27.UnionP.heavy;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using Org.BouncyCastle.Asn1.X509;
@@ -38,6 +39,7 @@ using PlayerRoles.FirstPersonControl.Thirdperson;
 using PlayerRoles.PlayableScps;
 using PlayerRoles.PlayableScps.Scp049.Zombies;
 using PlayerRoles.PlayableScps.Scp079;
+using PlayerRoles.PlayableScps.Scp079.GUI;
 using PlayerRoles.PlayableScps.Scp079.Pinging;
 using PlayerRoles.PlayableScps.Scp3114;
 using PlayerRoles.PlayableScps.Scp939;
@@ -71,16 +73,15 @@ using VoiceChat.Codec;
 using VoiceChat.Networking;
 using static HintServiceMeow.Core.Models.HintContent.AutoContent;
 using static LightContainmentZoneDecontamination.DecontaminationController;
+using static  Next_generationSite_27.UnionP.heavy.Goc;
+using static Next_generationSite_27.UnionP.heavy.Nu7;
+using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
+using static  Next_generationSite_27.UnionP.heavy.Uiu;
 using static Next_generationSite_27.UnionP.RoomGraph;
 using static UnityEngine.GraphicsBuffer;
 using static UnityEngine.UI.CanvasScaler;
-using static  Next_generationSite_27.UnionP.heavy.Uiu;
-using static  Next_generationSite_27.UnionP.heavy.Goc;
 using Log = Exiled.API.Features.Log;
 using Player = Exiled.API.Features.Player;
-using Next_generationSite_27.UnionP.heavy;
-using static Next_generationSite_27.UnionP.heavy.Nu7;
-using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
 
 namespace Next_generationSite_27.UnionP 
 {
@@ -596,11 +597,11 @@ namespace Next_generationSite_27.UnionP
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class Scp079RedButtonCommand : ICommand
     {
-        string ICommand.Command { get; } = "S079K";
+        string ICommand.Command { get; } = "S079T";
 
         string[] ICommand.Aliases { get; } = new[] { "" };
 
-        string ICommand.Description { get; } = "!!! 使用后将销毁079家的红色按钮 由于进行测试(有bug) 谨慎使用";
+        string ICommand.Description { get; } = "!!! 由于进行测试(有bug) 谨慎使用";
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -611,16 +612,7 @@ namespace Next_generationSite_27.UnionP
                 response = "你没权 （player.KickPower < 12）";
                 return false;
             }
-            ObjectDestroyMessage objectDestroyMessage = default(ObjectDestroyMessage);
-            objectDestroyMessage.netId = Recontainer.ActivatorWindow.Base.netId;
-            ObjectDestroyMessage message = objectDestroyMessage;
-            foreach (Player item in Player.Enumerable)
-            {
-                item.Connection.Send(message);
-            }
-            
-           
-
+            Scp079NotificationManager.AddNotification(new Scp079AccentedNotification("Test,Never gonna giv you up", "#00a2ff", '$'));
             response = $"done!";
             return true;
 

@@ -7,6 +7,7 @@ using Exiled.CustomRoles.API.Features;
 using Exiled.Events.EventArgs.Player;
 using MapGeneration;
 using MEC;
+using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
@@ -27,7 +28,7 @@ namespace Next_generationSite_27.UnionP.heavy
 
         public static uint UiuCID = 32;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Uiu_C : CustomRole, IDeathBroadcaster
+        public class scp5k_Uiu_C : CustomRolePlus, IDeathBroadcaster
         {
             public string CassieBroadcast => "U I U";
 
@@ -47,7 +48,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 ins = this;
                 Description = "与安德森机器人合作 调查基金会为什么毁灭人类\n下载完资料后撤离";
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 130;
+                MaxHealth = 110;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU 突袭小组 队员</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往机房下载资料 下载完资料后撤离</color></size>", 4);
                 //p.AddMessage("messID", "你是 反基金会 团队 消灭一切基金会团队的成员", 2f, ScreenLocation.Center));
                 this.IgnoreSpawnSystem = true;
@@ -124,7 +125,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint UiuPID = 28;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Uiu_P : CustomRole, IDeathBroadcaster
+        public class scp5k_Uiu_P : CustomRolePlus, IDeathBroadcaster
         {
             public string CassieBroadcast => "U I U";
 
@@ -144,7 +145,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 ins = this;
                 Description = "与安德森机器人合作 调查基金会为什么毁灭人类\n下载完资料后撤离";
                 this.Role = RoleTypeId.Tutorial;
-                MaxHealth = 150;
+                MaxHealth = 135;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是UIU 突袭小组 队长</color></size>\n<size=30><color=yellow>调查基金会为什么毁灭人类\n前往机房下载资料 下载完资料后撤离</color></size>", 4);
 
 

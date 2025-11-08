@@ -67,7 +67,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 this.Role = RoleTypeId.Tutorial;
                 this.Gravity = new UnityEngine.Vector3(0, -14f, 0);
                 MaxHealth = 140;
-                this.DisplayCustomItemMessages = true;
+                this.DisplayCustomItemMessages = false;
                 Broadcast = new Exiled.API.Features.Broadcast("<size=40><color=red>你是安德森机器人</color></size>\n<size=30><color=yellow>与反scp基金会势力合作</color></size>", 4);
                 this.IgnoreSpawnSystem = true;
 
@@ -78,7 +78,9 @@ namespace Next_generationSite_27.UnionP.heavy
                 string.Format("{0}", ItemType.Painkillers),
                 string.Format("{0}", ItemType.KeycardChaosInsurgency),
                 string.Format("{0}", ItemType.ParticleDisruptor),
-                string.Format("{0}", ItemType.GunE11SR)
+                string.Format("{0}", ItemType.GunE11SR),
+                Bot_GUN.bot_gun.ins.Name,
+                //scanner.ins.Name
             };
                 base.Init();
             }
@@ -122,7 +124,6 @@ namespace Next_generationSite_27.UnionP.heavy
                             ev.Player.ClearItems();
                             foreach (string itemName in Inventory)
                             {
-                                scanner.ins.Give(p, false);
                                 TryAddItem(ev.Player, itemName);
                             }
                             p.AddMessage("", $"<color=red><size=30>你还有 {totalLives} 次复活机会</size></color>", 1.5f, ScreenLocation.Center);

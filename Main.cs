@@ -351,7 +351,6 @@ namespace Next_generationSite_27.UnionP
                 Log.Error("❌ 反射设置失败: " + e.Message);
             }
 
-            CustomRole.RegisterRoles(assembly:Assembly);
             CustomItem.RegisterItems();
             //RemoteAdmin.CommandProcessor.RemoteAdminCommandHandler.RegisterCommand();
             max_active_g = Config.maxbomb;
@@ -369,6 +368,7 @@ File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_1.wav"));
     File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_countdown.wav"));
             DefaultAudioManager.RegisterAudio("decont_begun", () =>
 File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
+            CustomRole.RegisterRoles(assembly:Assembly);
             base.OnEnabled();
         }
         public void OnLeft(LeftEventArgs ev)

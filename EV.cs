@@ -30,6 +30,7 @@ using MEC;
 using Mirror;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
+using Next_generationSite_27.UnionP.heavy.ability;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
@@ -496,7 +497,7 @@ namespace Next_generationSite_27.UnionP
         public Dictionary<Player, int> PlayerTicket = new Dictionary<Player, int>();
         public void RoundStarted()
         {
-
+            PassAbility.Init();
             testing.FlightFailed.Start();
 
             if (config.RoundSelfChoose)

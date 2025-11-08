@@ -8,6 +8,8 @@ using Exiled.Events.EventArgs.Player;
 using MapGeneration;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.heavy.ability;
+using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
@@ -42,7 +44,7 @@ namespace Next_generationSite_27.UnionP.heavy
 
         [CustomRole(RoleTypeId.Tutorial)]
 
-        public class scp5k_Bot : CustomRole, IDeathBroadcaster
+        public class scp5k_Bot : CustomRolePlus, IDeathBroadcaster
         {
             public static scp5k_Bot ins;
             public string CassieBroadcast => "And Saw";
@@ -59,6 +61,8 @@ namespace Next_generationSite_27.UnionP.heavy
             public override void Init()
             {
                 ins = this;
+                abilities.Add(new TPAbility());
+                abilities.Add(new NoSoundMove());
                 Description = "与反scp基金会势力合作";
                 this.Role = RoleTypeId.Tutorial;
                 this.Gravity = new UnityEngine.Vector3(0, -14f, 0);

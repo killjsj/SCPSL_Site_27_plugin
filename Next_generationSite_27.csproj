@@ -423,7 +423,12 @@
     <Compile Include="configs\Translation.cs" />
     <Compile Include="customWeapon.cs" />
     <Compile Include="dude.cs" />
+    <Compile Include="heavy\ability\NoSoundMove.cs" />
+    <Compile Include="heavy\ability\SkyNet.cs" />
+    <Compile Include="heavy\ability\TP.cs" />
+    <Compile Include="heavy\ability\AbilityBase.cs" />
     <Compile Include="heavy\Gun_JS_L1.cs" />
+    <Compile Include="heavy\role\CustomRolePlus.cs" />
     <Compile Include="heavy\SpeedBuildItem.cs" />
     <Compile Include="heavy\example.cs" />
     <Compile Include="heavy\Omega1.cs" />

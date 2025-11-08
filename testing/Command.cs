@@ -308,17 +308,6 @@ namespace Next_generationSite_27.UnionP
                 writer.WriteUShort((ushort)Mathf.Clamp(Mathf.CeilToInt(player.MaxHealth), ushort.MinValue, ushort.MaxValue));
                 writer.WriteBool(true);
             }
-            if (roleBase is Scp1507Role)
-            {
-                // 替换所有 "is not" 模式为 C# 7.3 兼容写法
-                // 原代码：
-                // if (player.Role.Base is not ZombieRole)
-                // 替换为：
-                if (!(player.Role.Base is Scp1507Role))
-                    isRisky = true;
-
-                writer.WriteByte((byte)player.Role.SpawnReason);
-            }
 
             if (roleBase is FpcStandardRoleBase fpc)
             {
@@ -616,7 +605,7 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            Player Owner = null;
+            //Player Owner = null;
             if (runner.KickPower < 12)
             {
                 response = "你没权 （player.KickPower < 12）";

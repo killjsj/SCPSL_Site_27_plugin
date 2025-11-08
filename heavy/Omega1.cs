@@ -179,6 +179,12 @@ namespace Next_generationSite_27.UnionP.heavy
 
                 base.RoleAdded(player);
             }
+            protected override void RoleRemoved(Player player)
+            {
+                Plugin.Unregister(player, Plugin.MenuCache.Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Omega1ChangeGForce]));
+
+                base.RoleRemoved(player);
+            }
             public static void MenuInit()
             {
                 var m = new List<SettingBase>() {

@@ -64,6 +64,7 @@ namespace Next_generationSite_27.UnionP
     class Plugin : Exiled.API.Features.Plugin<PConfig>
     {
 
+        public static IEnumerable<SettingBase> Register(Player player, SettingBase setting,bool bypassCheck = false) => Register(player, new SettingBase[] { setting },bypassCheck);
         public static IEnumerable<SettingBase> Register(Player player, IEnumerable<SettingBase> settings,bool bypassCheck = false)
         {
             var playerMenu = GetPlayerRegistered(player);
@@ -78,6 +79,7 @@ namespace Next_generationSite_27.UnionP
             return result;
         }
 
+        public static IEnumerable<SettingBase> Unregister(Player player, SettingBase setting = null, bool bypassCheck = false) => Unregister(player, new SettingBase[] { setting }, bypassCheck);
         public static IEnumerable<SettingBase> Unregister(Player player, IEnumerable<SettingBase> settings = null, bool bypassCheck = false)
         {
             var playerMenu = GetPlayerRegistered(player);

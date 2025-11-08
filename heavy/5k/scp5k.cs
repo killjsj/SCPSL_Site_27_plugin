@@ -556,9 +556,9 @@ namespace Next_generationSite_27.UnionP.Scp5k
             Log.Info("Refresher!");
 
             const float REFRESH_INTERVAL = 2.0f; // 每 2 秒刷新一次
-            const float STATUS_CHECK_INTERVAL = 5.0f; // 每 5 秒更新一次阵营统计
+            //const float STATUS_CHECK_INTERVAL = 5.0f; // 每 5 秒更新一次阵营统计
 
-            float statusTimer = 0f;
+            //float statusTimer = 0f;
             float waveTimer = 0f;
 
             var tempList = new List<Player>(64);
@@ -1568,7 +1568,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     }
                     else
                     {
-                        RoundSummary.SumInfo_ClassList newList = default(RoundSummary.SumInfo_ClassList);
+                        //RoundSummary.SumInfo_ClassList newList = default(RoundSummary.SumInfo_ClassList);
                         int ntfScp = 0;
                         //int lightRunner = 0;
                         int chaos = 0;

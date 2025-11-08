@@ -83,7 +83,7 @@ namespace Next_generationSite_27.UnionP
             rec = Timing.RunCoroutine(RefreshAllPlayers(), segment: Segment.FixedUpdate);
 
             Plugin.MenuCache.AddRange(Menu());
-            base.Init();
+            //base.Init();
         }
         public static CoroutineHandle rec;
         public override void Delete()

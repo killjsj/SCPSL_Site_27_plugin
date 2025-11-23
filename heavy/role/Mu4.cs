@@ -63,6 +63,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 instance = this;
                 abilities.Add(new DebuggersAbility1());
                 abilities.Add(new DebuggersAbility2());
+                //abilities.Add(new TestAbility1());
                 this.Inventory = new List<string>()
             {
                 string.Format("{0}", ItemType.ArmorHeavy),

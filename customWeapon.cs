@@ -7,6 +7,7 @@ using Exiled.API.Features.Spawn;
 using Exiled.CustomItems.API.Features;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
+using Next_generationSite_27.UnionP.heavy.role;
 using PlayerStatsSystem;
 using System;
 using System.Collections.Generic;
@@ -18,7 +19,7 @@ using System.Threading.Tasks;
 namespace Next_generationSite_27.UnionP
 {
     [CustomItem(ItemType.Jailbird)]
-    class WhipS : CustomItem
+    class WhipS : CustomItemPlus
     {
         public static uint WhipId = 411;
         public override uint Id { get => WhipId; set { } }

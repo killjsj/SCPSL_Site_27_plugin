@@ -59,11 +59,11 @@ namespace Next_generationSite_27.UnionP.heavy
                         {
                             if (HitboxIdentity.IsEnemy(player.ReferenceHub, p.ReferenceHub))
                             {
-                                new DrawableLineMessage(0.6f, Color.red, new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == p.ReferenceHub);
+                                new DrawableLineMessage(0.6f, Color.red * new Color(1,1,1, 1-(Vector3.Distance(player.Position, p.Position) / 150) + 0.01f), new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == p.ReferenceHub);
                             }
                             else
                             {
-                                new DrawableLineMessage(0.6f, Color.green, new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == p.ReferenceHub);
+                                new DrawableLineMessage(0.6f, Color.green * new Color(1, 1, 1, 1 - (Vector3.Distance(player.Position, p.Position) / 150) + 0.01f), new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == p.ReferenceHub);
                             }
                         }
                     }

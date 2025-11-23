@@ -189,7 +189,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             TotalCount = 1;
         }
     }
-    public class DebuggersAbility3 : PassAbility
+    public class DebuggersAbility3 : PassAbility, ITiming
     {
         //public override KeyCode KeyCode => KeyCode.Mouse2;
 
@@ -207,22 +207,25 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             a.InternalRegister(player);
             return a;
         }
-        public override string CustomInfoToShow { get =>
-                $"下一次扫描:{cd.Remaining:F0}";
-             set { } }
+
+        float ITiming.CoolDownRemaining { get => cd.Remaining; set => cd.Remaining = value; }
+        float ITiming.DoneRemaining { get => 0; set { } }
+
+        bool ITiming.Done => true;
+
         public override void OnCheck(Player player)
         {
             //base.OnCheck(player);
             if (cd.IsReady)
             {
-                cd.Trigger(1.5);
+                cd.Trigger(2.5);
                 foreach (var p in Player.Enumerable)
                 {
                     if (player != p && Vector3.Distance(player.Position, p.Position) <= 35f)
                     {
                         if (HitboxIdentity.IsEnemy(player.ReferenceHub, p.ReferenceHub))
                         {
-                            new DrawableLineMessage(0.5f, Color.red, new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == player.ReferenceHub);
+                            new DrawableLineMessage(0.5f, Color.red * new Color(1, 1, 1, 1-(Vector3.Distance(player.Position, p.Position) / 150 )+ 0.01f), new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == player.ReferenceHub);
                         }
                     }
                 }

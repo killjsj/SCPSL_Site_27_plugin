@@ -254,7 +254,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint GocBombItemId = 5514;
         [CustomItem(ItemType.Coin)]
-        public class scp5k_GocBomb : CustomItem
+        public class scp5k_GocBomb : CustomItemPlus
         {
             public override uint Id { get; set; } = GocBombItemId;
             public override string Name { get; set; } = "Goc奇术发生器";

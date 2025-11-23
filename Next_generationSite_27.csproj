@@ -424,6 +424,7 @@
     <Compile Include="customWeapon.cs" />
     <Compile Include="dude.cs" />
     <Compile Include="heavy\ability\NoSoundMove.cs" />
+    <Compile Include="heavy\ability\testing.cs" />
     <Compile Include="heavy\ability\SkyNet.cs" />
     <Compile Include="heavy\ability\Jump.cs" />
     <Compile Include="heavy\ability\TP.cs" />

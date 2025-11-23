@@ -16,8 +16,49 @@ namespace Next_generationSite_27.UnionP.heavy.ability
         public T Register(Player player);
         public void Unregister(Player player);
     }
+    public interface IitemRegisiterNeeded<T>
+    {
+        public T Register(ushort serial);
+        public void Unregister(ushort serial);
+    }
+    public interface ICounted
+    {
+        public int TotalCount { get; set; }      // 最大次数
+        public int count { get; set; }           // 当前剩余次数
+    }
+    public interface ITiming
+    {
+        public float CoolDownRemaining { get; set; }
+        public float DoneRemaining { get; set; }
+        public bool Done { get; }
+    }
     public abstract class AbilityBase
     {
+        public static Dictionary<Player, List<AbilityBase>> PlayerAbilities = new Dictionary<Player, List<AbilityBase>>();
+
+        public static bool RegisitForPlayer(Player player, AbilityBase ab) => RegisitForPlayer(player, new AbilityBase[] { ab });
+        public static bool RegisitForPlayer(Player player, IEnumerable<AbilityBase> abs)
+        {
+            if (player == null) return false;
+            if (!PlayerAbilities.TryGetValue(player, out var list))
+            {
+                list = new List<AbilityBase>();
+                PlayerAbilities.Add(player, list);
+            }
+            list.AddRange(abs);
+            return true;
+        }
+        public static bool UnregisitForPlayer(Player player, AbilityBase ab) => UnregisitForPlayer(player, new AbilityBase[] { ab });
+        public static bool UnregisitForPlayer(Player player, IEnumerable<AbilityBase> abs)
+        {
+            if (player == null) return false;
+            if (!PlayerAbilities.TryGetValue(player, out var list))
+            {
+                return true;
+            }
+            list.RemoveAll(x=>abs.Contains(x));
+            return true;
+        }
         public abstract string Name { get; }
         public abstract string Des { get; }
         public virtual string CustomInfoToShow { get; set; }
@@ -38,21 +79,33 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             return id.GetHashCode();
         }
     }
-    public abstract class CoolDownAbility : AbilityBase, IRegisiterNeeded<AbilityBase>
+    public abstract class ItemAbilityBase : AbilityBase { 
+        public ushort OwnerId { get; set; }
+        public static Dictionary<ushort, List<ItemAbilityBase>> ItemABs = new();
+        internal ItemAbilityBase(ushort ownerId)
+        {
+            OwnerId = ownerId;
+        }
+    }
+    public abstract class CoolDownAbility : AbilityBase, IRegisiterNeeded<AbilityBase>, ICounted, ITiming
     {
         public virtual double Time { get; } = 30;              // 主冷却时间
         public virtual float WaitForDoneTime { get; } = 0;     // 动作执行时间（短暂冷却）
         public virtual int TotalCount { get; set; } = 1;       // 最大次数
-        public int count { get; protected set; } = 1;           // 当前剩余次数
+        public int count { get; set; } = 1;           // 当前剩余次数
 
         public AbilityCooldown cooldown = new AbilityCooldown();     // 主冷却
         public AbilityCooldown DoneCooldown = new AbilityCooldown(); // 执行动作间隔冷却
 
         public virtual Player player { get; set; }
+        public virtual float CoolDownRemaining { get => cooldown.Remaining; set => cooldown.Remaining = value; }
+        public virtual float DoneRemaining { get => DoneCooldown.Remaining; set => DoneCooldown.Remaining = value; }
+        public virtual bool Done { get => DoneCooldown.IsReady;}
 
         internal CoolDownAbility(Player layer)
         {
             player = layer;
+            count = TotalCount;
         }
 
         public CoolDownAbility() { }

@@ -1919,7 +1919,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Scp055ItemID = 5055;
         [CustomItem(ItemType.Lantern)]
-        public class scp5k_055 : CustomItem
+        public class scp5k_055 : CustomItemPlus
         {
             public override uint Id { get; set; } = Scp055ItemID;
             public override string Name { get; set; } = "SCP-055";

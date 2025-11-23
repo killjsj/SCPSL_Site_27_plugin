@@ -15,6 +15,7 @@ using MapGeneration;
 using MapGeneration.StaticHelpers;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
@@ -42,10 +43,10 @@ namespace Next_generationSite_27.UnionP.heavy
 
         public static uint SpeedBuildItemID = 5096;
         [CustomItem(ItemType.GrenadeFlash)]
-        public class SpeedBuildItem : CustomItem
+        public class SpeedBuildItem : CustomItemPlus
         {
 
-            public static CustomItem instance { get; private set; }
+            public static CustomItemPlus instance { get; private set; }
             public override uint Id { get; set; } = SpeedBuildItemID;
             public override string Name { get; set; } = "速凝掩体";
             public override string Description { get; set; }

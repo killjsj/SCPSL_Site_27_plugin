@@ -37,12 +37,6 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             "CCTV",
             "Door"
 });
-        public override AbilityBase Register(Player player)
-        {
-            var a = new Scp079Ability1(player);
-            a.InternalRegister(player);
-            return a;
-        }
         public override bool OnTrigger()
         {
             if (player.Role is Scp079Role role)
@@ -103,12 +97,6 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             "CCTV",
             "Door"
 });
-        public override AbilityBase Register(Player player)
-        {
-            var a = new DebuggersAbility1(player);
-            a.InternalRegister(player);
-            return a;
-        }
         public override bool OnTrigger()
         {
             var r = new Ray(player.CameraTransform.position + player.CameraTransform.forward * 0.8f, player.CameraTransform.forward);
@@ -158,12 +146,6 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             "CCTV",
             "Door"
 });
-        public override AbilityBase Register(Player player)
-        {
-            var a = new DebuggersAbility2(player);
-            a.InternalRegister(player);
-            return a;
-        }
         public override bool OnTrigger()
         {
             var r = new Ray(player.CameraTransform.position + player.CameraTransform.forward * 0.8f, player.CameraTransform.forward);

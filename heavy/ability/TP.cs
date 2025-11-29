@@ -32,12 +32,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             "CCTV",
             "Door"
 });
-        public override AbilityBase Register(Player player)
-        {
-            var a = new TPAbility(player);
-            a.InternalRegister(player);
-            return a;
-        }
+
         public override bool OnTrigger()
         {
             var r = new Ray(player.CameraTransform.position + player.CameraTransform.forward * 0.8f, player.CameraTransform.forward);

@@ -1,6 +1,7 @@
 ﻿using Exiled.API.Features;
 using Exiled.API.Features.Core.UserSettings;
 using MEC;
+using Mirror;
 using PlayerRoles.Subroutines;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ using UnityEngine;
 
 namespace Next_generationSite_27.UnionP.heavy.ability
 {
-    public interface IRegisiterNeeded<T>
+    public interface IRegisiterNeeded<T> where T : AbilityBase
     {
         public T Register(Player player);
         public void Unregister(Player player);
@@ -35,6 +36,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
     public abstract class AbilityBase
     {
         public static Dictionary<Player, List<AbilityBase>> PlayerAbilities = new Dictionary<Player, List<AbilityBase>>();
+        public readonly int offset = 5000;
 
         public static bool RegisitForPlayer(Player player, AbilityBase ab) => RegisitForPlayer(player, new AbilityBase[] { ab });
         public static bool RegisitForPlayer(Player player, IEnumerable<AbilityBase> abs)
@@ -62,7 +64,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
         public abstract string Name { get; }
         public abstract string Des { get; }
         public virtual string CustomInfoToShow { get; set; }
-        public abstract int id { get; }
+        public virtual int id => this.GetType().FullName.GetStableHashCode() + offset;
         public AbilityBase() { }
         public override bool Equals(object obj)
         {
@@ -86,6 +88,9 @@ namespace Next_generationSite_27.UnionP.heavy.ability
         {
             OwnerId = ownerId;
         }
+        public ItemAbilityBase()
+        {
+        }
     }
     public abstract class CoolDownAbility : AbilityBase, IRegisiterNeeded<AbilityBase>, ICounted, ITiming
     {
@@ -100,7 +105,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
         public virtual Player player { get; set; }
         public virtual float CoolDownRemaining { get => cooldown.Remaining; set => cooldown.Remaining = value; }
         public virtual float DoneRemaining { get => DoneCooldown.Remaining; set => DoneCooldown.Remaining = value; }
-        public virtual bool Done { get => DoneCooldown.IsReady;}
+        public virtual bool Done { get => DoneCooldown.IsReady; }
 
         internal CoolDownAbility(Player layer)
         {
@@ -126,7 +131,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             count--;
 
             // 启动动作结束等待
-            if(cooldown.IsReady)cooldown.Trigger(WaitForDoneTime);
+            if (cooldown.IsReady) cooldown.Trigger(WaitForDoneTime);
             DoneCooldown.Trigger(WaitForDoneTime);
             Plugin.RunCoroutine(cooldownStart());
         }
@@ -153,7 +158,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
                 {
                     count++;
                     // 重新启动下一次恢复冷却
-                    if(count < TotalCount) cooldown.Trigger(Time);
+                    if (count < TotalCount) cooldown.Trigger(Time);
                 }
 
                 yield return Timing.WaitForSeconds(0.3f);
@@ -180,6 +185,12 @@ namespace Next_generationSite_27.UnionP.heavy.ability
         //public abstract void OnTrigger(Player player);
         public SettingBase setting = null;
         public abstract KeyCode KeyCode { get; }
+        public override AbilityBase Register(Player player)
+        {
+            var a = (KeyAbility)Activator.CreateInstance(this.GetType(), player);
+            a.InternalRegister(player);
+            return a;
+        }
         //public string Des;
         public KeyAbility() : base()
         {

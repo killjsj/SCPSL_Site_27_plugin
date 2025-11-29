@@ -81,18 +81,20 @@ using UnityEngine.Rendering;
 using Utils.Networking;
 using VoiceChat.Networking;
 using YamlDotNet.Core.Tokens;
-using static  Next_generationSite_27.UnionP.heavy.BombGun;
-using static  Next_generationSite_27.UnionP.heavy.bot;
-using static  Next_generationSite_27.UnionP.heavy.Goc;
-using static  Next_generationSite_27.UnionP.heavy.Nu7;
-using static  Next_generationSite_27.UnionP.heavy.Omega1;
-using static  Next_generationSite_27.UnionP.heavy.Mu4;
-using static  Next_generationSite_27.UnionP.heavy.Scannner;
+using static Next_generationSite_27.UnionP.heavy.BombGun;
+using static Next_generationSite_27.UnionP.heavy.bot;
+using static Next_generationSite_27.UnionP.heavy.Goc;
+using static Next_generationSite_27.UnionP.heavy.Nu7;
+using static Next_generationSite_27.UnionP.heavy.Omega1;
+using static Next_generationSite_27.UnionP.heavy.Mu4;
+using static Next_generationSite_27.UnionP.heavy.Scannner;
 using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
-using static  Next_generationSite_27.UnionP.heavy.Uiu;
+using static Next_generationSite_27.UnionP.heavy.Uiu;
 using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 using static RoundSummary;
 using Object = UnityEngine.Object;
+using System.IO;
+using System.Runtime.CompilerServices;
 namespace Next_generationSite_27.UnionP.Scp5k
 {
     class Scp5k_Control
@@ -299,7 +301,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     {
                         if (NtfRespawnedCount <= 2)
                         {
-                        NtfRespawnedCount++;
+                            NtfRespawnedCount++;
                             if (UnityEngine.Random.Range(0, 100) < 50)
                             {
                                 ev.IsAllowed = false;
@@ -314,10 +316,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             {
                                 TrySpawnO1(players, true, true); ev.IsAllowed = false;
                             }
-                            else if(UnityEngine.Random.Range(0, 100) > 30)
+                            else if (UnityEngine.Random.Range(0, 100) > 30)
                             {
                                 // 保持原行为：允许重生
-                            } else
+                            }
+                            else
                             {
 
                                 TrySpawnMu4(players, true, true); ev.IsAllowed = false;
@@ -386,7 +389,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Scp610MID = 43;
         [CustomRole(RoleTypeId.Scp0492)]
-        public class scp5k_Scp610_mother : CustomRole, IDeathBroadcastable
+        public class scp5k_Scp610_mother : CustomRolePlus, IDeathBroadcastable
         {
             public static scp5k_Scp610_mother instance { get; private set; }
             public override uint Id { get => Scp610MID; set => Scp610MID = value; }
@@ -421,7 +424,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Scp610SID = 46;
         [CustomRole(RoleTypeId.Scp0492)]
-        public class scp5k_Scp610 : CustomRole
+        public class scp5k_Scp610 : CustomRolePlus
         {
             public static scp5k_Scp610 instance { get; private set; }
             public string CassieBroadcast => "SCP 6 1 0";
@@ -454,7 +457,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 base.RoleAdded(player);
             }
         }
-        
+
         public static void Escaping(EscapingEventArgs ev)
         {
             if (Is5kRound)
@@ -577,14 +580,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
             while (true)
             {
                 //sw.Restart();
-                    if (GOCAnim.donating)
+                if (GOCAnim.donating)
+                {
+                    foreach (var item in Player.Enumerable)
                     {
-                        foreach (var item in Player.Enumerable)
-                        {
-                            item.EnableEffect(Exiled.API.Enums.EffectType.SoundtrackMute, 1, 600f);
-                            item.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 1, 600f);
-                        }
+                        item.EnableEffect(Exiled.API.Enums.EffectType.SoundtrackMute, 1, 600f);
+                        item.EnableEffect(Exiled.API.Enums.EffectType.FogControl, 1, 600f);
                     }
+                }
 
                 // --- 波次与刷新控制 ---
                 waveTimer += REFRESH_INTERVAL;
@@ -739,7 +742,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint Nu22SID = 51;
         [CustomRole(RoleTypeId.NtfSergeant)]
-        public class scp5k_Nu22_S : CustomRole, IDeathBroadcaster
+        public class scp5k_Nu22_S : CustomRolePlus, IDeathBroadcaster
         {
 
             public static scp5k_Nu22_S instance { get; private set; }
@@ -816,7 +819,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
         public static uint Scp1440ID = 52;
         [CustomRole(RoleTypeId.Tutorial)]
-        public class scp5k_Scp1440 : CustomRole, IDeathBroadcastable, IDeathBroadcaster
+        public class scp5k_Scp1440 : CustomRolePlus, IDeathBroadcastable, IDeathBroadcaster
         {
 
             public static scp5k_Scp1440 instance { get; private set; }
@@ -1030,14 +1033,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
             IsMotherDied = false;
             GocNuke = false;
             IsForce5kRound = false;
-            
+
             LastChangedWarheadIsGoc = false;
             Scp055Escaped = false;
             HammerSpawned = false;
             IsO5NukeEnd = true;
             _Decont_NextIsOepn = true;
             Nu22Spawned = false;
-            
+
             HammerSpawnedBroadcast = false;
             IsO5NukeEnd = UnityEngine.Random.Range(0, 100) < 50;
             UiUSpawnTime = config.UiUSpawnTime - config.UiUSpawnFloatTime + UnityEngine.Random.Range(0, config.UiUSpawnFloatTime * 2);
@@ -1047,7 +1050,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             NtfRespawnedCount = 0;
             CiRespawnedCount = 0;
             GOCBomb.CountdownStarted = false;
-            
+
             if (refresher.IsRunning)
             {
                 Timing.KillCoroutines(refresher);
@@ -1152,7 +1155,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
 
                             //Pickup.CreateAndSpawn(ItemType.Gu)
-
+                            Log.Info($"Saying O5");
                         }
                     }
                     catch (Exception ex)
@@ -1160,6 +1163,55 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         Log.Warn(ex.ToString());
                     }
                 });
+        }
+        public static void StartSubtitles()
+        {
+            Plugin.RunCoroutine(StartSubtitlesInternal());
+        }
+        private static IEnumerator<float> StartSubtitlesInternal()
+        {
+
+            //DefaultAudioManager.
+            Cassie.Clear();
+            string Message1 = $"正在接收广播...";
+            Message1.CustomCassieMessage("???");
+            yield return Timing.WaitForSeconds(5f);
+
+            DefaultAudioManager.Play("Scp500_StartAudio");
+            string Message2 = $"以下信息经 O5 议会一致决定通过后撰写发布。";
+            Message2.CustomCassieMessage("O5 Command");
+            yield return Timing.WaitForSeconds(5f);
+            Cassie.Clear();
+
+            string Message3 = $"那些目前仍未注意到我们的存在的人，我们代表着一个称作 SCP 基金会的组织。";
+            Message3.CustomCassieMessage("O5 Command");
+            //
+            yield return Timing.WaitForSeconds(7f);
+            Cassie.Clear();
+
+            string Message31 = $"我们之前的任务都是围绕着收容与研究异常物体、实体以及其它各种各样的现象展开的。";
+            Message31.CustomCassieMessage("O5 Command");
+            yield return Timing.WaitForSeconds(8f);
+            Cassie.Clear();
+
+            string Message32 = $"上百年以来，这些任务一直都是我们组织的工作重点。";
+            Message32.CustomCassieMessage("O5 Command");
+            yield return Timing.WaitForSeconds(4f);
+            Cassie.Clear();
+
+            string Message4 = $"由于出现了超出我们控制的情况，此指令现已更改。";
+            Message4.CustomCassieMessage("O5 Command");
+            yield return Timing.WaitForSeconds(5.5f);
+            Cassie.Clear();
+
+            string Message5 = $"我们的新任务将为<color=red>灭除全人类。</color>";
+            Message5.CustomCassieMessage("O5 Command");
+            yield return Timing.WaitForSeconds(4f);
+            Cassie.Clear();
+
+            string Message6 = $"此后将没有进一步通信。";
+            Message6.CustomCassieMessage("O5 Command");
+
         }
         public static Dictionary<RoleTypeId, float> SCPFF = new Dictionary<RoleTypeId, float>()
         {
@@ -1663,10 +1715,10 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
 
 
-        
+
         public static uint ColorChanger = 35;
         [CustomRole(RoleTypeId.ClassD)]
-        public class ColorChangerRole : CustomRole
+        public class ColorChangerRole : CustomRolePlus
         {
 
             public static ColorChangerRole instance { get; private set; }
@@ -1830,7 +1882,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         }
         public static uint SciID = 34;
         [CustomRole(RoleTypeId.Scientist)]
-        public class scp5k_Sci : CustomRole
+        public class scp5k_Sci : CustomRolePlus
         {
             public static scp5k_Sci ins;
             public override uint Id { get; set; } = SciID;
@@ -1981,10 +2033,37 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 base.Init();
             }
         }
-        
+        public class AEHAbility : ItemKeyAbility
+        {
+            public override KeyCode KeyCode => KeyCode.K;
+
+            public override string Name => "隐身";
+
+            public override string Des => "主动隐身";
+            public override float WaitForDoneTime => 45;
+            public override double Time => 145;
+            public override int TotalCount { get => base.TotalCount; set => base.TotalCount = value; }
+            public override bool OnTrigger()
+            {
+                player.EnableEffect(Exiled.API.Enums.EffectType.Fade, 255, 45);
+
+                player.AddMessage("AEH_INVESS" + DateTime.Now.ToString(), "<color=red>成功隐身</color>", 3f, ScreenLocation.Center);
+                Timing.CallDelayed(45, () =>
+                {
+                    player.AddMessage("AEH_INVESS_END" + DateTime.Now.ToString(), "<color=red>隐身结束</color>", 3f, ScreenLocation.Center);
+                });
+                return true;
+            }
+
+
+            public override void Unregister(Player player)
+            {
+                base.Unregister(player);
+            }
+        }
         public static uint AEHItemID = 5159;
         [CustomItem(ItemType.ArmorHeavy)]
-        public class scp5k_AEH : CustomArmor
+        public class scp5k_AEH : heavy.role.CustomArmor
         {
             public override uint Id { get; set; } = AEHItemID;
             public override string Name { get; set; } = "绝对排斥护具";
@@ -1992,67 +2071,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
             public override float Weight { get; set; } = 55;
             public override SpawnProperties SpawnProperties { get; set; } = null;
             public override Vector3 Scale { get; set; } = new Vector3(2f, 2f, 2f);
-            protected override void ShowPickedUpMessage(Player player)
-            {
-                player.Broadcast(4, "", global::Broadcast.BroadcastFlags.Normal, true);
-                var p = player;
-
-                p.AddMessage("AEH_GET_HINT" + DateTime.Now.ToString(), "<size=28><color=red>你获得了绝对排斥护具,请查看Server-Specific修改按键</color></size>", 4f, ScreenLocation.Center);
-
-                base.ShowPickedUpMessage(player);
-            }
-            protected override void OnPickingUp(PickingUpItemEventArgs ev)
-            {
-                if (Check(ev.Pickup))
-                {
-                    if (!Plugin.MenuCache.Any(x => x.Id == Plugin.plugin.Config.SettingIds[Features.AEHKey]))
-                        Plugin.MenuCache.AddRange(MenuInit());
-                    Plugin.Unregister(ev.Player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.AEHKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kHeader]));
-                    Plugin.Register(ev.Player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.AEHKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kHeader]));
-
-                    base.OnPickingUp(ev);
-                }
-            }
-            void SearchingItem(SearchingPickupEventArgs ev)
-            {
-                if (Check(ev.Pickup))
-                {
-                    var p = ev.Player;
-                    //
-
-                }
-            }
-            protected override void OnDroppingItem(DroppingItemEventArgs ev)
-            {
-                if (Check(ev.Item))
-                {
-                    Plugin.Unregister(ev.Player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.AEHKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kHeader]));
-                }
-                base.OnDroppingItem(ev);
-            }
-            // 修复 OnOwnerChangingRole 方法中的集合修改异常
-            protected override void OnOwnerChangingRole(OwnerChangingRoleEventArgs ev)
-            {
-                // 先收集需要移除的 item，避免在遍历时修改集合
-                var itemsToDrop = ev.Player.Items.Where(Check).ToList();
-                foreach (var item in itemsToDrop)
-                {
-                    ev.Player.DropItem(item);
-                    Plugin.Unregister(ev.Player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.AEHKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kHeader]));
-
-                }
-                base.OnOwnerChangingRole(ev);
-            }
-            protected override void SubscribeEvents()
-            {
-                Exiled.Events.Handlers.Player.SearchingPickup += SearchingItem;
-                base.SubscribeEvents();
-            }
-            protected override void UnsubscribeEvents()
-            {
-                Exiled.Events.Handlers.Player.SearchingPickup -= SearchingItem;
-                base.UnsubscribeEvents();
-            }
             protected override void OnUpgrading(UpgradingEventArgs ev)
             {
                 if (Check(ev.Pickup))
@@ -2061,72 +2079,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                     base.OnUpgrading(ev);
                 }
             }
-            public static Dictionary<string, Stopwatch> CoolDowns = new Dictionary<string, Stopwatch>();
-            public List<SettingBase> MenuInit()
-            {
-                var settings = new List<SettingBase>();
-                settings.Add(new HeaderSetting(Plugin.Instance.Config.SettingIds[Features.Scp5kHeader], "5k插件"));
 
-                settings.Add(new KeybindSetting(
-                    Plugin.Instance.Config.SettingIds[Features.AEHKey], "隐身", KeyCode.F8, false, false, "隐身45秒",
-
-                    onChanged: (player, SB) =>
-                    {
-                        try
-                        {
-                            var CoolDown = new Stopwatch();
-                            if (CoolDowns.TryGetValue(player.UserId, out var cd))
-                            {
-                                CoolDown = cd;
-
-                            }
-                            else
-                            {
-                                CoolDowns[player.UserId] = CoolDown;
-                            }
-                            if (CustomArmor.TryGet(AEHItemID, out var item))
-                            {
-                                var p = player;
-
-                                foreach (var items in player.Items)
-                                {
-                                    if (item.Check(items))
-                                    {
-                                        if (CoolDown.Elapsed.TotalSeconds > 105 || !CoolDown.IsRunning)
-                                        {
-                                            CoolDown.Restart();
-                                            player.EnableEffect(Exiled.API.Enums.EffectType.Fade, 255, 45);
-
-                                            p.AddMessage("AEH_INVESS" + DateTime.Now.ToString(), "<color=red>成功隐身</color>", 3f, ScreenLocation.Center);
-                                            Timing.CallDelayed(45, () =>
-                                            {
-                                                p.AddMessage("AEH_INVESS_END" + DateTime.Now.ToString(), "<color=red>隐身结束</color>", 3f, ScreenLocation.Center);
-                                                CoolDown.Restart();
-                                            });
-                                            break;
-                                        }
-                                        else
-                                        {
-                                            p.AddMessage("AEH_INVESS_COLLDOWN" + DateTime.Now.ToString(), "<color=red>冷却中</color>", 3f, ScreenLocation.Center);
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Log.Error(ex.ToString());
-
-                        }
-                    }));
-                return settings;
-            }
             public override void Init()
             {
                 // 将 Plugin.plugin.MenuCache 替换为 Plugin.MenuCache
-                if (!Plugin.MenuCache.Any(x => x.Id == Plugin.plugin.Config.SettingIds[Features.AEHKey]))
-                    Plugin.MenuCache.AddRange(MenuInit());
+                this.abilities.Add(new AEHAbility());
                 base.Init();
             }
         }

@@ -773,135 +773,111 @@ namespace Next_generationSite_27.UnionP.Scp5k
             P2B.Remove(player); // 👈 清理字典，避免玩家断开后仍占用内存
             yield break;
         }
-        public static float countDownStart = 160;
-        public static float countDown = countDownStart;
-        public static float countDownTick = 0.2f;
-        public static bool CountdownStarted = false;
+        public static float countDownStart = 60f; // 倒计时总时长
+        public static float countDown = 60f; // 剩余时间
+        public static float countDownTick = 1f; // 每次减少的时间
+        public static bool CountdownStarted = false; // 是否已开始倒计时
+
+        // 更新GOCBomb类，加入倒计时协程
         public static IEnumerator<float> CountDown()
         {
+            // 防止并发启动
             if (CountdownStarted)
-            {
                 yield break;
-            }
 
-            CountdownStarted = false;
+            CountdownStarted = true; // 修正：标记为已启动
             try
             {
+                // 确保每次从初始值开始
+                countDown = countDownStart;
+
                 GocSpawnable = false;
                 Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹安装完成 预计在{countDown}秒后预热完成! 请务必拆除所有{GOCBomb.installCount}个炸弹", isHeld: true, isSubtitles: true);
                 if (GOCBOmb == null)
                 {
                     GOCAnim.Gen(new Vector3(13f, 450f, -40f));
-                    //Exiled.API.Features.Cassie.Message("警告!GOC正在安装奇术核弹 所有人员前往阻止/拆除", isSubtitles: true);
                     Played = true;
                 }
 
-
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex);
-            }
-            foreach (var item in WaveManager.Waves)
-            {
-                if (item is TimeBasedWave IL)
+                foreach (var item in WaveManager.Waves)
                 {
-                    IL.Timer.Reset();
+                    if (item is TimeBasedWave IL)
+                        IL.Timer.Reset();
                 }
-            }
-            while (true)
-            {
-                try
+
+                while (true)
                 {
-                    if (countDown <= 0)
+                    try
                     {
-                        countDown = 0;
-                        foreach (var item in Player.Enumerable)
+                        if (countDown <= 0)
                         {
-                            if (item.HasMessage("donationCount"))
-                            {
-                                item.RemoveMessage("donationCount");
-                            }
+                            countDown = 0;
+                            foreach (var item in Player.Enumerable)
+                                if (item.HasMessage("donationCount"))
+                                    item.RemoveMessage("donationCount");
 
-                        }
-                        Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹预热完成 预计在40到60秒后爆炸 尽快撤离!", isSubtitles: true);
-                        GOCAnim.PlayDonate();
-                        break;
-                    }
-                    else
-                    {
-                        if (installedCount == 0)
-                        {
-
-
-                            GOCAnim.PlayEnd();
-                            countDown = countDownStart;
+                            Exiled.API.Features.Cassie.Message($"警告!GOC奇术核弹预热完成 预计在40到60秒后爆炸 尽快撤离!", isSubtitles: true);
+                            GOCAnim.PlayDonate();
                             break;
                         }
-                        if (!CustomRole.TryGet(Goc610CID, out var customGocC))
+                        else
                         {
-                            Log.Info("Failed to get goc");
-
-                        }
-                        if (!CustomRole.TryGet(Goc610PID, out var customGocP))
-                        {
-                            Log.Info("Failed to get goc");
-                        }
-                        foreach (var item in Player.Enumerable)
-                        {
-                            bool isGocActing = false;
-                            if (customGocC != null && customGocP != null)
+                            if (installedCount == 0)
                             {
-                                if (customGocC.Check(item) || customGocP.Check(item))
-                                {
-                                    isGocActing = true;
-                                }
+                                GOCAnim.PlayEnd();
+                                countDown = countDownStart;
+                                break;
                             }
-                            if (isGocActing)
+
+                            if (!CustomRole.TryGet(Goc610CID, out var customGocC))
+                                Log.Info("Failed to get goc");
+                            if (!CustomRole.TryGet(Goc610PID, out var customGocP))
+                                Log.Info("Failed to get goc");
+
+                            foreach (var item in Player.Enumerable)
                             {
+                                bool isGocActing = false;
+                                if (customGocC != null && customGocP != null)
+                                    if (customGocC.Check(item) || customGocP.Check(item))
+                                        isGocActing = true;
+
                                 if (!item.HasMessage("donationCount"))
                                 {
-                                    item.AddMessage("donationCount", (p) =>
+                                    if (isGocActing)
                                     {
-                                        return new string[]{
-                            $"<pos=40%><voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内保护GOC奇术核弹!</size></color></pos>\n<pos=60%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
-
-                                    }, -1f, ScreenLocation.MiddleRight);
-                                }
+                                        item.AddMessage("donationCount", (p) =>
+                                            new string[] {
+                                                $"<pos=40%><voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内保护GOC奇术核弹!</size></color></pos>\n<pos=60%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"
+                                            }, -1f, ScreenLocation.MiddleRight);
+                                    }
+                                    else
+                                        {
+                                            item.AddMessage("donationCount", (p) =>
+                                                new string[] {
+                                                $"<pos=40%><voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内阻止GOC奇术核弹!</size></color></pos>\n<pos=60%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"
+                                            }, -5f, ScreenLocation.MiddleRight);
+                                    }
+                                    }
                             }
-                            else
-                            {
-                                if (!item.HasMessage("donationCount"))
-                                {
-                                    item.AddMessage("donationCount", (p) =>
-                                    {
-                                        return new string[]{
-                            $"<pos=40%><voffset=-1em%><color=red><size=27>在 {countDown.ToString("F0")}秒内阻止GOC奇术核弹!</size></color></pos>\n<pos=60%><color=green><size=27>目前剩下:{installedCount}个炸弹</size></color></pos>"};
-
-                                    }, -5f, ScreenLocation.MiddleRight);
+                                    }
                                 }
-                            }
-
-                        }
+                    catch (Exception ex)
+                    {
+                        Log.Error(ex);
                     }
+
+                    yield return Timing.WaitForSeconds(countDownTick);
+                    countDown -= countDownTick;
                 }
-                catch (Exception ex)
-                {
-                    Log.Error(ex);
-                }
-                yield return Timing.WaitForSeconds(countDownTick);
-                countDown -= countDownTick;
             }
-            CountdownStarted = false;
-            foreach (var item in Player.Enumerable)
+            finally
             {
-                if (item.HasMessage("donationCount"))
-                {
-                    item.RemoveMessage("donationCount");
-                }
-
+                // 强制清理，确保标志与消息被移除
+                CountdownStarted = false;
+                foreach (var item in Player.Enumerable)
+                    if (item.HasMessage("donationCount"))
+                        item.RemoveMessage("donationCount");
             }
-
         }
 
     }

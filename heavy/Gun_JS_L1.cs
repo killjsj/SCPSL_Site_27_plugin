@@ -45,7 +45,7 @@ namespace Next_generationSite_27.UnionP.heavy
     {
         public static uint MagicGun1_JS_L1_ID = 5807;
         [CustomItem(ItemType.GunA7)]
-        public class MagicGun1_JS_L1 : CustomWeapon
+        public class MagicGun1_JS_L1 : heavy.role.CustomWeapon
         {
             public static MagicGun1_JS_L1 ins;
             public override uint Id { get; set; } = MagicGun1_JS_L1_ID;

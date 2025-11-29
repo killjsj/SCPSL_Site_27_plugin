@@ -30,7 +30,7 @@ namespace Next_generationSite_27.UnionP.heavy
         }
         public static uint ScannerItemID = 5160;
         [CustomItem(ItemType.ArmorHeavy)]
-        public class scanner : CustomArmor
+        public class scanner : heavy.role.CustomArmor
         {
             public static scanner ins;
             public override uint Id { get; set; } = ScannerItemID;

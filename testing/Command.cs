@@ -7,6 +7,7 @@ using Discord;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
+using Exiled.API.Features.Core.UserSettings;
 using Exiled.API.Features.CustomStats;
 using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Pickups;
@@ -53,6 +54,7 @@ using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
 using RelativePositioning;
 using RemoteAdmin;
+using Respawning;
 using Respawning.NamingRules;
 using Subtitles;
 using System;
@@ -66,24 +68,26 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using UnityEngine;
+using UnityEngine.DedicatedServer;
 using UnityEngine.EventSystems;
 using Utf8Json.Formatters;
 using Utils;
+using Utils.Networking;
 using VoiceChat.Codec;
 using VoiceChat.Networking;
 using static HintServiceMeow.Core.Models.HintContent.AutoContent;
 using static LightContainmentZoneDecontamination.DecontaminationController;
-using static  Next_generationSite_27.UnionP.heavy.Goc;
+using static Next_generationSite_27.UnionP.heavy.Goc;
 using static Next_generationSite_27.UnionP.heavy.Nu7;
 using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
-using static  Next_generationSite_27.UnionP.heavy.Uiu;
+using static Next_generationSite_27.UnionP.heavy.Uiu;
 using static Next_generationSite_27.UnionP.RoomGraph;
 using static UnityEngine.GraphicsBuffer;
 using static UnityEngine.UI.CanvasScaler;
 using Log = Exiled.API.Features.Log;
 using Player = Exiled.API.Features.Player;
 
-namespace Next_generationSite_27.UnionP 
+namespace Next_generationSite_27.UnionP
 {
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class TPCommand : ICommand
@@ -138,7 +142,7 @@ namespace Next_generationSite_27.UnionP
             if (arguments.Count < 1)
             {
                 Owner = runner;
-                    CustomItem.Get(WhipS.WhipId).Give(Player.Get(Owner));
+                CustomItem.Get(WhipS.WhipId).Give(Player.Get(Owner));
             }
             else
             {
@@ -155,7 +159,8 @@ namespace Next_generationSite_27.UnionP
                     response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
                     return false;
                 }
-                foreach (var item in list) { 
+                foreach (var item in list)
+                {
                     CustomItem.Get(WhipS.WhipId).Give(Player.Get(item));
                 }
             }
@@ -190,9 +195,9 @@ namespace Next_generationSite_27.UnionP
             var locY = float.Parse(newargs[2]);
             var p = LabApi.Features.Wrappers.Player.Get(runner.ReferenceHub);
             HSM_hintServ.GetPlayerHUD(p, out var hud);
-            if(hud is HSM_hintServ hsm)
+            if (hud is HSM_hintServ hsm)
             {
-                
+
                 hsm.hud.AddHint(new HintServiceMeow.Core.Models.Hints.Hint()
                 {
                     Text = text,
@@ -262,7 +267,7 @@ namespace Next_generationSite_27.UnionP
             }
             else
             {
-            list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out var _);
+                list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out var _);
                 targetRole = RoleTypeId.Scp106;
             }
             if (list == null)
@@ -449,14 +454,14 @@ namespace Next_generationSite_27.UnionP
     "ServerSendRpc",
     BindingFlags.NonPublic | BindingFlags.Instance,
     null,
-    new Type[] {},
+    new Type[] { },
     null
 );
             if (serverSendRpcMethod != null)
             {
                 // 构造委托参数
                 Func<ReferenceHub, bool> condition = x => ServerCheckReceiver(x, ((RelativePosition)syncPosField.GetValue(PingAbility)).Position, (int)pingType);
-                serverSendRpcMethod.Invoke(PingAbility, new object[] {  });
+                serverSendRpcMethod.Invoke(PingAbility, new object[] { });
             }
             else
             {
@@ -617,6 +622,25 @@ namespace Next_generationSite_27.UnionP
             return true;
 
         }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class CassieTestCommand : ICommand
+    {
+        string ICommand.Command { get; } = "CAT";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "!!! 由于进行测试";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var p = Player.Get(sender);
+            Scp5k_Control.StartSubtitles();
+            response = $"done!";
+            return true;
+
+        }
+        
     }
     [CommandHandler(typeof(GameConsoleCommandHandler))]
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
@@ -799,7 +823,7 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            var p  =Primitive.Create(PrimitiveType.Cube, runner.Position, null, null, true);
+            var p = Primitive.Create(PrimitiveType.Cube, runner.Position, null, null, true);
             p.Collidable = true;
             p.Visible = true;
             var BW = p.GameObject.AddComponent<bunker>();
@@ -814,14 +838,14 @@ namespace Next_generationSite_27.UnionP
     {
         string ICommand.Command { get; } = "CAP";
 
-        string[] ICommand.Aliases { get; } = new[] {""};
+        string[] ICommand.Aliases { get; } = new[] { "" };
 
         string ICommand.Description { get; } = "!!! 修改外貌 CAP RoleTypeID [PlayerId(可选)]";
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var target = Player.Get(sender);
-            RoleTypeId targetRole = RoleTypeId.None; 
+            RoleTypeId targetRole = RoleTypeId.None;
             if (target.KickPower < 12)
             {
                 response = "你没权 （player.KickPower < 12）";
@@ -958,7 +982,7 @@ namespace Next_generationSite_27.UnionP
             //    target.Position, new Vector3(x, y, z)
             //);
             var nav = RoomGraph.InternalNav;
-            var re = nav.FindPath(runner.Position,runner.CurrentRoom , new Vector3(x, y, z), Room.Get(new Vector3(x, y, z)));
+            var re = nav.FindPath(runner.Position, runner.CurrentRoom, new Vector3(x, y, z), Room.Get(new Vector3(x, y, z)));
             // 修复：检查路径是否存在
             if (re == null || re.Count == 0)
             {

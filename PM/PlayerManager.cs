@@ -405,9 +405,10 @@ namespace Next_generationSite_27.UnionP
             expCache.Clear();
             levelCache.Clear();
             TodayTimeCache.Clear();
-            foreach (var item in TodayTimer.Values)
+            foreach (var item in TodayTimer)
             {
-                item.Stop();
+                item.Value.Stop();
+                sql.Update(item.Key.UserId, name: item.Key.Nickname, today_duration: GetTodayTimer(item.Key));
             }
             TodayTimer.Clear();
             SpecList.Clear();

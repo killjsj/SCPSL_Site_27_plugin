@@ -59,17 +59,17 @@ namespace Next_generationSite_27.UnionP
         public Player From;
         public RoleTypeId to;
     }
-     
-    
+
+
     class Plugin : Exiled.API.Features.Plugin<PConfig>
     {
 
-        public static IEnumerable<SettingBase> Register(Player player, SettingBase setting,bool bypassCheck = false) => Register(player, new SettingBase[] { setting },bypassCheck);
-        public static IEnumerable<SettingBase> Register(Player player, IEnumerable<SettingBase> settings,bool bypassCheck = false)
+        public static IEnumerable<SettingBase> Register(Player player, SettingBase setting, bool bypassCheck = false) => Register(player, new SettingBase[] { setting }, bypassCheck);
+        public static IEnumerable<SettingBase> Register(Player player, IEnumerable<SettingBase> settings, bool bypassCheck = false)
         {
             var playerMenu = GetPlayerRegistered(player);
-            
-            var result = SettingBase.Register(player, settings.Where(x=>bypassCheck || !playerMenu.Any(y=>y.Id==x.Id))).ToList();
+
+            var result = SettingBase.Register(player, settings.Where(x => bypassCheck || !playerMenu.Any(y => y.Id == x.Id))).ToList();
             foreach (var item in settings)
             {
                 Log.Info("Registering settings for player: " + player.Nickname + $" setting:{item}");
@@ -109,12 +109,12 @@ namespace Next_generationSite_27.UnionP
             return playerMenu;
         }
         public static List<SettingBase> MenuCache = new List<SettingBase>();
-        public static Dictionary<Player, List<SettingBase>> PlayerMenuCache = new Dictionary<Player,List<SettingBase>>();
+        public static Dictionary<Player, List<SettingBase>> PlayerMenuCache = new Dictionary<Player, List<SettingBase>>();
 
         public List<ScpChangeReq> scpChangeReqs = new List<ScpChangeReq>();
-        public Stopwatch RoundTime = new Stopwatch();
+        //public Stopwatch RoundTime = new Stopwatch();
         public override string Name => "UnionPlugin";
-        public override string Author   => "killjsj"; 
+        public override string Author => "killjsj";
         public MySQLConnect connect = new MySQLConnect();
         public static Plugin plugin;
         public static Plugin Instance { get { return plugin; } }
@@ -122,9 +122,9 @@ namespace Next_generationSite_27.UnionP
         public EventHandle eventhandle;
 
         public static List<CoroutineHandle> ClearOnEnd = new List<CoroutineHandle>();
-        public static CoroutineHandle RunCoroutine(IEnumerator<float> coroutine,bool StopOnEnd = true)
+        public static CoroutineHandle RunCoroutine(IEnumerator<float> coroutine, bool StopOnEnd = true)
         {
-            var ch= Timing.RunCoroutine(coroutine);
+            var ch = Timing.RunCoroutine(coroutine);
             if (StopOnEnd)
             {
                 ClearOnEnd.Add(ch);
@@ -168,13 +168,13 @@ namespace Next_generationSite_27.UnionP
             vote_control = new List<List<Player>> { new List<Player>(), new List<Player>() };
             is_voting = true;
 
-            
+
 
             int yes = 0;
             int no = 0;
 
             // 检查并访问投票列表
-           
+
             for (int i = (int)vote_time; i != 0; i--)
             {
                 foreach (var item in Player.Enumerable)
@@ -187,8 +187,8 @@ namespace Next_generationSite_27.UnionP
 
                     item.Broadcast((ushort)1.1f, "管理发起了投票:" + vote_name + " 时间:" + i.ToString() + " 在游戏控制台(`键)内输入.voteyes/.vyes同意 .voteno/.vno不同意 弃权不投票");
                 }
-                
-                
+
+
                 yield return Timing.WaitForSeconds(1);
             }
             is_voting = false;
@@ -205,7 +205,7 @@ namespace Next_generationSite_27.UnionP
                 yes = vote_control[0].Count;
                 no = vote_control[1].Count;
             }
-            double percentage = (yes / Math.Min(1,(yes+no))) * 100;
+            double percentage = (yes / Math.Min(1, (yes + no))) * 100;
             Exiled.API.Features.Map.Broadcast((ushort)8f, "投票:" + vote_name + " 结果: 同意率:" + percentage.ToString("F2") + "% 同意:" + yes.ToString() + " 不同意:" + no);
             Log.Info("投票:" + vote_name + " 结果: 同意率:" + percentage.ToString("F2") + "% 同意:" + yes.ToString() + " 不同意:" + no);
             vote_control = new List<List<Player>>(); // 清空投票列表
@@ -223,6 +223,8 @@ namespace Next_generationSite_27.UnionP
         public SuperSCP superSCP = new SuperSCP();
         // --- superSCP end---
         static public List<BaseClass> baseClasses = new List<BaseClass>();
+        public string settingPath => $"{Paths.Configs}\\Plugins\\union_plugin";
+        public static string SettingPath => plugin.settingPath;
         public override void OnEnabled()
         {
             plugin = this;
@@ -234,20 +236,29 @@ namespace Next_generationSite_27.UnionP
                               $"Pwd={Config.Password};" +
                               "SslMode=none;" +
                               "Connection Timeout=30;";
-            
+
             connect.Connect(connectionString);
             eventhandle = new EventHandle(Config);
             foreach (var item in Assembly.GetTypes())
             {
-                if(!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(BaseClass)))
+                if (!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(BaseClass)))
                 {
-                    object obj = Activator.CreateInstance(item);
-                    if (obj != null) {
-                        if (obj is BaseClass BC) { 
-                            BC.StartInit();
-                            baseClasses.Add(BC);
-                        }
+                    try
+                    {
+                        object obj = Activator.CreateInstance(item);
+                        if (obj != null)
+                        {
+                            if (obj is BaseClass BC)
+                            {
+                                BC.StartInit();
+                                baseClasses.Add(BC);
+                            }
 
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Error initializing class {item.FullName}: {ex.Message}");
                     }
                 }
             }
@@ -304,7 +315,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
             //Exiled.Events.Handlers.Map.AnnouncingScpTermination += Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole += GOCAnim.OnchangingRole;
-                Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
+            Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
 
             Exiled.Events.Handlers.Player.Verified += UnionP.testing.FlightFailed.OnVerify;
             Exiled.Events.Handlers.Player.Dying += UnionP.testing.FlightFailed.OnDied;
@@ -359,16 +370,18 @@ namespace Next_generationSite_27.UnionP
             AutoEvent.AutoEvent.EventManager.RegisterInternalEvents();
             Scp5k.GOCAnim.Load();
             DefaultAudioManager.RegisterAudio("decont_1", () =>
-File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_1.wav"));
+                File.OpenRead($"{SettingPath}\\decont_1.wav"));
             DefaultAudioManager.RegisterAudio("decont_5", () =>
-                File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_5.wav"));
+                File.OpenRead($"{SettingPath}\\decont_5.wav"));
             DefaultAudioManager.RegisterAudio("decont_10", () =>
-                File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_10.wav"));
+                File.OpenRead($"{SettingPath}\\decont_10.wav"));
             DefaultAudioManager.RegisterAudio("decont_countdown", () =>
-    File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_countdown.wav"));
+                File.OpenRead($"{SettingPath}\\decont_countdown.wav"));
             DefaultAudioManager.RegisterAudio("decont_begun", () =>
-File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
-            CustomRole.RegisterRoles(assembly:Assembly);
+                File.OpenRead($"{SettingPath}\\decont_begun.wav"));
+            DefaultAudioManager.RegisterAudio("Scp500_StartAudio", () =>
+                File.OpenRead($"{SettingPath}\\Scp5kStart.wav"));
+            CustomRole.RegisterRoles(assembly: Assembly);
             base.OnEnabled();
         }
         public void OnLeft(LeftEventArgs ev)
@@ -382,15 +395,15 @@ File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
         {
             foreach (var item in baseClasses)
             {
-                    if (item != null)
+                if (item != null)
+                {
+                    if (item is BaseClass BC)
                     {
-                        if (item is BaseClass BC)
-                        {
-                            BC.StartInit();
-                            baseClasses.Add(BC);
-                        }
+                        BC.StartInit();
+                        baseClasses.Add(BC);
+                    }
 
-                    
+
                 }
             }
             Exiled.Events.Handlers.Player.Left -= OnLeft;
@@ -425,10 +438,10 @@ File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
 
             Exiled.Events.Handlers.Player.Escaped -= eventhandle.Escaped;
             Exiled.Events.Handlers.Player.Escaping -= eventhandle.Escaping;
-            
+
             Exiled.Events.Handlers.Player.Left -= eventhandle.OnPlayerLeave;
 
-            Exiled.Events.Handlers.Item.DisruptorFiring-= eventhandle.DisruptorFiring;
+            Exiled.Events.Handlers.Item.DisruptorFiring -= eventhandle.DisruptorFiring;
             Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
 
             //5k
@@ -510,7 +523,7 @@ File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\decont_begun.wav"));
         public int maxbomb { get; set; } = 100;
         [Description("启用回合大厅")]
         public bool RoundSelfChoose { get; set; } = true;
-        
+
         public float Showtime { get; set; } = 30f;
 
         public int Showduration { get; set; } = 5;

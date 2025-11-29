@@ -22,7 +22,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 
         public override string Des => "1分钟内 -100%声音 +35%移速";
 
-        public override int id => 101;
+        public override int id => this.GetType().FullName.GetHashCode();
         public override double Time => 40;
         public override float WaitForDoneTime => 50;
         public override bool OnTrigger()
@@ -31,14 +31,6 @@ namespace Next_generationSite_27.UnionP.heavy.ability
             player.EnableEffect(EffectType.SilentWalk, 255, WaitForDoneTime);
             return true;
         }
-
-        public override AbilityBase Register(Player player)
-        {
-            var a = new NoSoundMove(player);
-            a.InternalRegister(player);
-            return a;
-        }
-
         internal NoSoundMove(Player player) : base(player)
         {
             TotalCount = 2;

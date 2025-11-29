@@ -288,28 +288,6 @@ namespace Next_generationSite_27.UnionP.heavy
             {
                 if (Check(ev.Pickup))
                 {
-                    if (scp5k_Sci.TryGet(Goc610PID, out var item))
-                    {
-                        if (item.Check(ev.Player))
-                        {
-                            ev.IsAllowed = true;
-                            return;
-
-                        }
-                    }
-                    if (scp5k_Sci.TryGet(Goc610CID, out var item2))
-                    {
-                        if (item2.Check(ev.Player))
-                        {
-                            ev.IsAllowed = true;
-                            return;
-                        }
-                    }
-                    ev.IsAllowed = false;
-                    if (!ev.Player.HasMessage("No!"))
-                    {
-                        ev.Player.AddMessage("No!", "<color=red><size=27>此物品为goc专属</size></color>", 3f, ScreenLocation.Center);
-                    }
 
                 }
             }
@@ -532,7 +510,6 @@ namespace Next_generationSite_27.UnionP.heavy
                 //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
             }
-
             protected override void RoleAdded(Player player)
 
             {
@@ -1175,5 +1152,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 });
             }
         }
+
+        
     }
 }

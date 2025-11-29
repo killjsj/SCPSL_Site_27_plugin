@@ -2,6 +2,7 @@
 using AudioManagerAPI.Features.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
+using Exiled.API.Features.Roles;
 using Exiled.API.Features.Spawn;
 using Exiled.API.Features.Toys;
 using Exiled.CustomRoles.API.Features;
@@ -10,6 +11,7 @@ using Exiled.Events.EventArgs.Player;
 using Exiled.Loader;
 using MEC;
 using Mirror;
+using Next_generationSite_27.UnionP.heavy;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 using PlayerStatsSystem;
@@ -263,6 +265,8 @@ autoCleanup: false);
             var lastEuler = camera.transform.eulerAngles;
 
             var start = player.InfoArea;
+            var startPos = player.Position;
+                    FakePlayerPos.SendFakePlayerPos(player, startPos);
             while (donating)
             {
                 try
@@ -290,11 +294,10 @@ autoCleanup: false);
 
                     // 发送到服务器
                     player.ReferenceHub.TryOverrideRotation(rotation);
-
-                    lastEuler = currentEuler;
                     player.ReferenceHub.TryOverridePosition(camera.transform.position);
 
-                    Log.Debug($"[CamUpdater] {player.Nickname} pitch={pitch:F2} yaw={yaw:F2} raw={currentEuler}");
+                    lastEuler = currentEuler;
+                    //Log.Debug($"[CamUpdater] {player.Nickname} pitch={pitch:F2} yaw={yaw:F2} raw={currentEuler}");
                 }
                 catch (Exception e)
                 {
@@ -304,6 +307,7 @@ autoCleanup: false);
                 yield return Timing.WaitForSeconds(0.02f);
             }
             player.InfoArea = start;
+                    FakePlayerPos.RemoveSendFakePlayerPos(player);
         }
 
         public static IEnumerator<float> OnKillerScaleChanged(GameObject killer, Animator an)
@@ -424,6 +428,8 @@ autoCleanup: false);
                             Log.Info("an == null");
                             yield break;
                         }
+                        var cam = LabApi.Features.Wrappers.CameraToy.Create(toy.transform);
+                        Plugin.RunCoroutine(Scp079CameraUpdate(cam));
                     }
                     catch (Exception ex)
                     {
@@ -486,6 +492,24 @@ autoCleanup: false);
                 yield return Timing.WaitForSeconds(0.3f);
             }
         }
+
+        private static IEnumerator<float> Scp079CameraUpdate(LabApi.Features.Wrappers.CameraToy cam)
+        {
+            var c = Exiled.API.Features.Camera.Get(cam.Camera.Base);
+            
+            while (donating)
+            {
+                foreach (var item in Player.Enumerable.Where(x=>x.Role.Type == RoleTypeId.Scp079))
+                {
+                    if(item.Role is Scp079Role scp079 && scp079.Camera != c)
+                    {
+                        scp079.Camera = c;
+                    }
+                }
+                yield return Timing.WaitForSeconds(0.02f);
+            }
+        }
+
         public static IEnumerator<float> quit(Animator an)
         {
 

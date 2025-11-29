@@ -33,12 +33,6 @@ namespace Next_generationSite_27.UnionP.heavy.ability
         public override int TotalCount { get; set; } = 6;
         public override float WaitForDoneTime => 0;
         public static AbilityCooldown cd = new();
-        public override AbilityBase Register(Player player)
-        {
-            var a = new TestAbility1(player);
-            a.InternalRegister(player);
-            return a;
-        }
 
         public override KeyCode KeyCode => KeyCode.Mouse0;
 

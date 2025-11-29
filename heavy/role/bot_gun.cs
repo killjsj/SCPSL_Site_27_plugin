@@ -34,7 +34,7 @@ namespace Next_generationSite_27.UnionP.heavy
     {
         public static uint bot_gun_id = 122;
         [CustomItem(ItemType.GunRevolver)]
-        public class bot_gun : CustomWeapon
+        public class bot_gun : role.CustomWeapon
         {
             public static bot_gun ins { get; private set; }
             public override uint Id { get; set; } = bot_gun_id;

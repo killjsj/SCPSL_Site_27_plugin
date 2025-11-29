@@ -413,7 +413,6 @@
     <Compile Include="heavy\5k\GocBomb.cs" />
     <Compile Include="heavy\5k\GOCAnim.cs" />
     <Compile Include="heavy\5k\patch.cs" />
-    <Compile Include="Audio.cs" />
     <Compile Include="BaseClass.cs" />
     <Compile Include="bomb.cs" />
     <Compile Include="heavy\5k\scp5k.cs" />
@@ -423,12 +422,15 @@
     <Compile Include="configs\Translation.cs" />
     <Compile Include="customWeapon.cs" />
     <Compile Include="dude.cs" />
+    <Compile Include="heavy\ability\ItemAbilities.cs" />
     <Compile Include="heavy\ability\NoSoundMove.cs" />
     <Compile Include="heavy\ability\testing.cs" />
     <Compile Include="heavy\ability\SkyNet.cs" />
     <Compile Include="heavy\ability\Jump.cs" />
     <Compile Include="heavy\ability\TP.cs" />
     <Compile Include="heavy\ability\AbilityBase.cs" />
+    <Compile Include="heavy\CustomCassie.cs" />
+    <Compile Include="heavy\FakePlayerPos.cs" />
     <Compile Include="heavy\Gun_JS_L1.cs" />
     <Compile Include="heavy\role\bot_gun.cs" />
     <Compile Include="heavy\role\CustomRolePlus.cs" />
@@ -444,7 +446,7 @@
     <Compile Include="heavy\role\IDeathBroadcast.cs" />
     <Compile Include="heavy\role\Uiu.cs" />
     <Compile Include="ScpHpShow.cs" />
-    <Compile Include="SpawnProject.cs" />
+    <Compile Include="SpawnProTect.cs" />
     <Compile Include="EV.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="mysql.cs" />

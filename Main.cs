@@ -129,10 +129,12 @@ namespace Next_generationSite_27.UnionP
             {
                 ClearOnEnd.Add(ch);
             }
+            
             return ch;
         }
         public static void RestartingRound()
         {
+                Plugin.CurrentFFManager = null;
             foreach (var item in ClearOnEnd)
             {
                 if (item.IsRunning)
@@ -221,6 +223,7 @@ namespace Next_generationSite_27.UnionP
         // --- superSCP ---
         public static bool enableSSCP = false;
         public SuperSCP superSCP = new SuperSCP();
+        public static IFFManager CurrentFFManager;
         // --- superSCP end---
         static public List<BaseClass> baseClasses = new List<BaseClass>();
         public string settingPath => $"{Paths.Configs}\\Plugins\\union_plugin";

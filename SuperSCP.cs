@@ -62,7 +62,7 @@ namespace Next_generationSite_27.UnionP
         public IEnumerator<float> update()
         {
             Log.Info("SuperSCP Start!");
-            Cassie.Message(Plugin.plugin.Config.EnableSuperScpBroadcast,isSubtitles:true);
+            Exiled.API.Features.Cassie.Message(Plugin.plugin.Config.EnableSuperScpBroadcast,isSubtitles:true);
             for (; ; )
             {
                 if (!Plugin.enableSSCP) { break; }

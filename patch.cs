@@ -16,6 +16,7 @@ using HarmonyLib;
 using Hazards;
 using Interactables.Interobjects;
 using Interactables.Interobjects.DoorUtils;
+using InventorySystem.Items.Armor;
 using InventorySystem.Items.Autosync;
 using InventorySystem.Items.Firearms.Extensions;
 using InventorySystem.Items.Firearms.Modules;
@@ -95,9 +96,19 @@ namespace Next_generationSite_27.UnionP
     {
         [HarmonyPatch("Execute")]
         [HarmonyPrefix]
-        public static bool Prefix(ArraySegment<string> arguments, ICommandSender sender, ref string response,ref bool __result)
+        public static bool Prefix(ArraySegment<string> arguments, ICommandSender sender, ref string response, ref bool __result)
         {
-            __result = new Next_generationSite_27.UnionP.PlayerManager.BanCommand().Execute(arguments,sender,out response);
+            __result = new Next_generationSite_27.UnionP.PlayerManager.BanCommand().Execute(arguments, sender, out response);
+            return false;
+        }
+    }
+    [HarmonyPatch(typeof(BodyArmorUtils))]
+    public class BodyArmorUtilsPatch
+    {
+        [HarmonyPatch("RemoveEverythingExceedingLimits")]
+        [HarmonyPrefix]
+        public static bool Prefix()
+        {
             return false;
         }
     }
@@ -778,7 +789,6 @@ namespace Next_generationSite_27.UnionP
         {
             if (player == null)
             {
-                UnityEngine.Debug.LogError("[Patch] ChangingNicknameEventArgs 构造时 Player 为 null，跳过构造函数");
                 return false; // 跳过构造函数
             }
 

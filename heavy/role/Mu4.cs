@@ -331,7 +331,7 @@ namespace Next_generationSite_27.UnionP.heavy
             }
             if (true)
             {
-                Cassie.MessageTranslated("Mobile Task Force Unit Mu 4 has entered the facility", "机动特遣队Mu-4小队已进入设施。");
+                Exiled.API.Features.Cassie.MessageTranslated("Mobile Task Force Unit Mu 4 has entered the facility", "机动特遣队Mu-4小队已进入设施。");
                 //HammerSpawnedBroadcast = true;
             }
 

@@ -294,7 +294,7 @@ namespace Next_generationSite_27.UnionP.testing
                 var badge = FlightBadgeGen(winner);
                 winnerLP?.SendBroadcast($"<size=27>你赢了 {loser.DisplayNickname} 的决斗! 对方将获得称号 {badge}</size>", 10, shouldClearPrevious: true);
                 loserLP?.SendBroadcast($"<size=27>你输了 {winner.DisplayNickname} 的决斗! 并获得称号 {badge}</size>", 10, shouldClearPrevious: true);
-                Cassie.Message($"<size=16>{winner.DisplayNickname} 击败了 {loser.DisplayNickname}! 并获得称号 {badge}</size>", isSubtitles: true);
+                Exiled.API.Features.Cassie.Message($"<size=16>{winner.DisplayNickname} 击败了 {loser.DisplayNickname}! 并获得称号 {badge}</size>", isSubtitles: true);
 
                 // 记录 loser 的称号（显示为失败者获得称号）
                 PlayerToBadge[loser.UserId] = FlightBadgeGen(winner, false);
@@ -391,7 +391,7 @@ namespace Next_generationSite_27.UnionP.testing
                     var winner = loser == CurrentBattle.From ? CurrentBattle.To : CurrentBattle.From;
                     var winnerLP = LabApi.Features.Wrappers.Player.Get(winner.ReferenceHub);
 
-                    Cassie.Message($"<size=16>{loser.DisplayNickname} 打不过就跑了! 获得称号: {FlightBadgeGen(winner)}</size>", isSubtitles: true);
+                    Exiled.API.Features.Cassie.Message($"<size=16>{loser.DisplayNickname} 打不过就跑了! 获得称号: {FlightBadgeGen(winner)}</size>", isSubtitles: true);
                     winnerLP?.SendBroadcast($"<size=27>你赢了 {loser.DisplayNickname} 的决斗! 对方将获得称号 {FlightBadgeGen(winner)}</size>", 10, shouldClearPrevious: true);
 
                     if (!PlayerToBadge.ContainsKey(loser.UserId)) PlayerToBadge.Add(loser.UserId, FlightBadgeGen(winner, false));

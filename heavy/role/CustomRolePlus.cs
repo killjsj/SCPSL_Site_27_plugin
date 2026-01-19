@@ -18,6 +18,7 @@ using InventorySystem.Items.Armor;
 using InventorySystem.Items.Firearms.Attachments;
 using InventorySystem.Items.Firearms.Modules;
 using InventorySystem.Items.Pickups;
+using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Handlers;
 using MEC;
 using MonoMod.Utils;
@@ -564,6 +565,18 @@ namespace Next_generationSite_27.UnionP.heavy.role
             ItemAbilities.Clear();
             PlayerItems.Clear();
         }
+        protected void OnFlipingCoin(PlayerFlippedCoinEventArgs ev)
+        {
+            OnUsed(ev.Player, Item.Get(ev.CoinItem.Base));
+        }
+        protected void OnUsingItem(PlayerUsedItemEventArgs ev)
+        {
+            OnUsed(ev.Player, Item.Get(ev.UsableItem.Base));
+        }
+        protected virtual void OnUsed(Player player,Item item)
+        {
+
+        }
 
         protected override void SubscribeEvents()
         {
@@ -574,6 +587,8 @@ namespace Next_generationSite_27.UnionP.heavy.role
             //ItemPickupBase.OnPickupDestroyed += ItemPickupBase_OnPickupDestroyed;
             InventoryExtensions.OnItemRemoved += ItemBase_OnItemRemoved;
             PlayerEvents.PickingUpItem += PlayerEvents_PickingUpItem;
+            PlayerEvents.UsedItem += OnUsingItem;
+            PlayerEvents.FlippedCoin += OnFlipingCoin;
         }
         protected override void UnsubscribeEvents()
         {
@@ -583,11 +598,14 @@ namespace Next_generationSite_27.UnionP.heavy.role
             //ItemPickupBase.OnPickupDestroyed += ItemPickupBase_OnPickupDestroyed;
             InventoryExtensions.OnItemRemoved -= ItemBase_OnItemRemoved;
             PlayerEvents.PickingUpItem -= PlayerEvents_PickingUpItem;
+            PlayerEvents.UsedItem -= OnUsingItem;
+            PlayerEvents.FlippedCoin -= OnFlipingCoin;
         }
         private static List<ushort> PickedItem = new();
         private void PlayerEvents_PickingUpItem(LabApi.Events.Arguments.PlayerEvents.PlayerPickingUpItemEventArgs ev)
         {
             PickedItem.Add(ev.Pickup.Serial);
+                RefreshPlayersItems(Player.Get(ev.Player));
         }
 
         private void ItemBase_OnItemRemoved(ReferenceHub hub, ItemBase it, ItemPickupBase itb)
@@ -596,6 +614,7 @@ namespace Next_generationSite_27.UnionP.heavy.role
             if (it == null) return;
             OnDestroyedInternal(it.ItemId.SerialNumber, hub);
 
+                RefreshPlayersItems(Player.Get(hub));
         }
         protected override void ShowSelectedMessage(Player player)
         {
@@ -689,16 +708,6 @@ namespace Next_generationSite_27.UnionP.heavy.role
             if (abilities == null || abilities.Count == 0)
                 return;
 
-            foreach (var item1 in player.Items)
-            {
-                if (item1.Serial != item.Serial)
-                {
-                    if (Check(item))
-                    {
-                        return;
-                    }
-                }
-            }
             //item.Destroy
             if (player.GetHUD() is HSM_hintServ hSM_Hint)
             {
@@ -734,6 +743,7 @@ namespace Next_generationSite_27.UnionP.heavy.role
                     list.Add(instance);
                 }
             }
+            Log.Info($"ItemAbilities Count: {list.Count}");
             PlayerAbilities[player].AddRange(list);
 
 

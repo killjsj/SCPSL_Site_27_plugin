@@ -10,6 +10,7 @@ using Exiled.API.Features;
 using Exiled.API.Features.Core.UserSettings;
 using Exiled.API.Features.CustomStats;
 using Exiled.API.Features.DamageHandlers;
+using Exiled.API.Features.Doors;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Roles;
 using Exiled.API.Features.Toys;
@@ -17,11 +18,13 @@ using Exiled.CustomItems.API.Features;
 using Exiled.CustomRoles.API.Features;
 //using System.Media;
 using GameObjectPools;
+using Interactables.Interobjects.DoorButtons;
 using InventorySystem;
 using InventorySystem.Items;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Arguments.Scp079Events;
 using LabApi.Events.Handlers;
+
 //using LabApi.Features.Wrappers;
 using LightContainmentZoneDecontamination;
 using MapGeneration;
@@ -32,6 +35,7 @@ using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP.heavy;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
+using NorthwoodLib.Pools;
 using Org.BouncyCastle.Asn1.X509;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
@@ -68,6 +72,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using UnityEngine.DedicatedServer;
 using UnityEngine.EventSystems;
 using Utf8Json.Formatters;
@@ -635,8 +640,16 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var p = Player.Get(sender);
-            Scp5k_Control.StartSubtitles();
-            response = $"done!";
+            //Scp5k_Control.StartSubtitles();
+            //LabApi.Features.Wrappers.Cassie.Message("aaa", customSubtitles: "123");
+            //Warhead.Shake
+
+            string Message6 = $"213414532535354352345325435252\n123141254252523523";
+            Message6.CustomCassieMessage("O5 Command");
+            var d = Door.GetClosest(p.Position, out var _);
+            d.PermissionsPolicy = new Interactables.Interobjects.DoorUtils.DoorPermissionsPolicy(Interactables.Interobjects.DoorUtils.DoorPermissionFlags.ContainmentLevelOne);
+            response = $"done! Changed Door:{d} at {d.Position}";
+            p.Position = d.Position;
             return true;
 
         }

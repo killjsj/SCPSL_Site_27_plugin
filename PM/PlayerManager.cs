@@ -1534,7 +1534,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         SpecCount = SpecList[SR.SpectatedPlayer].Count;
                     }
-                    upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  称号: <color=white>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
+                    upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>薯条:{GetPoint(SR.SpectatedPlayer)}</color> | 称号: <color=white>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
                     if (SR.SpectatedPlayer.UniqueRole != "")
                     {
                         var showing = "";
@@ -1548,7 +1548,7 @@ namespace Next_generationSite_27.UnionP
                     }
                     if (Misc.TryParseColor(SR.SpectatedPlayer.RankColor, out var color))
                     {
-                        upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
+                        upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>薯条:{GetPoint(SR.SpectatedPlayer)}</color> | 称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
                     }
 
                 }
@@ -1569,11 +1569,11 @@ namespace Next_generationSite_27.UnionP
                 {
                     SpecCount = SpecList[player].Count;
                 }
-                upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  |  称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
+                upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  | <color=green>薯条:{GetPoint(player)}</color> | 称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
                 downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                 if (Misc.TryParseColor(player.RankColor, out var color))
                 {
-                    upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align>";
+                    upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  |  <color=green>薯条:{GetPoint(player)}</color> | 称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align>";
                 }
                 if (player.UniqueRole != "")
                 {
@@ -1891,6 +1891,12 @@ namespace Next_generationSite_27.UnionP
             return l;
 
         }
+        public static int GetPoint(Player player)
+        {
+            var l = sql.QueryUser(player.UserId).point;
+            return l;
+
+        }
         public static TimeSpan GetTodayTimer(Player player)
         {
             if (TodayTimer.ContainsKey(player))
@@ -1965,6 +1971,8 @@ namespace Next_generationSite_27.UnionP
             {
                 return;
             }
+            AddPoint(player,exp);
+
             var pU = sql.QueryUser(player.UserId);
             int currentLevel = GetLevel(player);
             int currentExp = GetExperience(player);
@@ -2111,6 +2119,17 @@ namespace Next_generationSite_27.UnionP
             if (exp < 0) exp = 0;
             expCache[player] = exp;
             sql.Update(player.UserId, experience: exp);
+        }
+        public static void SetPoint(Player player, int point)
+        {
+            if (player == null) return;
+            if (point < 0) point = 0;
+            sql.Update(player.UserId, point: point);
+        }
+        public static void AddPoint(Player player, int point)
+        {
+            if (player == null) return;
+            SetPoint(player, point: GetPoint(player) + point);
         }
         [CommandSystem.CommandHandler(typeof(RemoteAdminCommandHandler))]
         public class BanCommand : ICommand, IUsageProvider

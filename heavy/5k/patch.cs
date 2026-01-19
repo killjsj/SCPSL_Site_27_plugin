@@ -124,210 +124,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
         // 用于 Transpiler 的静态方法
         private static float GetDamage()
         {
-            return Scp5k_Control.Is5kRound ? 16f : 8f; // 举例：5k回合伤害减半
+            return Scp5k_Control.Is5kRound ? 16f : 8f;
         }
     }
 
-    [HarmonyPatch(typeof(HitboxIdentity))]
-    public static class HitboxIdentityPatch
-    {
-        [HarmonyPatch("IsDamageable", typeof(ReferenceHub), typeof(ReferenceHub))]
-        [HarmonyPrefix]
-        public static bool Prefix(ReferenceHub attacker, ReferenceHub victim, ref bool __result)
-        {
-            if (Scp5k_Control.Is5kRound)
-            {
 
-
-
-                __result = ((ServerConfigSynchronizer.Singleton.MainBoolsSync & 1) == 1 || IsEnemy(attacker, victim));
-                Log.Info(__result);
-
-                return false;  // 跳过原始方法执行}
-            }
-            return true;
-        }
-
-        [HarmonyPatch("IsEnemy", typeof(ReferenceHub), typeof(ReferenceHub))]
-        [HarmonyPrefix]
-        public static bool IsEnemyPrefix(ReferenceHub attacker, ReferenceHub victim, ref bool __result)
-        {
-            if (Scp5k_Control.Is5kRound)
-            {
-                __result = IsEnemy(attacker, victim);  // 跳过原始方法执行}
-                return false;
-            }
-            return true;
-        }
-
-        public static bool IsEnemy(ReferenceHub attacker, ReferenceHub victim)
-        {
-            if (attacker == Server.Host.ReferenceHub)
-                return true;
-            if ((victim.isServer || victim == Server.Host.ReferenceHub) && !victim.IsDummy)
-            {
-                //ffMultiplier = -1f;
-                return false;
-            }
-            // 获取攻击者和受害者的 Player 对象
-            var a = Player.Get(attacker);
-            var v = Player.Get(victim);
-
-            // 安全检查：如果玩家对象不存在，返回 false（无法造成伤害）
-            if (a == null || v == null)
-                return true;
-            // Always allow damage from Server.Host
-
-            return FFManager.GetFFQuickCheck(a, v);
-            if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces)
-            {
-                return false;
-            }
-            else if(a.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces && v.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies)
-            {
-                return false;
-            }
-            
-        }
-        public static bool IsEnemy(Team attackerTeam, Team victimTeam)
-        {
-            return attackerTeam != Team.Dead && victimTeam != Team.Dead && (attackerTeam != Team.SCPs || victimTeam != Team.SCPs) && attackerTeam.GetFaction() != victimTeam.GetFaction();
-        }
-    }
-    [HarmonyPatch(typeof(AttackerDamageHandler))]
-    public static class AttackerDamageHandlerPatch
-    {
-        private static bool DisableSpawnProtect(ReferenceHub attacker, ReferenceHub target)
-        {
-            return attacker != null &&
-                   SpawnProtected.CanShoot &&
-                   SpawnProtected.CheckPlayer(attacker) &&
-                   attacker != target;
-        }
-        public static bool CheckFriendlyFirePlayerRules(Footprint attackerFootprint, ReferenceHub victimHub, out float ffMultiplier)
-        {
-            ffMultiplier = 1f;
-
-            // Return false, no custom friendly fire allowed, default to NW logic for FF. No point in processing if FF is enabled across the board.
-            if (Server.FriendlyFire)
-                return HitboxIdentity.IsDamageable(attackerFootprint.Role, victimHub.roleManager.CurrentRole.RoleTypeId);
-
-
-            // Always allow damage from Server.Host
-            if (attackerFootprint.Hub == Server.Host.ReferenceHub)
-                return true;
-
-            // Only check friendlyFire if the FootPrint hasn't changed (Fix for Grenade not dealing damage because it's from a dead player)
-            if (!attackerFootprint.CompareLife(new Footprint(attackerFootprint.Hub)))
-                return HitboxIdentity.IsDamageable(attackerFootprint.Role, victimHub.roleManager.CurrentRole.RoleTypeId);
-            if((victimHub.isServer || victimHub == Server.Host.ReferenceHub) && !victimHub.IsDummy)
-            {
-                ffMultiplier = -1f;
-                return false;
-            }
-
-            try
-            {
-                Player attacker = Player.Get(attackerFootprint.Hub);
-                Player victim = Player.Get(victimHub);
-                var FF = FFManager.GetFF(attacker, victim);
-                Log.Info($"FF between {attacker.Nickname} and {victim.Nickname} is {FF}");
-                if (FF != -1)
-                {
-                    ffMultiplier = FF;
-                    return FF >= 0f;
-                }
-            }
-            catch (Exception ex)
-            {
-                //Log.Error($"CheckFriendlyFirePlayerRules failed to handle friendly fire because: {ex}");
-            }
-
-            // Default to NW logic
-            return HitboxIdentityPatch.IsEnemy(attackerFootprint.Hub, victimHub);
-        }
-
-        [HarmonyPatch("ProcessDamage")]
-        [HarmonyPrefix]
-        public static bool Prefix(AttackerDamageHandler __instance, ReferenceHub ply)
-        {
-            // 仅在 5k 轮次生效
-            if (!Scp5k_Control.Is5kRound)
-                return true; // 非5k轮次：走原版逻辑（但你可能想 return false？见下方说明）
-
-            // 安全检查
-            if (__instance.Attacker.Hub == null || ply == null)
-            {
-                return true;
-            }
-
-            var attacker = __instance.Attacker.Hub;
-            var victim = ply;
-
-            // 出生保护：攻击者受保护 → 无法造成伤害
-            if (DisableSpawnProtect(attacker, victim))
-            {
-                return true;
-
-            }
-            if (CheckFriendlyFirePlayerRules(__instance.Attacker, ply, out float ffMultiplier))
-            {
-                //Log.Info($"ffMultiplier:{ffMultiplier}");
-                //Log.Info($"__instance.Damage:{__instance.Damage}");
-                __instance.Damage *= ffMultiplier;
-                //Log.Info($"__instance.Damage *  f:{__instance.Damage}");
-                return false;
-            }
-            bool isEnemy = HitboxIdentityPatch.IsEnemy(attacker, victim);
-            if (!isEnemy)
-            {
-                return true;
-            }
-            // 设置 IsFriendlyFire：只有非敌人（友军）才设为 true
-            var isFriendlyFireProp = __instance.GetType()
-                .GetProperty("IsFriendlyFire", BindingFlags.NonPublic | BindingFlags.Instance);
-            isFriendlyFireProp?.SetValue(__instance, false, null);
-
-            // 如果是友军（非敌人），直接归零伤害（禁用友伤）
-            
-
-            // 是敌人 → 允许伤害，继续应用伤害修饰器（如护甲、减伤等）
-            StatusEffectBase[] allEffects = victim.playerEffectsController.AllEffects;
-            for (int i = 0; i < allEffects.Length; i++)
-            {
-                if (allEffects[i] is IDamageModifierEffect modEffect && modEffect.DamageModifierActive)
-                {
-                    __instance.Damage *= modEffect.GetDamageModifier(__instance.Damage, __instance, __instance.Hitbox);
-                }
-            }
-
-            // 可选：强制启用“完全友伤”逻辑（虽然这里已是敌人，通常不需要）
-            // 但如果你的某些系统依赖 ForceFullFriendlyFire，可以设为 true
-            //var forceFfProp = __instance.GetType()
-            //    .GetProperty("ForceFullFriendlyFire", BindingFlags.NonPublic | BindingFlags.nav);
-            //forceFfProp?.SetValue(__instance, true, null);
-
-            // ✅ 完全处理完毕，跳过原版 ProcessDamage
-            return false;
-        }
-    }
-    [HarmonyPatch(typeof(Scp173BlinkTimer))]
-    public static class Scp173BlinkTimerPatch
-    {
-        [HarmonyPatch("get_TotalCooldownServer")]
-        [HarmonyPrefix]
-        public static bool Prefix(Scp173BlinkTimer __instance, ref float __result)
-        {
-            if (Scp5k_Control.Is5kRound)
-            {
-                var role = __instance.Role as PlayerRoles.PlayableScps.Scp173.Scp173Role;
-                role.SubroutineModule.TryGetSubroutine<Scp173BreakneckSpeedsAbility>(out var _breakneckSpeedsAbility);
-                __result = (3 - Math.Max(ReferenceHub.GetPlayerCount(ClientInstanceMode.ReadyClient, ClientInstanceMode.Dummy) * 0.1f, 1.5f)) * (_breakneckSpeedsAbility.IsActive ? 0.5f : 1f);
-                return false;  // 跳过原始方法执行}
-            }
-            return true;
-        }
-    }
     [HarmonyPatch(typeof(PlayerStats))]
     public static class PlayerStatsPatch
     {
@@ -452,12 +253,17 @@ namespace Next_generationSite_27.UnionP.Scp5k
         [HarmonyPrefix]
         public static bool Prefix(AttackerDamageHandler adh, ReferenceHub victim, ref bool __result)
         {
-            if (Scp5k_Control.Is5kRound)
+            if (Plugin.CurrentFFManager != null)
             {
-                if (FFManager.GetFF(Player.Get(adh.Attacker),Player.Get(victim)) > 0)
+                if (Plugin.CurrentFFManager.IsDamaging(Player.Get(adh.Attacker), Player.Get(victim)))
+                {
+                    __result = true;
+                    return false;  // 跳过原始方法执行}
+                }
+                else
                 {
                     __result = false;
-                return false;  // 跳过原始方法执行}
+                    return false;
                 }
             }
             return true;

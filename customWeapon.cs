@@ -7,6 +7,7 @@ using Exiled.API.Features.Spawn;
 using Exiled.CustomItems.API.Features;
 using Exiled.Events.EventArgs.Item;
 using Exiled.Events.EventArgs.Player;
+using Next_generationSite_27.UnionP.heavy.ability;
 using Next_generationSite_27.UnionP.heavy.role;
 using PlayerStatsSystem;
 using System;
@@ -33,6 +34,7 @@ namespace Next_generationSite_27.UnionP
             Type = ItemType.Jailbird;
             DefaultAudioManager.RegisterAudio("swing", () =>
     File.OpenRead($"{Paths.Configs}\\Plugins\\union_plugin\\swing.wav"));
+            this.abilities.Add(new TestAbility1());
             base.Init();
         }
         protected override void SubscribeEvents()

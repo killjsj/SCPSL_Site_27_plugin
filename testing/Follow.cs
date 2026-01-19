@@ -41,6 +41,7 @@ namespace Next_generationSite_27.UnionP
             _minDistance = minDistance;
             _speed = speed;
         }
+        List<Vector3> re = new List<Vector3>();
 
         private void Update()
         {
@@ -84,7 +85,6 @@ namespace Next_generationSite_27.UnionP
                 }
 
                 var nav = RoomGraph.InternalNav;
-                List<Vector3> re = new List<Vector3>();
                 if(Room.FindParentRoom(_hub.gameObject).Identifier == Room.FindParentRoom(_hubToFollow.gameObject).Identifier)
                 {
                     re = nav.LocalPathInRoom(_hub.GetPosition(), _hubToFollow.GetPosition(), Room.FindParentRoom(_hub.gameObject));

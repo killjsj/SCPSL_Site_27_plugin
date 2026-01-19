@@ -255,7 +255,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 foreach (var p in spawnList)
                     uiuRole.AddRole(p);
 
-                Cassie.MessageTranslated(
+                Exiled.API.Features.Cassie.MessageTranslated(
                     "Security alert . Substantial U I U activity detected . Security personnel , proceed with standard protocols",
                     "安保警戒，侦测到UIU的活动。安保人员请继续执行标准协议。阻止下载资料"
                 );
@@ -319,7 +319,7 @@ namespace Next_generationSite_27.UnionP.heavy
                         Downloaded = true;
                         if (!uiu_broadcasted)
                         {
-                            Cassie.MessageTranslated("Security alert . U I U down load d . Security personnel , proceed with standard protocols",
+                            Exiled.API.Features.Cassie.MessageTranslated("Security alert . U I U down load d . Security personnel , proceed with standard protocols",
                                                      "安保警戒，侦测到机房资料下载完成。安保人员请继续执行标准协议。阻止uiu撤离");
                             uiu_broadcasted = true;
                         }
@@ -353,7 +353,7 @@ namespace Next_generationSite_27.UnionP.heavy
                             UiuDownloadTime += UiuDownloadTick * 0.2f * UiuInServerRoom;
                             if (UiuDownloadTime >= 30f && !UiuDownloadBroadcasted)
                             {
-                                Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols",
+                                Exiled.API.Features.Cassie.MessageTranslated("Security alert . U I U down load activity detected . Security personnel , proceed with standard protocols",
                                                          "安保警戒，侦测到UIU的下载活动。安保人员请继续执行标准协议。前往机房");
                                 UiuDownloadBroadcasted = true;
                             }

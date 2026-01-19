@@ -257,7 +257,7 @@ namespace Next_generationSite_27.UnionP.heavy
             HammerSpawned = true;
             if (!HammerSpawnedBroadcast)
             {
-                Cassie.MessageTranslated("Mobile Task Force Unit Nu 7 has entered the facility", "机动特遣队Nu-7小队已进入设施。");
+                Exiled.API.Features.Cassie.MessageTranslated("Mobile Task Force Unit Nu 7 has entered the facility", "机动特遣队Nu-7小队已进入设施。");
                 //HammerSpawnedBroadcast = true;
             }
 

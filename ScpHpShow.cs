@@ -78,7 +78,7 @@ namespace Next_generationSite_27.UnionP
             {
                 RemoveScp(ev.Player);
             }
-            Timing.CallDelayed(0.1f, () =>
+            Timing.CallDelayed(0.2f, () =>
             {
                 if (IsScpRole(ev.NewRole))
                 {
@@ -126,6 +126,13 @@ namespace Next_generationSite_27.UnionP
 
         private void RemoveScp(Player player)
         {
+            if(player.Role.Type == RoleTypeId.Scp0492)
+            {
+                if(Player.Enumerable.Count(x => x.Role.Type == RoleTypeId.Scp0492) > 1)
+                {
+                    return;
+                }
+            }
             Scp.Remove(player);
             PlayerHintLists.Remove(player);
 

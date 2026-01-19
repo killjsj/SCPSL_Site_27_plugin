@@ -18,6 +18,7 @@ namespace Next_generationSite_27.UnionP.heavy
         public static void SendFakePlayerPos(Player player, Vector3 pos)
         {
             Pos[player.ReferenceHub] = pos;
+            // ((LabApi.Features.Wrappers.Player)player).AddAmmo()
         }
         public static void RemoveSendFakePlayerPos(Player player)
         {

@@ -20,7 +20,7 @@ using Utils.Networking;
 namespace Next_generationSite_27.UnionP.heavy.ability
 {
    
-    public class TestAbility1 : KeyAbility
+    public class TestAbility1 : ItemKeyAbility
     {
         //public override KeyCode KeyCode => KeyCode.Mouse2;
 
@@ -29,7 +29,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
         public override string Des => "扫描周围35m内的敌人";
 
         public override int id => 188;
-        public override double Time => 1;
+        public override double Time => 30;
         public override int TotalCount { get; set; } = 6;
         public override float WaitForDoneTime => 0;
         public static AbilityCooldown cd = new();
@@ -38,46 +38,17 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 
         public override bool OnTrigger()
         {
-            var c = player.CameraTransform.GetComponent<UnityEngine.Camera>();
-
-            if (c == null)
+            foreach (var p in Player.Enumerable)
             {
-                c = player.CameraTransform.gameObject
-                    .AddComponent<UnityEngine.Camera>();
-                c.fieldOfView = 90;
-                
-            }
-            foreach (var a in Player.Enumerable)
-            {
-                var v = c.WorldToScreenPoint(a.Position);
-                //v.x = v.x * 1300;
-                //v.y = v.y * 700;
-                Log.Info(v);
-                if (player.GetHUD() is HSM_hintServ hSM_HintServ)
+                if (player != p && Vector3.Distance(player.Position, p.Position) <= 35f)
                 {
-                    var h = hSM_HintServ.hud;
-                    var hint = new HintServiceMeow.Core.Models.Hints.Hint()
+                    if (HitboxIdentity.IsEnemy(player.ReferenceHub, p.ReferenceHub))
                     {
-                        Text = $"<pos={v.x}px>{a.Role.Name} ({Vector3.Distance(a.Position, player.Position)}) ScreenPos:{v}</pos>",
-                        YCoordinate = v.y,
-                        XCoordinate = v.x,
-                        YCoordinateAlign = HintServiceMeow.Core.Enum.HintVerticalAlign.Top,
-                        
-                    };
-                    h.AddHint(hint);
-                    Timing.CallDelayed(1f, () =>
-                    {
-                        h.RemoveHint(hint);
-                    });
+                        new DrawableLineMessage(0.5f, Color.red * new Color(1, 1, 1, 1 - (Vector3.Distance(player.Position, p.Position) / 150) + 0.01f), new Vector3[2] { p.CameraTransform.position + 0.2f * Vector3.down, player.Position }).SendToHubsConditionally(x => x == player.ReferenceHub);
+                    }
                 }
             }
-            Log.Info("DOne!");
             return true;
-        }
-
-        internal TestAbility1(Player player) : base(player)
-        {
-            //TotalCount = 1;
         }
         public TestAbility1() : base()
         {

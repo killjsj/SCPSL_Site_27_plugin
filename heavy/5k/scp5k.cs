@@ -148,7 +148,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             Decont_NextIsOepn = false;
                             DecontaminationController.Singleton.DecontaminationOverride = DecontaminationController.DecontaminationStatus.Disabled;
-                            Cassie.MessageTranslated("LIGHT CONTAINMENT Decontamination has been stoped .", "轻收容已重新开放.");
+                            Exiled.API.Features.Cassie.MessageTranslated("LIGHT CONTAINMENT Decontamination has been stoped .", "轻收容已重新开放.");
                         }
                     }
                     else
@@ -375,7 +375,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             ev.IsAllowed = false;
             DeadmanSwitchInitiated = true;
             Scp610Ending = true;
-            Cassie.MessageTranslated("BY ORDER OF O5 COMMAND . SCP 6 1 0 WILL BE REALLY SEE did INTO the facility", "根据O5指挥部指令 SCP-610即将被投放到设施");
+            Exiled.API.Features.Cassie.MessageTranslated("BY ORDER OF O5 COMMAND . SCP 6 1 0 WILL BE REALLY SEE did INTO the facility", "根据O5指挥部指令 SCP-610即将被投放到设施");
             for (int i = 0; i < 6; i++)
             {
                 Player player = Player.Enumerable.Where(x => x.IsAlive && !x.IsScp).GetRandomValue();
@@ -564,6 +564,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
         }
         public static PConfig config => Plugin.Instance.Config;
+        static List<Player> tempList = new List<Player>(64);
         public static IEnumerator<float> Refresher()
         {
             Log.Info("Refresher!");
@@ -574,7 +575,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             //float statusTimer = 0f;
             float waveTimer = 0f;
 
-            var tempList = new List<Player>(64);
+            
             //var sw = Stopwatch.StartNew();
 
             while (true)
@@ -918,12 +919,12 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
                 if (((int)Scp1440Timer.Elapsed.TotalSeconds) % 100 == 99)
                 {
-                    Cassie.Message($"SCP-1440目前在: {player.Zone} 所有人员保护SCP-1440", isSubtitles: true);
+                    Exiled.API.Features.Cassie.Message($"SCP-1440目前在: {player.Zone} 所有人员保护SCP-1440", isSubtitles: true);
                 }
                 player.Heal(0.5f);
                 if (Scp1440Timer.Elapsed.TotalSeconds >= Scp1440DestoryTime)
                 {
-                    Cassie.MessageTranslated("The facility is being destroyed in TMINUS 10 seconds . good BY.", "设施将在10秒后毁灭。再见。");
+                    Exiled.API.Features.Cassie.MessageTranslated("The facility is being destroyed in TMINUS 10 seconds . good BY.", "设施将在10秒后毁灭。再见。");
                     Timing.CallDelayed(10f, () =>
                     {
                         Warhead.Shake();
@@ -931,7 +932,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         {
                             foreach (var item in Player.Enumerable)
                             {
-                                ServerConsole.Disconnect(item.ReferenceHub.gameObject, "你被从现实中移除了 原因:SCP-1440毁灭了部分现实\n注:服务器正在重启 你可能无法在列表上看到服务器 等一等就好了");
+                                //ServerConsole.Disconnect(item.ReferenceHub.gameObject, "你被从现实中移除了 原因:SCP-1440毁灭了部分现实\n注:服务器正在重启 你可能无法在列表上看到服务器 等一等就好了");
+                                item.Kill("SCP-1440毁灭了部分现实");
                             }
                             Round.Restart(false, false, ServerStatic.NextRoundAction.Restart);
                         });
@@ -1012,7 +1014,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             Nu22Spawned = true;
             if (true)
             {
-                Cassie.MessageTranslated("Mobile Task Force Unit Nu 2 2 with SCP 1 4 4 0 has entered the facility . Please wait the facilitys destruction .", "机动特遣队Nu-22小队已携带SCP1440进入设施。请等待设施毁灭");
+                Exiled.API.Features.Cassie.MessageTranslated("Mobile Task Force Unit Nu 2 2 with SCP 1 4 4 0 has entered the facility . Please wait the facilitys destruction .", "机动特遣队Nu-22小队已携带SCP1440进入设施。请等待设施毁灭");
                 //HammerSpawnedBroadcast = true;
             }
 
@@ -1024,8 +1026,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
         static CoroutineHandle refresher;
         public static void RoundStarted()
         {
-            //if(FFManager.isInitialized == false)
-            FFManager.InitializeFastLookup();
+            //if(Scp5kFFManager.isInitialized == false)
+            //Scp5kFFManager.init();
             Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
             Is5kRound = Is5kRound | IsForce5kRound;
             DeadmanSwitchInitiated = false;
@@ -1060,6 +1062,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 Log.Info("refresher start");
                 Plugin.RunCoroutine(DecontUpdate());
                 Goc.Enabled = true;
+                Plugin.CurrentFFManager = Scp5kFFManager.Ins;
                 refresher = Plugin.RunCoroutine(Refresher());
 
             }
@@ -1172,7 +1175,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
         {
 
             //DefaultAudioManager.
-            Cassie.Clear();
+            Exiled.API.Features.Cassie.Clear();
             string Message1 = $"正在接收广播...";
             Message1.CustomCassieMessage("???");
             yield return Timing.WaitForSeconds(5f);
@@ -1181,33 +1184,33 @@ namespace Next_generationSite_27.UnionP.Scp5k
             string Message2 = $"以下信息经 O5 议会一致决定通过后撰写发布。";
             Message2.CustomCassieMessage("O5 Command");
             yield return Timing.WaitForSeconds(5f);
-            Cassie.Clear();
+            Exiled.API.Features.Cassie.Clear();
 
             string Message3 = $"那些目前仍未注意到我们的存在的人，我们代表着一个称作 SCP 基金会的组织。";
             Message3.CustomCassieMessage("O5 Command");
             //
             yield return Timing.WaitForSeconds(7f);
-            Cassie.Clear();
+            Exiled.API.Features.Cassie.Clear();
 
             string Message31 = $"我们之前的任务都是围绕着收容与研究异常物体、实体以及其它各种各样的现象展开的。";
             Message31.CustomCassieMessage("O5 Command");
             yield return Timing.WaitForSeconds(8f);
-            Cassie.Clear();
+            Exiled.API.Features.Cassie.Clear();
 
             string Message32 = $"上百年以来，这些任务一直都是我们组织的工作重点。";
             Message32.CustomCassieMessage("O5 Command");
             yield return Timing.WaitForSeconds(4f);
-            Cassie.Clear();
+            Exiled.API.Features.Cassie.Clear();
 
             string Message4 = $"由于出现了超出我们控制的情况，此指令现已更改。";
             Message4.CustomCassieMessage("O5 Command");
             yield return Timing.WaitForSeconds(5.5f);
-            Cassie.Clear();
+            Exiled.API.Features.Cassie.Clear();
 
             string Message5 = $"我们的新任务将为<color=red>灭除全人类。</color>";
             Message5.CustomCassieMessage("O5 Command");
             yield return Timing.WaitForSeconds(4f);
-            Cassie.Clear();
+            Exiled.API.Features.Cassie.Clear();
 
             string Message6 = $"此后将没有进一步通信。";
             Message6.CustomCassieMessage("O5 Command");
@@ -1576,23 +1579,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             if (Is5kRound)
             {
                 //Log.Info($"Ending Allow:{ev.IsAllowed}");
-                //if (ev.IsAllowed)
+                //
                 {
-                    ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
-                    GOCAnim.donating = false;
-                    Goc_Spy_broadcasted = false;
-                    GOCBomb.Inited = false;
-                    GOCBomb.Played = false;
-                    GOCBomb.installCount = 4;
-                    GOCBomb.GOCBombList = new List<GOCBomb>();
-                    GOCBomb.installAt = new List<Room>();
-                    GOCBomb.installedRoom = new Dictionary<GOCBomb, Room>();
-                    GOCBomb.P2B = new Dictionary<Exiled.API.Features.Player, GOCBomb>();
-                    GOCBomb.Questions = new List<(string q, string a)>();
-                    GOCBomb.QuestionCount = 1;
-                    uiu_broadcasted = false;
-                    GOCBomb.countDown = GOCBomb.countDownStart;
-                    GOCBomb.QuestionPoint = -1;
 
                     if (Scp055Escaped)
                     {
@@ -1682,7 +1670,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
                             }
                             ev.LeadingTeam = Exiled.API.Enums.LeadingTeam.Anomalies;
                             ev.IsAllowed = true;
-                            return;
+                            goto Out;
 
                         }
                         chaos += SpecRolesCount;
@@ -1703,13 +1691,31 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                     }
                     //Scp5k_Control.Is5kRound = UnityEngine.Random.Range(1, 100) <= config.scp5kPercent;
-
                 }
 
                 if (refresher.IsRunning && ev.IsAllowed)
                 {
                     Timing.KillCoroutines(refresher);
                 }
+            }
+        Out:
+            if (ev.IsAllowed)
+            {
+                ServerStatic.StopNextRound = ServerStatic.NextRoundAction.Restart;
+                GOCAnim.donating = false;
+                Goc_Spy_broadcasted = false;
+                GOCBomb.Inited = false;
+                GOCBomb.Played = false;
+                GOCBomb.installCount = 4;
+                GOCBomb.GOCBombList = new List<GOCBomb>();
+                GOCBomb.installAt = new List<Room>();
+                GOCBomb.installedRoom = new Dictionary<GOCBomb, Room>();
+                GOCBomb.P2B = new Dictionary<Exiled.API.Features.Player, GOCBomb>();
+                GOCBomb.Questions = new List<(string q, string a)>();
+                GOCBomb.QuestionCount = 1;
+                uiu_broadcasted = false;
+                GOCBomb.countDown = GOCBomb.countDownStart;
+                GOCBomb.QuestionPoint = -1;
             }
 
         }

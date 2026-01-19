@@ -5,19 +5,21 @@ using PlayerRoles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 
 namespace Next_generationSite_27.UnionP.Scp5k
 {
-    class FFManager
+    class Scp5kFFManager : BaseClass,IFFManager
     {
         // 预构建的快速查找表
         public static Dictionary<(uint, uint), float> fastFFLookup = new Dictionary<(uint, uint), float>();
         public static bool isInitialized = false;
+        public static Scp5kFFManager Ins;
 
-        public static void InitializeFastLookup()
+        public override void Init()
         {
             var ffDataList = new List<FFData>() {
                 new FFData(new List<CustomRole>()
@@ -224,10 +226,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
             }
             Log.Info($"FF 快速查找表已初始化，包含 {fastFFLookup.Count} 条记录。");
+            Ins = this;
             isInitialized = true;
         }
 
-        public static bool GetFFQuickCheck(Player a, Player b)
+        public bool IsDamaging(Player a, Player b)
         {
             var roleA = a.Role.Type;
             var roleB = b.Role.Type;
@@ -251,7 +254,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             return false;
         }
 
-        public static float GetFF(Player a, Player b)
+        public float GetFF(Player a, Player b)
         {
             var roleA = a.Role.Type;
             var roleB = b.Role.Type;
@@ -280,6 +283,11 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 return null;
 
             return CustomRole.Get(p.UniqueRole);
+        }
+
+        public override void Delete()
+        {
+            //throw new NotImplementedException();
         }
     }
 

@@ -53,7 +53,7 @@ namespace Next_generationSite_27.UnionP.heavy
                         }
                         if (ev.Player.UniqueRole == GocNukeP.Name || ev.Player.UniqueRole == GocNukeC.Name)
                         {
-                            Cassie.MessageTranslated("", "GOC正在强制启动核弹!所有人前去关闭!");
+                            Exiled.API.Features.Cassie.MessageTranslated("", "GOC正在强制启动核弹!所有人前去关闭!");
                             LastChangedWarheadIsGoc = true;
                             Warhead.Start(false, trigger: ev.Player);
                         }
@@ -724,7 +724,7 @@ namespace Next_generationSite_27.UnionP.heavy
                     }
                 }
 
-                Cassie.MessageTranslated(
+                Exiled.API.Features.Cassie.MessageTranslated(
                     "Security alert . Substantial G O C activity detected . Security personnel , proceed with standard protocols , Protect the warhead",
                     "安保警戒，侦测到大量GOC的活动。安保人员请继续执行标准协议，保护核弹。"
                 );
@@ -757,7 +757,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 }
             }
 
-            Cassie.MessageTranslated(
+            Exiled.API.Features.Cassie.MessageTranslated(
                 "Attention security personnel , G O C spotted at Gate A . Protect the warhead",
                 "安保人员请注意，已在A大门处发现GOC，保护核弹。"
             );
@@ -924,7 +924,7 @@ namespace Next_generationSite_27.UnionP.heavy
                         }
                         if (Goc_Spy_broadcasted)
                         {
-                            Cassie.MessageTranslated("Security alert . Substantial G o c activity detected . Security personnel ,  proceed with standard protocols , Protect the warhead ", "安保警戒，侦测到大量GOC的活动。安保人员请继续执行标准协议，保护核弹。");
+                            Exiled.API.Features.Cassie.MessageTranslated("Security alert . Substantial G o c activity detected . Security personnel ,  proceed with standard protocols , Protect the warhead ", "安保警戒，侦测到大量GOC的活动。安保人员请继续执行标准协议，保护核弹。");
                             ev.Player.AddMessage("Spy_goc_spawned" + DateTime.Now.ToString(), "<size=30><color=green>你成功呼叫支援!</color></size>", 3f, ScreenLocation.Center);
                         }
                         else

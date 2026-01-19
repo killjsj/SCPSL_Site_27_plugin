@@ -209,7 +209,7 @@ namespace Next_generationSite_27.UnionP.heavy
                     role.AddRole(p);
 
                 AndRefreshCount++;
-                Cassie.MessageTranslated(
+                Exiled.API.Features.Cassie.MessageTranslated(
                     "Attention security personnel , And saw spotted at Gate A",
                     "安保人员请注意，已在A大门处发现安德森机器人"
                 );

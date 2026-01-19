@@ -1,8 +1,10 @@
-﻿using Exiled.API.Extensions;
+﻿using Cassie;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.CustomRoles.API.Features;
 using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
+using NorthwoodLib.Pools;
 using PlayerRoles;
 using Respawning.NamingRules;
 using System;
@@ -38,7 +40,7 @@ namespace Next_generationSite_27.UnionP.heavy
                     if (ConvertToDeath(ev.Player, out text2, out str))
                     {
                         GetTeamKillText(ev.Attacker, out text3, out str2);
-                        Cassie.MessageTranslated($"SCP {str} CONTAINEDSUCCESSFULLY BY {str2}", $"{text2} 已被{text3}重新收容。");
+                        Exiled.API.Features.Cassie.MessageTranslated($"SCP {str} CONTAINEDSUCCESSFULLY BY {str2}", $"{text2} 已被{text3}重新收容。");
                     }
                 }
             }
@@ -51,6 +53,39 @@ namespace Next_generationSite_27.UnionP.heavy
             }
 
         }
+        public static void ConvertSCP(RoleTypeId role, out string withoutSpace, out string withSpace)
+        {
+            PlayerRoleBase playerRoleBase;
+            if (!PlayerRoleLoader.TryGetRoleTemplate<PlayerRoleBase>(role, out playerRoleBase))
+            {
+                withoutSpace = string.Empty;
+                withSpace = string.Empty;
+                return;
+            }
+            CassieScpTerminationAnnouncement.ConvertSCP(playerRoleBase.RoleName, out withoutSpace, out withSpace);
+        }
+
+        // Token: 0x06003CF9 RID: 15609 RVA: 0x000CA680 File Offset: 0x000C8880
+        public static void ConvertSCP(string roleName, out string withoutSpace, out string withSpace)
+        {
+            StringBuilder stringBuilder = StringBuilderPool.Shared.Rent();
+            string[] array = roleName.Split('-');
+            if (array.Length < 2)
+            {
+                //Log.InfoError("Cassie role cannot be split by '-'. Possibly missing translation.");
+                withoutSpace = "404";
+                withSpace = "4 0 4";
+                return;
+            }
+            withoutSpace = array[1];
+            foreach (char value in withoutSpace)
+            {
+                stringBuilder.Append(value);
+                stringBuilder.Append(' ');
+            }
+            withSpace = StringBuilderPool.Shared.ToStringReturn(stringBuilder);
+        }
+
         public static bool ConvertToDeath(Player role, out string withoutSpace, out string withSpace)
         {
             if (role.UniqueRole != "")
@@ -87,7 +122,7 @@ namespace Next_generationSite_27.UnionP.heavy
             }
             else
             {
-                NineTailedFoxAnnouncer.ConvertSCP(result.RoleName, out withoutSpace, out withSpace);
+                ConvertSCP(result.RoleName, out withoutSpace, out withSpace);
                 withoutSpace = "SCP-" + withoutSpace;
                 withSpace = "SCP " + withSpace;
                 return withoutSpace != "SCP-" && withSpace != "SCP ";
@@ -115,7 +150,7 @@ namespace Next_generationSite_27.UnionP.heavy
                 case Team.SCPs:
                 case Team.Flamingos:
                     {
-                        NineTailedFoxAnnouncer.ConvertSCP(Attacker.Role, out withoutSpace, out withSpace);
+                        ConvertSCP(Attacker.Role, out withoutSpace, out withSpace);
                         return true;
                     }
                 case Team.FoundationForces:

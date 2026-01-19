@@ -30,6 +30,7 @@ using MEC;
 using Mirror;
 using NetworkManagerUtils.Dummies;
 using Next_generationSite_27.UnionP;
+using Next_generationSite_27.UnionP.Buffs;
 using Next_generationSite_27.UnionP.heavy.ability;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
@@ -1724,12 +1725,15 @@ namespace Next_generationSite_27.UnionP
         }
         public IEnumerator<float> UpdateInfo()
         {
-            while (Round.IsStarted)
+            string FirstColorHex = Config.FirstColorHex;
+            string SecondColorHex = Config.SecondColorHex;
+            string MainColorHex = Config.MainColorHex;
+            string TextVar = Config.TextShow;
+            float Showtime = Config.Showtime;
+            int Showduration = Config.Showduration;
+            while (Round.IsStarted && !CassieIsOffline.Instance.CheckEnabled())
             {
-                string FirstColorHex = Config.FirstColorHex;
-                string SecondColorHex =Config.SecondColorHex;
-                string MainColorHex = Config.MainColorHex;
-                string TextVar = Config.TextShow;
+
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine(string.Concat(new string[]
                 {
@@ -1750,16 +1754,8 @@ namespace Next_generationSite_27.UnionP
                     }));
                 }
                 string scpInfo = sb.ToString();
-                float Showtime = Config.Showtime;
-                int Showduration = Config.Showduration;
                 Exiled.API.Features.Map.Broadcast((ushort)Showduration, scpInfo, global::Broadcast.BroadcastFlags.Normal, false);
                 yield return Timing.WaitForSeconds(Showtime);
-                FirstColorHex = null;
-                SecondColorHex = null;
-                MainColorHex = null;
-                TextVar = null;
-                sb = null;
-                scpInfo = null;
             }
             yield break;
         }
@@ -1859,19 +1855,19 @@ namespace Next_generationSite_27.UnionP
                         }
                         if (SPD != null && !SPD.Contains(ev.Player.ReferenceHub))
                         {
-                            ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin);
-                            ev.Player.Position = SP.transform.position + Vector3.up * 3;
-                            Timing.CallDelayed(2f, () =>
-                            {
-                                if (!Round.IsStarted)
-                                {
-                                    if (ev.Player.Position == SP.transform.position + Vector3.up * 3)
-                                    {
-                                        ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.All);
-                                        ev.Player.Broadcast(3, "出现bug了!已将你传回高塔,请联系管理");
-                                    }
-                                }
-                            });
+                            //ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin);
+                            //ev.Player.Position = SP.transform.position + Vector3.up * 3;
+                            //Timing.CallDelayed(2f, () =>
+                            //{
+                            //    if (!Round.IsStarted)
+                            //    {
+                            //        if (ev.Player.Position == SP.transform.position + Vector3.up * 3)
+                            //        {
+                            //            ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.All);
+                            //            ev.Player.Broadcast(3, "出现bug了!已将你传回高塔,请联系管理");
+                            //        }
+                            //    }
+                            //});
                         }
                     }
                 }

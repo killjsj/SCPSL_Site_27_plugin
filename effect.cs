@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 
 namespace Next_generationSite_27.UnionP
 {
-    class TestEffect : TickingEffectBase, ISpectatorDataPlayerEffect, ICustomRADisplay
+    class TestEffect : TickingEffectBase, ISpectatorDataPlayerEffect
     {
         public string DisplayName => "TestingEffect";
 

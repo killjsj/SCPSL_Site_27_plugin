@@ -1,4 +1,5 @@
 ﻿using AutoEvent;
+using AutoEvent.API;
 using CentralAuth;
 using CommandSystem.Commands.Shared;
 using Exiled.API.Enums;
@@ -1975,7 +1976,7 @@ namespace GwangjuRunningManLoader
             }
             ev.IsAllowed = false;
             ev.Player.RoleManager.ServerSetRole(RoleTypeId.ClassD,RoleChangeReason.Respawn);
-            ev.Player.GiveLoadout(_plugin.Config.PrisonerLoadouts);
+            ev.Player.Ex2LabPly().GiveLoadout(_plugin.Config.PrisonerLoadouts);
             ev.Player.Position = _plugin.SpawnPoints.Where(r => r.name == "Spawnpoint").ToList().RandomItem().transform.position;
             ev.Player.Health = 100;
 

@@ -1,4 +1,5 @@
-﻿using AutoEvent.Commands;
+﻿using AutoEvent;
+using AutoEvent.Commands;
 using CommandSystem;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
@@ -791,6 +792,10 @@ namespace Next_generationSite_27.UnionP
 
                     if (Plugin.Instance.Config.Level)
                     {
+                        if(AutoEvent.AutoEvent.EventManager.CurrentEvent != null)
+                        {
+                            return;
+                        }
                         if (Plugin.GetPlayerRegistered(ev.Player).Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]))
                         {
                             //if (menuItems != null && menuItems.Count > 0)

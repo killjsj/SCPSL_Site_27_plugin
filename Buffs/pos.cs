@@ -72,7 +72,7 @@ namespace Next_generationSite_27.UnionP.Buffs
                 //ev.Amount *= 1.5f;
                 if (!damageRecode.ContainsKey(ev.Attacker))
                 {
-                    damageRecode.Add(ev.Attacker, (Time.time, (int)ev.Amount));
+                    damageRecode[ev.Attacker] =  (Time.time, (int)ev.Amount);
                 }
                 else
                 {

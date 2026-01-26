@@ -92,6 +92,7 @@ namespace Next_generationSite_27.UnionP.Buffs
                 {
                     role1.ObserversTracker.ResetObject();
                     role1.ObserversTracker.UpdateObservers();
+                        role1.BlinkReady = false;
                 }
             }
         }
@@ -160,7 +161,7 @@ namespace Next_generationSite_27.UnionP.Buffs
         }
         public void ChangingItem(ChangingItemEventArgs ev)
         {
-            if (ev.Item.IsFirearm && this.CheckEnabled())
+            if (ev.Item.IsFirearm && this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
             {
                 var r = UnityEngine.Random.Range(0, 100);
                 if (r <= 1)

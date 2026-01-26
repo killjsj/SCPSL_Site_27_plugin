@@ -35,11 +35,14 @@ using NorthwoodLib.Pools;
 using Org.BouncyCastle.Pkix;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
+using PlayerRoles.FirstPersonControl.NetworkMessages;
 using PlayerRoles.PlayableScps.Scp049;
 using PlayerRoles.PlayableScps.Scp096;
 using PlayerRoles.PlayableScps.Scp173;
 using PlayerRoles.RoleAssign;
 using PlayerRoles.Subroutines;
+using PlayerRoles.Visibility;
+using PlayerRoles.Voice;
 using PlayerStatsSystem;
 using RelativePositioning;
 using Respawning.Waves;
@@ -54,9 +57,12 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UserSettings.ServerSpecific;
 using Utils.Networking;
+using VoiceChat;
 using ZstdSharp;
 using static HarmonyLib.AccessTools;
 using static PlayerStatsSystem.DamageHandlerBase;
+using Intercom = PlayerRoles.Voice.Intercom;
+using IVoiceRole = PlayerRoles.Voice.IVoiceRole;
 using Log = Exiled.API.Features.Log;
 using Object = UnityEngine.Object;
 using Type = System.Type;
@@ -805,6 +811,73 @@ namespace Next_generationSite_27.UnionP
             return false;
         }
     }
+    [HarmonyPatch(typeof(FpcServerPositionDistributor))]
+    public static class FpcServerPositionDistributorPatch
+    {
+        [HarmonyPatch("GetVisibleRole")]
+        [HarmonyPrefix]
+        public static bool Prefix(ReferenceHub receiver, ReferenceHub target,ref RoleTypeId __result)
+        {
+            RoleTypeId result = target.GetRoleId();
+            if (target.isLocalPlayer || receiver.isLocalPlayer)
+            {
+                __result = result;
+                return false;
+            }
+            IObfuscatedRole obfuscatedRole = target.roleManager.CurrentRole as IObfuscatedRole;
+            if (obfuscatedRole != null)
+            {
+                result = obfuscatedRole.GetRoleForUser(receiver);
+            }
+            if (receiver == target)
+            {
+                __result = result;
+                return false;
+            }
+            bool visable = false;
+            ICustomVisibilityRole customVisibilityRole = receiver.roleManager.CurrentRole as ICustomVisibilityRole;
+            if (customVisibilityRole != null)
+            {
+                visable = customVisibilityRole.VisibilityController.ValidateVisibility(target);
+            }
+            bool perm = PermissionsHandler.IsPermitted(receiver.serverRoles.Permissions, PlayerPermissions.GameplayData);
+            bool IsSpec = receiver.GetRoleId() == RoleTypeId.Spectator;
+            if (target.GetTeam() == Team.SCPs)
+            {
+                __result = result;
+                return false;
+            }
+            if (IsCommunicatingGlobally(target))
+            {
+                __result = result;
+                return false;
+            }
+            if (visable && perm && !IsSpec)
+            {
+            } else
+            {
+                result = RoleTypeId.Spectator;
+            }
+            __result = result;
+            return false;
+        }
+        private static bool IsCommunicatingGlobally(ReferenceHub hub)
+        {
+            IVoiceRole voiceRole = hub.roleManager.CurrentRole as IVoiceRole;
+            if (!Intercom._singletonSet)
+            {
+                return false;
+            }
+            if (VoiceChatMutes.IsMuted(hub, true))
+            {
+                return false;
+            }
+            bool flag = Intercom.State == IntercomState.InUse;
+            bool flag2  = Intercom.HasOverride(hub) || (flag && Intercom._singleton.CheckRange(hub) && Intercom._singleton._curSpeaker == hub);
+            return voiceRole != null && voiceRole.VoiceModule.ServerIsSending && (flag2 || voiceRole.VoiceModule.CurrentChannel == VoiceChatChannel.Radio);
+        }
+    }
+
     //    [HarmonyPatch(typeof(RoleAssigner))]
     //public static class RoleAssignerPatch
     //{

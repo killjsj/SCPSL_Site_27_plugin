@@ -29,31 +29,36 @@ using Player = Exiled.API.Features.Player;
 
 namespace Next_generationSite_27.UnionP.Buffs
 {
-    [HarmonyLib.HarmonyPatch(typeof(NetworkUtils))]
+    [HarmonyPatch]
     public static class CassieIsOfflinePatch
     {
-        public static List<SubtitleType> AllowTypes = new List<SubtitleType>() { 
-            SubtitleType.Custom,
-            SubtitleType.AlphaWarheadCancelled,
-            SubtitleType.AlphaWarheadEngage,
-            SubtitleType.AlphaWarheadResumed,
-            SubtitleType.DeadMansSwitch,
-        };
-        [HarmonyPatch(nameof(NetworkUtils.SendToHubsConditionally))]
-        [HarmonyPrefix]
-        static bool Prefix<T>(T msg, Func<ReferenceHub, bool> predicate, int channelId) where T : struct, NetworkMessage
+        public static List<SubtitleType> AllowTypes = new List<SubtitleType>() {
+        SubtitleType.Custom,
+        SubtitleType.AlphaWarheadCancelled,
+        SubtitleType.AlphaWarheadEngage,
+        SubtitleType.AlphaWarheadResumed,
+        SubtitleType.DeadMansSwitch,
+    };
+
+        static MethodBase TargetMethod()
         {
-            if(!CassieIsOffline.Instance.CheckEnabled()) return true;
-            if (msg is SubtitleMessage subtitle) {
-                foreach (var item in subtitle.SubtitleParts)
+            return typeof(NetworkUtils)
+                .GetMethod("SendToHubsConditionally", BindingFlags.Static | BindingFlags.Public)
+                ?.MakeGenericMethod(typeof(SubtitleMessage));
+        }
+
+        [HarmonyPrefix]
+        static bool Prefix(SubtitleMessage msg, Func<ReferenceHub, bool> predicate, int channelId)
+        {
+            if (!CassieIsOffline.Instance.CheckEnabled()) return true;
+            foreach (var item in msg.SubtitleParts)
+            {
+                if (!AllowTypes.Contains(item.Subtitle))
                 {
-                    if (!AllowTypes.Contains(item.Subtitle))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
             }
-            return true; 
+            return true;
         }
     }
     public class CassieIsOffline : BuffBase
@@ -61,7 +66,10 @@ namespace Next_generationSite_27.UnionP.Buffs
         public static CassieIsOffline Instance { get; private set; }
 
         public override BuffType Type => BuffType.Negative;
-
+        public override bool CanEnable()
+        {
+            return !Scp5k.Scp5k_Control.Is5kRound;
+        }
         public override string BuffName => "断开连接";
         void ShowEACFSubtitles(string message)
         {

@@ -508,19 +508,19 @@ namespace Next_generationSite_27.UnionP.heavy.role
                 FirearmDamageHandler param;
                 if ((object)ev.Player == null)
                 {
-                    Log.Debug(Name + ": OnInternalHurting: target null");
+                    //Log.Debug(Name + ": OnInternalHurting: target null");
                 }
                 else if (!Check(ev.Attacker.CurrentItem))
                 {
-                    Log.Debug(Name + ": OnInternalHurting: !Check()");
+                    //Log.Debug(Name + ": OnInternalHurting: !Check()");
                 }
                 else if (ev.Attacker == ev.Player)
                 {
-                    Log.Debug(Name + ": OnInternalHurting: attacker == target");
+                    //Log.Debug(Name + ": OnInternalHurting: attacker == target");
                 }
                 else if (ev.DamageHandler == null)
                 {
-                    Log.Debug(Name + ": OnInternalHurting: Handler null");
+                    //Log.Debug(Name + ": OnInternalHurting: Handler null");
                 }
                 else if (!ev.DamageHandler.CustomBase.BaseIs<FirearmDamageHandler>(out param))
                 {

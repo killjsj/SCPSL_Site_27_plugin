@@ -4,8 +4,10 @@ using Exiled.API.Features;
 using Exiled.CustomRoles.API.Features;
 using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
+using LabApi.Events.Handlers;
 using NorthwoodLib.Pools;
 using PlayerRoles;
+using PlayerStatsSystem;
 using Respawning.NamingRules;
 using System;
 using System.Collections.Generic;
@@ -44,14 +46,6 @@ namespace Next_generationSite_27.UnionP.heavy
                     }
                 }
             }
-        }
-        public static void AnnouncingScpTermination(AnnouncingScpTerminationEventArgs ev)
-        {
-            if (ev.Attacker.UniqueRole != "")
-            {
-                ev.IsAllowed = false;
-            }
-
         }
         public static void ConvertSCP(RoleTypeId role, out string withoutSpace, out string withSpace)
         {
@@ -187,13 +181,25 @@ namespace Next_generationSite_27.UnionP.heavy
         {
             //throw new NotImplementedException();
             Exiled.Events.Handlers.Player.Died += OnDeath;
-            Exiled.Events.Handlers.Map.AnnouncingScpTermination += AnnouncingScpTermination;
+            ServerEvents.CassieQueuingScpTermination += ServerEvents_CassieQueuingScpTermination;
+        }
+
+        private void ServerEvents_CassieQueuingScpTermination(LabApi.Events.Arguments.ServerEvents.CassieQueuingScpTerminationEventArgs ev)
+        {
+            if (ev.DamageHandler is AttackerDamageHandler adh)
+            {
+                Player player = Player.Get(adh.Attacker);
+                if (player.UniqueRole != "")
+                {
+                    ev.IsAllowed = false;
+                }
+            }
         }
 
         public override void Delete()
         {
             Exiled.Events.Handlers.Player.Died -= OnDeath;
-            Exiled.Events.Handlers.Map.AnnouncingScpTermination -= AnnouncingScpTermination;
+            ServerEvents.CassieQueuingScpTermination -= ServerEvents_CassieQueuingScpTermination;
         }
     }
 }

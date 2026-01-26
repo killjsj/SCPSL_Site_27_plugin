@@ -2088,7 +2088,6 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
             public override void Init()
             {
-                // 将 Plugin.plugin.MenuCache 替换为 Plugin.MenuCache
                 this.abilities.Add(new AEHAbility());
                 base.Init();
             }

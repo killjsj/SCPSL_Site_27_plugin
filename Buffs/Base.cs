@@ -1,5 +1,7 @@
 ﻿using CommandSystem;
 using Exiled.API.Features;
+using GameCore;
+using MEC;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,6 +29,7 @@ namespace Next_generationSite_27.UnionP.Buffs
             //throw new NotImplementedException();
             RegBuffBases.Remove(this);
         }
+        public virtual bool CanEnable() => true; // called on ROundStart
         public bool CheckEnabled() => RoundBuffs.Contains(this);
         public override void Init()
         {
@@ -50,9 +53,36 @@ namespace Next_generationSite_27.UnionP.Buffs
                 availableBuffs.RemoveAt(index);
             }
         }
+        void RoundStarted()
+        {
+            Timing.CallDelayed(0.5f, () =>
+            {
+                var EnablableBuffs = new List<BuffBase>(BuffBase.RegBuffBases);
+                var count = BuffBase.RoundBuffs.RemoveAll(x => !x.CanEnable());
+                EnablableBuffs.RemoveAll(x => !x.CanEnable() || BuffBase.RoundBuffs.Contains(x));
+                if (count > 0)
+                {
+                    var availableBuffs = new List<BuffBase>(EnablableBuffs);
+                    for (int i = 0; i < count; i++)
+                    {
+                        if (availableBuffs.Count <= 0)
+                            break;
+                        var index = UnityEngine.Random.Range(0, availableBuffs.Count);
+                        BuffBase.RoundBuffs.Add(availableBuffs[index]);
+                        availableBuffs.RemoveAt(index);
+                    }
+                }
+                foreach (var buff in BuffBase.RoundBuffs)
+                {
+                    Log.Info($"[Buffs] Enabled Buff: {buff.BuffName} ({buff.Type})");
+                }
+            });
+
+        }
         public override void Init()
         {
             Exiled.Events.Handlers.Server.WaitingForPlayers += WaitingForPlayers;
+            Exiled.Events.Handlers.Server.RoundStarted += RoundStarted;
         }
         public override void Delete()
         {
@@ -70,7 +100,7 @@ namespace Next_generationSite_27.UnionP.Buffs
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
-            response = "本回合Buff列表：\n";
+            response = $"本回合Buff列表{(Round.IsStarted ? "" : "(可能在回合开始后有变化)")}：\n";
             foreach (var i in BuffBase.RoundBuffs)
             {
                 string color = "";

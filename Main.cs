@@ -1,5 +1,6 @@
 ﻿using AudioManagerAPI.Defaults;
 using AutoEvent;
+using AutoEvent.API;
 using AutoEvent.API.Enums;
 using AutoEvent.Events;
 using AutoEvent.Interfaces;
@@ -49,7 +50,7 @@ using UserSettings.ServerSpecific;
 using Utils.Networking;
 using static HarmonyLib.Code;
 using static PlayerStatsSystem.DamageHandlerBase;
-using Extensions = AutoEvent.Extensions;
+using Extensions = AutoEvent.API.Extensions;
 using Player = Exiled.API.Features.Player;
 
 namespace Next_generationSite_27.UnionP
@@ -638,7 +639,13 @@ namespace Next_generationSite_27.UnionP
             set;
         }
     }
-
+    public static class Ex2Lab
+    {
+        public static LabApi.Features.Wrappers.Player Ex2LabPly(this Exiled.API.Features.Player player)
+        {
+            return LabApi.Features.Wrappers.Player.Get(player.ReferenceHub);
+        }
+    }
     public enum Features
     {
         LevelHeader,
@@ -663,16 +670,14 @@ namespace Next_generationSite_27.UnionP
         {
             MapName = "RunningMan",
             Position = new Vector3(0, 0, 0),
-            IsStatic = true
         };
         public SoundInfo SoundInfo { get; set; } = new SoundInfo()
         {
             SoundName = "GwangjuRunningMan.ogg",
-            Volume = 10,
             Loop = true
         };
         protected override FriendlyFireSettings ForceEnableFriendlyFire { get; set; } = FriendlyFireSettings.Disable;
-        public override EventFlags EventHandlerSettings { get; set; } = EventFlags.IgnoreAll;
+        public override EventFlags EventHandlerSettings { get; set; } = EventFlags.Default;
         protected override float FrameDelayInSeconds { get; set; } = 0.5f;
         private GwangjuRunningManLoader.EventHandler _eventHandler;
         internal Dictionary<Player, int> Deaths { get; set; }
@@ -717,7 +722,7 @@ namespace Next_generationSite_27.UnionP
 
             foreach (Player player in Player.Enumerable)
             {
-                player.GiveLoadout(Config.PrisonerLoadouts);
+                player.Ex2LabPly().GiveLoadout(Config.PrisonerLoadouts);
                 var p = SpawnPoints.Where(r => r.name == "Spawnpoint").ToList().RandomItem().transform;
                 p.GetPositionAndRotation(out Vector3 pos, out Quaternion rot);
                 player.Position = pos;
@@ -725,7 +730,7 @@ namespace Next_generationSite_27.UnionP
 
             foreach (Player ply in Config.JailorRoleCount.GetPlayers(true))
             {
-                ply.GiveLoadout(Config.JailorLoadouts);
+                ply.Ex2LabPly().GiveLoadout(Config.JailorLoadouts);
                 ply.AddItem(ItemType.Jailbird);
                 ply.AddItem(ItemType.Jailbird);
                 ply.AddItem(ItemType.Jailbird);
@@ -747,7 +752,7 @@ namespace Next_generationSite_27.UnionP
                 foreach (Player player in Player.Enumerable)
                 {
                     player.ClearBroadcasts();
-                    if (player.HasLoadout(Config.JailorLoadouts))
+                    if (player.Ex2LabPly().HasLoadout(Config.JailorLoadouts))
                     {
                         player.Broadcast(1, Translation.Start.Replace("{name}", Name).Replace("{time}", time.ToString("00")));
                     }
@@ -800,12 +805,12 @@ namespace Next_generationSite_27.UnionP
         {
             if (EventTime.TotalSeconds >= 300 || Player.Enumerable.Count(r => r.Role == RoleTypeId.NtfCaptain) == 0)
             {
-                Extensions.Broadcast(Translation.PrisonersWin.Replace("{time}", $"{EventTime.Minutes:00}:{EventTime.Seconds:00}"), 10);
+                Extensions.ServerBroadcast(Translation.PrisonersWin.Replace("{time}", $"{EventTime.Minutes:00}:{EventTime.Seconds:00}"), 10);
             }
 
             if (Player.Enumerable.Count(r => r.Role == RoleTypeId.ClassD) == 0)
             {
-                Extensions.Broadcast(Translation.JailersWin.Replace("{time}", $"{EventTime.Minutes:00}:{EventTime.Seconds:00}"), 10);
+                Extensions.ServerBroadcast(Translation.JailersWin.Replace("{time}", $"{EventTime.Minutes:00}:{EventTime.Seconds:00}"), 10);
             }
         }
         protected override void OnCleanup()

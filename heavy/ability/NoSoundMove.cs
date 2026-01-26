@@ -14,6 +14,9 @@ using UnityEngine;
 
 namespace Next_generationSite_27.UnionP.heavy.ability
 {
+    /// <summary>
+    /// 幽默无名
+    /// </summary>
     public class NoSoundMove : KeyAbility
     {
         public override KeyCode KeyCode => KeyCode.Mouse1;

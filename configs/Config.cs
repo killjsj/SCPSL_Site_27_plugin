@@ -27,7 +27,8 @@ namespace GwangjuRunningManLoader
                 ItemType.Jailbird,
                 ItemType.ArmorLight,ItemType.Lantern
             },
-            Effects = new List<Effect>() { new Effect(EffectType.FogControl, 0), new Effect(EffectType.Scp207,0,1) },
+            Effects = new List<EffectData>() { new EffectData() { Type="FogControl", Intensity = 0 }, new EffectData(){Type="Scp207",Intensity = 0} },
+
                 InfiniteAmmo = AmmoMode.InfiniteAmmo
 
         },
@@ -45,7 +46,8 @@ namespace GwangjuRunningManLoader
                 Items = new List<ItemType>(){
                     ItemType.ArmorCombat,ItemType.Lantern
                 },
-                Effects = new List<Effect>() { new Effect(EffectType.FogControl, 0) },
+                            Effects = new List<EffectData>() { new EffectData() { Type="FogControl", Intensity = 0 } },
+
                 InfiniteAmmo = AmmoMode.InfiniteAmmo
             }
         };

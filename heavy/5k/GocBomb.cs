@@ -475,15 +475,22 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 }
             }
         }
-        public LabApi.Features.Wrappers.Player intering = null;
+        public Player intering = null;
         public int GoCAnsweredCount = 0;
         public int AnotAnsweredCount = 0;
         public ushort ItemID = 0;
-        public (string q, string a) nowquestion;
+        public (string q, string a) nowquestion { get => _nowquestion; set { 
+                _nowquestion = value;
+                if(intering != null)
+                {
+                    intering.SendConsoleMessage($"New Question: {value.q} = ?", "yellow");
+                }
+            } }
+        private (string q, string a) _nowquestion;
         public bool installed = false;
         public void OnInter(ReferenceHub hub)
         {
-            var p = Player.Get(hub);
+            var p = Exiled.API.Features.Player.Get(hub);
             if (!CustomRole.TryGet(Goc610CID, out var customGocC))
             {
                 p.AddMessage("Failed", "<color=red><size=27>未获取角色:GocC 请联系技术</size></color>", 3f);
@@ -494,14 +501,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
                 p.AddMessage("Failed", "<color=red><size=27>未获取角色:GocP 请联系技术</size></color>", 3f);
                 return;
             }
-            var ep = Exiled.API.Features.Player.Get(hub);
             bool isGocActing = false;
-            if (customGocC.Check(ep) || customGocP.Check(ep))
+            if (customGocC.Check(p) || customGocP.Check(p))
             {
                 isGocActing = true;
             }
             if (intering == null)
             {
+                intering = p;
                 if (installed)
                 {
                     if (isGocActing)
@@ -509,15 +516,14 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         p.AddMessage("GocBomb", "<color=yellow><size=27>不能拆除炸弹!</size></color>");
                         return;
                     }
-                    intering = p;
                     p.AddMessage("GocBomb", "<color=yellow><size=27>正在拆除炸弹</size></color>");
-                    Plugin.RunCoroutine(playerCode(ep, ep.CurrentRoom, false));
+                    Plugin.RunCoroutine(playerCode(p, p.CurrentRoom, false));
                 }
                 else
                 {
-                    if (installAt.Contains(ep.CurrentRoom))
+                    if (installAt.Contains(p.CurrentRoom))
                     {
-                        if (installedRoom.Any(x => x.Key.installed && x.Value == ep.CurrentRoom))
+                        if (installedRoom.Any(x => x.Key.installed && x.Value == p.CurrentRoom))
                         {
 
                             p.AddMessage("GocBomb", "<color=red><size=27>房间已安装炸弹</size></color>");
@@ -525,9 +531,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
                         }
                         else
                         {
-                            intering = p;
                             p.AddMessage("GocBomb", "<color=yellow><size=27>正在安装炸弹</size></color>");
-                            Plugin.RunCoroutine(playerCode(ep, ep.CurrentRoom, true));
+                            Plugin.RunCoroutine(playerCode(p, p.CurrentRoom, true));
                         }
                     }
                     else
@@ -539,7 +544,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
             }
             else
             {
-                p.AddMessage("BOmb", $"<color=yellow><size=27>玩家{ep.DisplayNickname}正在操作炸弹!</size></color>");
+                p.AddMessage("BOmb", $"<color=yellow><size=27>玩家{p.DisplayNickname}正在操作炸弹!</size></color>");
             }
         }
         public override bool Equals(object obj)
@@ -764,9 +769,8 @@ namespace Next_generationSite_27.UnionP.Scp5k
             intering = null;
             if (i != null && i is UserTextInputSetting u1)
             {
-                Predicate<Exiled.API.Features.Player> P = p => p == player;
-                u1.UpdateValue("", filter: P);
-                u1.RequestClear(P);
+                u1.UpdateValue("", filter: p => p == player);
+                u1.RequestClear(p => p == player);
             }
 
             Plugin.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp5kGOCAnswer]));

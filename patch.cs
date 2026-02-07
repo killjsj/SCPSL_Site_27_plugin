@@ -863,18 +863,7 @@ namespace Next_generationSite_27.UnionP
         }
         private static bool IsCommunicatingGlobally(ReferenceHub hub)
         {
-            IVoiceRole voiceRole = hub.roleManager.CurrentRole as IVoiceRole;
-            if (!Intercom._singletonSet)
-            {
-                return false;
-            }
-            if (VoiceChatMutes.IsMuted(hub, true))
-            {
-                return false;
-            }
-            bool flag = Intercom.State == IntercomState.InUse;
-            bool flag2  = Intercom.HasOverride(hub) || (flag && Intercom._singleton.CheckRange(hub) && Intercom._singleton._curSpeaker == hub);
-            return voiceRole != null && voiceRole.VoiceModule.ServerIsSending && (flag2 || voiceRole.VoiceModule.CurrentChannel == VoiceChatChannel.Radio);
+            return true;
         }
     }
 

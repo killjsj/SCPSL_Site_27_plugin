@@ -529,9 +529,6 @@ namespace Next_generationSite_27.UnionP.testing
                 yield return Timing.WaitForSeconds(2f);
             }
         }
-
-
-        // --- 称号生成器 ---
         public static string FlightBadgeGen(Player winner, bool HTML = true)
         {
             if (winner == null) return "猫娘喵";

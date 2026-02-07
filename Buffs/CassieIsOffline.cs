@@ -92,7 +92,7 @@ namespace Next_generationSite_27.UnionP.Buffs
             }
             if(ev.SubtitleSource == Cassie.CassieTtsPayload.SubtitleMode.Custom)
             {
-                ShowEACFSubtitles(ev.Words);
+                //ShowEACFSubtitles(ev.Words);
                 return;
             }
             ev.IsAllowed = false;

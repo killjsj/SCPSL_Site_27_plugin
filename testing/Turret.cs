@@ -1,4 +1,5 @@
-﻿using Decals;
+﻿using AdminToys;
+using Decals;
 using DrawableLine;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
@@ -7,33 +8,44 @@ using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Items;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Spawn;
+using Exiled.Events.Handlers;
 using Footprinting;
+using InventorySystem;
+using InventorySystem.Items;
 using InventorySystem.Items.Autosync;
 using InventorySystem.Items.Firearms;
 using InventorySystem.Items.Firearms.Attachments;
 using InventorySystem.Items.Firearms.Modules;
 using InventorySystem.Items.Firearms.Modules.Misc;
+using LabApi.Features.Wrappers;
+using MapGeneration.StaticHelpers;
 using Mirror;
 using Next_generationSite_27.UnionP.heavy.role;
 using Org.BouncyCastle.Asn1.X509;
 using PlayerRoles;
+using PlayerStatsSystem;
+using ProjectMER.Commands.Modifying.Rotation;
+using ProjectMER.Features.Enums;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
 using RelativePositioning;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using Utils.Networking;
+using Item = Exiled.API.Features.Items.Item;
+using Player = Exiled.API.Features.Player;
 using Time = UnityEngine.Time;
 
 namespace Next_generationSite_27.UnionP
 {
-    class Turret : MonoBehaviour
+    public class Turret : MonoBehaviour
     {
-        public static Turret Create(Vector3 pos,Vector3 rotate,Player Onwer)
+        public static Turret Create(Vector3 pos, Vector3 rotate, Player Onwer)
         {
             var sk = new SerializableSchematic
             {
@@ -47,30 +59,54 @@ namespace Next_generationSite_27.UnionP
             var SO = skg.gameObject.GetComponent<SchematicObject>();
             foreach (var comp in SO.AttachedBlocks)
             {
-                switch(comp.name)
+                switch (comp.name)
                 {
                     case "shotpoint":
                         turret.shotPoint = comp;
                         break;
-                    case "GunY":
-                        turret.GunY = comp;
+                    case "Damager":
+                        turret.Damager = comp;
+                        comp.AddComponent<damageReceiver>().turret = turret;
                         break;
-                    case "GunZ":
-                        turret.GunZ = comp;
+                    case "Text":
+                        turret.Text = comp.GetComponent<AdminToys.TextToy>();
+                        break;
+                    case "point":
+                        turret.point = comp;
                         break;
                 }
             }
             turret.turretModel = SO;
             turret.Onwer = Onwer;
             turret.init = true;
+            turret.hp = turret.maxhp;
+            try
+            {
+                turret.Type = ItemType.GunA7;
+            }
+            catch (Exception e)
+            {
+                Log.Error(e);
+            }
+            SO.Rotation = Quaternion.Euler(rotate);
             return turret;
         }
         public Player Onwer;
-        public ItemType Type;
+        public ItemType Type
+        {
+            get => _Type;
+            set { _Type = value; itemBase = CreateOnwerItem(); c_firerate = 0f;
+                handler = new PlayerStatsSystem.FirearmDamageHandler(firearm: (itemBase as InventorySystem.Items.Firearms.Firearm), 0, 1);
+                 ammoLeft = totalAmmo;
+            }
+        }
+        public ItemBase itemBase { get; private set; }
+        private ItemType _Type;
         public SchematicObject turretModel;
+        public GameObject Damager;
+        public AdminToys.TextToy Text;
         public GameObject shotPoint;
-        public GameObject GunY;
-        public GameObject GunZ;
+        public GameObject point;
         protected Ray ForwardRay
         {
             get
@@ -81,15 +117,58 @@ namespace Next_generationSite_27.UnionP
         }
 
         public HitscanResult ResultNonAlloc = new();
-        public static void SpawnDecal(Vector3 position, Vector3 startPosition, DecalPoolType type = DecalPoolType.Blood)
+        public void SpawnDecal(Vector3 position, Vector3 startPosition, DecalPoolType type = DecalPoolType.Blood)
         {
             RelativePosition hitPoint = new RelativePosition(position);
             RelativePosition startRaycastPoint = new RelativePosition(startPosition);
+            ModularAutosyncItem autoItem = itemBase as ModularAutosyncItem;
+            for (byte b = 0; b < autoItem.AllSubcomponents.Length; b++)
+            {
+                if (autoItem.AllSubcomponents[b] is ImpactEffectsModule)
+                {
+                    using (new AutosyncRpc(autoItem.ItemId, out var writer))
+                    {
+                        writer.WriteByte(b);
+                        writer.WriteSubheader(ImpactEffectsModule.RpcType.ImpactDecal);
+                        writer.WriteByte((byte)type);
+                        writer.WriteRelativePosition(hitPoint);
+                        writer.WriteRelativePosition(startRaycastPoint);
+                        return;
+                    }
+                }
+            }
+        }
+        public void SpawnTrace(RaycastHit Info, Vector3 startPosition, Team team = Team.OtherAlive)
+        {
+            ModularAutosyncItem autoItem = itemBase as ModularAutosyncItem;
+            if (autoItem == null)
+            {
+                return;
+            }
+            RelativePosition hitPoint = new RelativePosition(Info.point);
+            RelativePosition startRaycastPoint = new RelativePosition(startPosition);
+            for (byte b = 0; b < autoItem.AllSubcomponents.Length; b++)
+            {
+                if (autoItem.AllSubcomponents[b] is ImpactEffectsModule i)
+                {
+                    using (new AutosyncRpc(autoItem.ItemId, out var writer))
+                    {
+                        writer.WriteByte(b);
 
-
+                        writer.WriteSubheader(ImpactEffectsModule.RpcType.TracerDefault);
+                        
+                        writer.WriteRelativePosition(hitPoint);
+                        writer.WriteRelativePosition(startRaycastPoint);
+                        writer.WriteByte((byte)Onwer.Role.Team);
+                        return;
+                    }
+                }
+            }
         }
         public void CreateTracer(RaycastHit Info)
         {
+            SpawnTrace(Info, shotPoint.transform.position, Onwer.Role.Team);
+            SpawnDecal(Info.point, shotPoint.transform.position, DecalPoolType.Bullet);
             new DrawableLineMessage(0.6f, Color.white, new Vector3[2] { shotPoint.transform.position, Info.point }).SendToAuthenticated();
 
         }
@@ -97,7 +176,16 @@ namespace Next_generationSite_27.UnionP
         {
             PlayerRoleManager.OnRoleChanged += this.OnRoleChanged;
         }
-
+        public ItemBase CreateOnwerItem()
+        {
+            var itemSerial = ItemSerialGenerator.GenerateNext();
+            ItemBase itemBase2 = Onwer.Inventory.CreateItemInstance(new ItemIdentifier(_Type, itemSerial), true);
+            if (itemBase2 == null)
+            {
+                return null;
+            }
+            return itemBase2;
+        }
         // Token: 0x0600532B RID: 21291 RVA: 0x00119652 File Offset: 0x00117852
         protected void OnDestroy()
         {
@@ -123,10 +211,11 @@ namespace Next_generationSite_27.UnionP
             ray.direction = Quaternion.Euler(angle * a) * ray.direction;
             return ray;
         }
+        RaycastHit hit;
+
         protected RaycastHit ServerAppendPrescan(Ray targetRay, HitscanResult toAppend)
         {
             float maxDistance = 60;
-            RaycastHit hit;
             if (!Physics.Raycast(targetRay, out hit, maxDistance, HitscanHitregModuleBase.HitregMask))
             {
                 return default;
@@ -140,86 +229,103 @@ namespace Next_generationSite_27.UnionP
             toAppend.Destructibles.Add(new DestructibleHitPair(destructible, hit, targetRay));
             return hit;
         }
-        public float NextFire = 0f;
+        public float hp = 0;
+        public float maxhp = 60f;
         private float c_firerate = 0f;
-        public float firerate {get
+        public int ammoLeft = 0;
+        public float firerate {
+            get
             {
-                if(c_firerate == 0f && Type.GetPickupBase() is InventorySystem.Items.Firearms.FirearmPickup firearmPickup)
+
+                if (c_firerate == 0f && itemBase is InventorySystem.Items.Firearms.Firearm firearmPickup)
                 {
-                    var item = firearmPickup.Template;
-                    var fireM = item.Modules.FirstOrDefault(x => x is AutomaticActionModule) as AutomaticActionModule;
-                    //if (fireM != null)
-                    //{
-                    //    c_firerate = fireM.BaseFireRate;
-                    //}
-                    //else
+                    try
                     {
-                        c_firerate = 0.5f;
+                        var item = firearmPickup;
+                        var fireM = item.Modules.FirstOrDefault(x => x is AutomaticActionModule) as AutomaticActionModule;
+                        if (fireM != null)
+                        {
+                            c_firerate = 1f / fireM.BaseFireRate;
+                            Log.Info($"Turret firerate set to {fireM.BaseFireRate}({c_firerate:F2}s,1 shot)");
+                        }
+                        else
+                        {
+                            c_firerate = 0.3f;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(e);
+                        c_firerate = 0.3f;
                     }
                 }
                 return c_firerate;
             }
         }
         public bool init = false;
+        public void OnDamaged(float damage, PlayerStatsSystem.DamageHandlerBase handler, Vector3 pos)
+        {
+            hp -= damage;
+            if (hp <= 0f) { 
+                turretModel.Destroy();
+            }
+        }
+        public float reloadSecond = 5f;
+        public int totalAmmo = 60;
+        public FullAutoRateLimiter limiter = new();
+        public bool reloading = false;
         public void Update()
         {
             if (!init || Onwer == null) return;
-            Lock();
-            if (Locking != null && GunY != null && GunZ != null)
+            limiter.Update();
+
+        }
+        public void FixedUpdate()
+        {
+            if (!init || Onwer == null) return;
+            if (Locking != null && point != null)
             {
-                Vector3 targetPosition = Locking.Position;
-
-                // 推荐用炮口位置作为起点（更精准），这里用GunZ的位置
-                Vector3 gunPosition = GunZ.transform.position;
-
-                Vector3 toTarget = targetPosition - gunPosition;
-
-                if (toTarget.sqrMagnitude < 0.01f) return; // 太近避免错误
-
-                // ---------- 1. 控制 GunY 的 Yaw（水平转向） ----------
-                Vector3 flatDirection = new Vector3(toTarget.x, 0, toTarget.z).normalized;
-
-                Quaternion yawRotation = Quaternion.LookRotation(flatDirection, Vector3.forward);
-
-                // 只修改 GunY 的旋转（它的子物体Cube和GunZ都会跟着转）
-                GunY.transform.rotation = Quaternion.Slerp(GunY.transform.rotation, yawRotation, Time.deltaTime * 10f);
-
-                // ---------- 2. 控制 GunZ 的 Pitch（俯仰） ----------
-                float horizontalDistance = flatDirection.magnitude > 0 ? new Vector3(toTarget.x, 0, toTarget.z).magnitude : 0.01f;
-                float pitchAngle = Mathf.Atan2(toTarget.y, horizontalDistance) * Mathf.Rad2Deg;
-
-                // GunZ 是 Cube 的子物体，所以我们修改 GunZ 的 localRotation（相对于Cube）
-                // 根据你之前说的“炮口沿Y轴”，默认水平时GunZ本地X=0
-
-                // 大多数Y轴炮口模型需要负号才能向上抬
-                float targetPitch = -pitchAngle;   // 如果目标在上方时炮口向下，改成 +pitchAngle
-
-                Vector3 currentLocalAngles = GunZ.transform.localEulerAngles;
-                float smoothPitch = Mathf.LerpAngle(currentLocalAngles.x, targetPitch, Time.deltaTime * 10f);
-
-                // 只改X轴，保持Y和Z为0（防止累计误差）
-                GunZ.transform.localEulerAngles = new Vector3(smoothPitch, 0, 0);
+                Vector3 direction = (Locking.Position - point.transform.position).normalized;
+                direction.x = Mathf.Clamp(direction.x, -45f, 45f);
+                point.transform.rotation = Quaternion.LookRotation(direction);
             }
-            if (Locking != null && Time.time >= NextFire)
+            Text.TextFormat = $"<color={(ammoLeft <= 0 ? "red" : "green")}>{ammoLeft}/{totalAmmo} {hp}hp";
+
+            if (limiter.Ready)
             {
-                NextFire = Time.time + firerate;
-
-                Ray baseRay = ForwardRay;
-                Ray spreadRay = RandomizeRay(baseRay, 3f);
-
-                ResultNonAlloc.Clear();
-                var h = ServerAppendPrescan(spreadRay, ResultNonAlloc);
-
-                foreach (var target in ResultNonAlloc.Destructibles)
+                if (reloading)
                 {
-                    ServerApplyDestructibleDamage(target, ResultNonAlloc);
-                    Onwer.ShowHitMarker();
+                    ammoLeft = totalAmmo;
+                    reloading = false;
                 }
-                CreateTracer(h);
-                
+                Lock();
+
+                if (Locking != null)
+                {
+                    if (ammoLeft <= 0)
+                    {
+                        limiter.Trigger(reloadSecond);
+                        reloading = true;
+                        return;
+                    }
+                    limiter.Trigger(firerate);
+                    Ray baseRay = ForwardRay;
+                    baseRay = RandomizeRay(baseRay, 3f);
+
+                    ResultNonAlloc.Clear();
+                    var h = ServerAppendPrescan(baseRay, ResultNonAlloc);
+
+                    foreach (var target in ResultNonAlloc.Destructibles)
+                    {
+                        ServerApplyDestructibleDamage(target, ResultNonAlloc);
+                    }
+                    CreateTracer(h);
+                    ammoLeft--;
+
+                }
             }
         }
-        public float DistanceToLock = 25f;
+        public float DistanceToLock = 15f;
 
         void Lock()
         {
@@ -234,12 +340,15 @@ namespace Next_generationSite_27.UnionP
             Locking = null;
             float closestDist = DistanceToLock;
 
-            foreach (var player in Player.List)
+            foreach (var player in Player.Enumerable)
             {
                 if (player == null || !player.IsAlive || player == Onwer ||
                     player.Role.Team == Onwer.Role.Team ||
                     !HitboxIdentity.IsDamageable(Onwer.ReferenceHub, player.ReferenceHub))
+                {
                     continue;
+
+                }
 
                 float dist = Vector3.Distance(shotPoint.transform.position, player.Position);
                 if (dist < closestDist)
@@ -248,33 +357,74 @@ namespace Next_generationSite_27.UnionP
                     Locking = player;
                 }
             }
+
         }
+        PlayerStatsSystem.AttackerDamageHandler handler = new PlayerStatsSystem.FirearmDamageHandler();
         protected virtual void ServerApplyDestructibleDamage(DestructibleHitPair target, HitscanResult result)
         {
-            if (Type.GetPickupBase() is InventorySystem.Items.Firearms.FirearmPickup firearmPickup)
+            if (itemBase == null)
             {
-                var item = firearmPickup.Template;
-                var fireM = item.Modules.FirstOrDefault(x => x is HitscanHitregModuleBase) as HitscanHitregModuleBase;
-                var damage = fireM.BaseDamage;
-                    PlayerStatsSystem.AttackerDamageHandler handler = new PlayerStatsSystem.DisruptorDamageHandler(null,shotPoint.transform.forward, damage);
-                handler.Attacker = Onwer.Footprint;
-                IDestructible destructible = target.Destructible;
-                HitboxIdentity hitboxIdentity = destructible as HitboxIdentity;
-                if (hitboxIdentity != null && !hitboxIdentity.TargetHub.IsAlive())
+                itemBase = CreateOnwerItem();
+            }
+            //Log.Warn(itemBase is InventorySystem.Items.Firearms.Firearm);
+            if (itemBase is InventorySystem.Items.Firearms.Firearm item)
+            {
+                try
                 {
+                    var fireM = item.Modules.FirstOrDefault(x => x is HitscanHitregModuleBase) as HitscanHitregModuleBase;
+                    var damage = fireM.BaseDamage;
+                    handler.Damage = damage;
+                    //handler.Attacker = Onwer.Footprint;
+                    IDestructible destructible = target.Destructible;
+                    HitboxIdentity hitboxIdentity = destructible as HitboxIdentity;
+                    if (hitboxIdentity != null && !hitboxIdentity.TargetHub.IsAlive())
+                    {
+                        result.RegisterDamage(destructible, damage, handler);
+                        return;
+                    }
+                    Vector3 point = target.Hit.point;
+                    if (!destructible.Damage(damage, handler, point))
+                    {
+                        return;
+                    }
                     result.RegisterDamage(destructible, damage, handler);
-                    return;
+                    CreateTracer(target.Hit);
+                    Onwer.ShowHitMarker();
                 }
-                Vector3 point = target.Hit.point;
-                if (!destructible.Damage(damage, handler, point))
+                catch (Exception e)
                 {
-                    return;
+                    Log.Error(e);
                 }
-                result.RegisterDamage(destructible, damage, handler);
-                CreateTracer(target.Hit);
             }
         }
     }
+    public class damageReceiver : NetworkBehaviour, IDestructible, IBlockStaticBatching
+    {
+        public uint NetworkId
+        {
+            get
+            {
+                return base.netId;
+            }
+        }
+
+        // Token: 0x17000016 RID: 22
+        // (get) Token: 0x06000043 RID: 67 RVA: 0x00002B88 File Offset: 0x00000D88
+        public Vector3 CenterOfMass
+        {
+            get
+            {
+                return base.transform.position;
+            }
+        }
+        public Turret turret;
+        public bool Damage(float damage, PlayerStatsSystem.DamageHandlerBase handler, Vector3 pos)
+        {
+            turret.OnDamaged(damage, handler, pos);
+            return true;
+        }
+    }
+
     [CustomItem(ItemType.Coin)]
     class TurretItem : CustomItemPlus
     {
@@ -297,7 +447,7 @@ namespace Next_generationSite_27.UnionP
                 Turret.Create(hit.point + hit.normal * 0.1f, hit.normal, player);
                 return;
             }
-            Turret.Create(player.CameraTransform.position + player.CameraTransform.forward * 2f, Vector3.zero, player);
+            Turret.Create(player.CameraTransform.position + player.CameraTransform.forward * 2f, Vector3.right, player);
         }
     }
 }

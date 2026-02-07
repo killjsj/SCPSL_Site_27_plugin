@@ -30,6 +30,7 @@ namespace Next_generationSite_27.UnionP
 
         public override void Init()
         {
+            Exiled.Events.Handlers.Server.WaitingForPlayers += WaitingForPlayers;
             Exiled.Events.Handlers.Player.ChangingRole += ChangingRole;
             Exiled.Events.Handlers.Player.Died += Died;
             Exiled.Events.Handlers.Player.Left += Left;
@@ -43,12 +44,22 @@ namespace Next_generationSite_27.UnionP
 
         public override void Delete()
         {
+            Exiled.Events.Handlers.Server.WaitingForPlayers -= WaitingForPlayers;
             Exiled.Events.Handlers.Player.ChangingRole -= ChangingRole;
             Exiled.Events.Handlers.Player.Died -= Died;
             Exiled.Events.Handlers.Player.Left -= Left;
             //base.Delete();
         }
-
+        CoroutineHandle refresher;
+        void WaitingForPlayers()
+        {
+            Scp.Clear();
+            if(refresher.IsRunning)
+            {
+                Timing.KillCoroutines(refresher);
+            }
+            refresher = Timing.RunCoroutine(Refresher());
+        }
         void Died(DiedEventArgs ev)
         {
             if (Scp.Contains(ev.Player))
@@ -92,33 +103,43 @@ namespace Next_generationSite_27.UnionP
             Scp.Remove(player);
             player.RemoveHint(shower);
         }
+        string showing = "";
+        public IEnumerator<float> Refresher()
+        {
+            StringBuilder show = new();
+            while (true)
+            {
+                show.Clear();
+                var ZombieCount = 0;
+                foreach (var item in Scp)
+                {
+                    if (item.Role == RoleTypeId.Scp0492)
+                    {
+                        ZombieCount += 1;
+                    }
+                    else if (item.Role is Scp079Role scp079)
+                    {
+                        show.AppendLine(Scp079Text.Replace("{lv}", scp079.Level.ToString())
+                            .Replace("{exp}", scp079.RelativeExperience.ToString("F2")));
+                    }
+                    else
+                    {
+                        var hp = item.Health;
+                        var sh = item.HumeShield;
+                        show.AppendLine(ScpText.Replace("{scp}", GetScpNumber(item.Role))
+                            .Replace("{hp}", ((int)hp).ToString("F2"))
+                            .Replace("{sh}", sh.ToString("F2")));
+                    }
+                }
+                show.AppendLine(ZombieText.Replace("{count}", ZombieCount.ToString()));
+                showing = show.ToString();
+                yield return Timing.WaitForSeconds(0.3f);
+            }
+        }
         string Update(AutoContentUpdateArg ev)
         {
-            string show = "";
-            var ZombieCount = 0;
-            foreach (var item in Scp)
-            {
-                if (item.Role == RoleTypeId.Scp0492)
-                {
-                    ZombieCount += 1;
-                }
-                else if (item.Role == RoleTypeId.Scp079)
-                {
-                    var scp079 = (Scp079Role)item.Role;
-                    show += Scp079Text.Replace("{lv}", scp079.Level.ToString())
-                        .Replace("{exp}", scp079.RelativeExperience.ToString()) + "\n";
-                }
-                else
-                {
-                    var hp = item.Health;
-                    var sh = item.HumeShield;
-                    show += ScpText.Replace("{scp}", GetScpNumber(item.Role))
-                        .Replace("{hp}", ((int)hp).ToString())
-                        .Replace("{sh}", sh.ToString()) + "\n";
-                }
-            }
-            show += ZombieText.Replace("{count}", ZombieCount.ToString());
-            return show;
+
+            return showing;
         }
 
         bool IsScpRole(RoleTypeId role)

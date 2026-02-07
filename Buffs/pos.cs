@@ -67,8 +67,13 @@ namespace Next_generationSite_27.UnionP.Buffs
         }
         void OnHurting(Exiled.Events.EventArgs.Player.HurtingEventArgs ev)
         {
+            if(ev.Attacker == null || ev.Player == null)
+            {
+                return;
+            }
             if (CheckEnabled())
             {
+
                 //ev.Amount *= 1.5f;
                 if (!damageRecode.ContainsKey(ev.Attacker))
                 {
@@ -156,7 +161,7 @@ namespace Next_generationSite_27.UnionP.Buffs
         {
             if (CheckEnabled())
             {
-                var c = Player.Enumerable.Count(x=> x.IsHuman && x != ev.Attacker && HitboxIdentity.IsEnemy(x.ReferenceHub,ev.Attacker.ReferenceHub));
+                var c = Player.Enumerable.Count(x=> x!=null && x.IsHuman && x != ev.Attacker && HitboxIdentity.IsEnemy(x.ReferenceHub,ev.Attacker.ReferenceHub));
                 if(c <= 3)
                 {
                     ev.Amount *= 1.25f;

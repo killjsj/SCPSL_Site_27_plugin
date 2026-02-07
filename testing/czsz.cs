@@ -1,6 +1,7 @@
 ﻿using AutoEvent;
 using AutoEvent.API;
 using AutoEvent.Interfaces;
+using CustomRendering;
 using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Features.Toys;
@@ -54,10 +55,10 @@ namespace Next_generationSite_27.UnionP.testing
         internal GameObject ATexts { get; set; }
         internal GameObject BTexts { get; set; }
         internal GameObject CTexts { get; set; }
-        public static Dictionary<pointType, List<Player>> InPoint { get; set; } = new() {
-            {  pointType.A, new List<Player>()  },
-            { pointType.B, new List<Player>()  },
-            { pointType.C, new List<Player>() }
+        public static Dictionary<pointType, HashSet<Player>> InPoint { get; set; } = new() {
+            {  pointType.A, new HashSet<Player>()  },
+            { pointType.B, new HashSet<Player>()  },
+            { pointType.C, new HashSet<Player>() }
         };
         public static Dictionary<pointType, (float A, float B)> TPoint { get; set; } = new() {
             {  pointType.A, (0,0) },
@@ -129,6 +130,9 @@ namespace Next_generationSite_27.UnionP.testing
                 Extensions.ServerBroadcast("平局!", 3);
 
             }
+        }
+        protected override void OnCleanup()
+        {
             if (p)
             {
                 p.StopAudio();
@@ -137,6 +141,7 @@ namespace Next_generationSite_27.UnionP.testing
             {
                 item.RemoveHint(PointHint);
             }
+            base.OnCleanup();
         }
         public TimeSpan RemainTime;
         public string shower(AutoContentUpdateArg ev)
@@ -167,7 +172,7 @@ namespace Next_generationSite_27.UnionP.testing
                 }
                 pointMess += $"<size=18><color={color}>{point}点 A队占领:{p.A:F1}% B队占领:{p.B:F1}% A队人数:{Aplayers.Count} B队人数:{Bplayers.Count}</color></size=18>\n";
             }
-            return $"<size=22>{pointMess}A队积分:{Apoints} 剩余命数:{Math.Max(0, Config.TotalLives - ALives)}\nB队积分:{Bpoints} 剩余命数:{Math.Max(0, Config.TotalLives - BLives)}\n目标:{Config.TargetPoint} 时间:{RemainTime.TotalSeconds:0F}</size=22>";
+            return $"<size=22>{pointMess}A队积分:{Apoints} 剩余命数:{Math.Max(0, Config.TotalLives - ALives)}\nB队积分:{Bpoints} 剩余命数:{Math.Max(0, Config.TotalLives - BLives)}\n目标:{Config.TargetPoint} 时间:{RemainTime.TotalSeconds:F0}</size=22>";
         }
         public Hint PointHint;
         protected override void ProcessFrame()
@@ -231,9 +236,10 @@ namespace Next_generationSite_27.UnionP.testing
                     var progress = TPoint[point];  // 拷贝值
 
                     // 双方人数相等 → 不动（可选：缓慢衰减）
-                    if (aPlayers == bPlayers)
+                    if (aPlayers == bPlayers && aPlayers > 1)
                     {
-                        // 可选：if (progress.A > 0) progress.A--; if (progress.B > 0) progress.B--;
+                        if (progress.A > 0) { progress.A-=UnityEngine.Random.Range(-1,2);; }
+                        if (progress.B > 0){ progress.B-= UnityEngine.Random.Range(-1,2); }
                         TPoint[point] = progress;  // 如果有修改，再赋值
                         continue;
                     }
@@ -289,7 +295,7 @@ namespace Next_generationSite_27.UnionP.testing
                     var Aplayers = players.Intersect(ATeam).ToList();
                     var Bplayers = players.Intersect(BTeam).ToList();
                     var p = TPoint[point];
-                    if (p.A > p.B)
+                    if (p.A > p.B && p.A >= 80)
                     {
                         if (Bplayers.Count > 0)
                         {
@@ -300,7 +306,7 @@ namespace Next_generationSite_27.UnionP.testing
                             Apoints += 3;
                         }
                     }
-                    if (p.B > p.A)
+                    if (p.B > p.A && p.B >= 80)
                     {
                         if (Aplayers.Count > 0)
                         {
@@ -322,9 +328,9 @@ namespace Next_generationSite_27.UnionP.testing
         {
             Config = new czszConfig();
             InPoint = new() {
-            {  pointType.A, new List<Player>()  },
-            { pointType.B, new List<Player>()  },
-            { pointType.C, new List<Player>() }
+            {  pointType.A, new HashSet<Player>()  },
+            { pointType.B, new HashSet<Player>()  },
+            { pointType.C, new HashSet<Player>() }
         };
             TPoint = new() {
             {  pointType.A, (0,0) },
@@ -416,9 +422,12 @@ namespace Next_generationSite_27.UnionP.testing
                 YCoordinate = 120
             };
             int i = 0;
-            foreach (var item in Player.Enumerable)
+            var list3 = (from _ in Player.Enumerable
+                         orderby UnityEngine.Random.value
+                         select _);
+            foreach (var item in list3)
             {
-                if (i % 2 == 0)
+                if (i % 2 == 1)
                 {
                     item.Ex2LabPly().GiveLoadout(Config.ALoadouts);
                     ATeam.Add(item);
@@ -510,9 +519,9 @@ namespace Next_generationSite_27.UnionP.testing
     public class czszConfig : EventConfig
     {
         // Keep properties as simple auto-properties (remove the = new ... part)
-        public int TotalTime { get; set; } = 350;
-        public int TotalLives { get; set; } = 80;
-        public int TargetPoint { get; set; } = 400;
+        public int TotalTime { get; set; } = 450;
+        public int TotalLives { get; set; } = 65;
+        public int TargetPoint { get; set; } = 1000;
 
         public List<Loadout> ALoadouts { get; set; }
         public List<Loadout> BLoadouts { get; set; }
@@ -526,16 +535,18 @@ namespace Next_generationSite_27.UnionP.testing
             {
                 Roles = new Dictionary<RoleTypeId, int>
                 {
-                    { RoleTypeId.NtfCaptain, 200 }
+                    { RoleTypeId.NtfCaptain, 300 }
                 },
                 Items = new List<ItemType>
                 {
                     ItemType.Jailbird,
-                    ItemType.GunE11SR,
+                    ItemType.ParticleDisruptor,
+                    ItemType.GunFRMG0,
                     ItemType.GrenadeHE,
                     ItemType.GrenadeHE,
                     ItemType.GrenadeFlash,
-                    ItemType.ArmorCombat
+                    ItemType.ArmorCombat,
+                    ItemType.Medkit
                 },
                 Effects = new List<EffectData>
                 {
@@ -546,8 +557,8 @@ namespace Next_generationSite_27.UnionP.testing
                 InfiniteAmmo = AmmoMode.InfiniteAmmo,
                 ArtificialHealth = new ArtificialHealth
                 {
-                    InitialAmount = 200f,
-                    MaxAmount = 200f,
+                    InitialAmount = 300f,
+                    MaxAmount = 300f,
                     RegenerationAmount = 5,
                     Permanent = false,
                     Duration = 10f
@@ -561,16 +572,19 @@ namespace Next_generationSite_27.UnionP.testing
             {
                 Roles = new Dictionary<RoleTypeId, int>
                 {
-                    { RoleTypeId.ClassD, 200 }
+                    { RoleTypeId.ClassD, 300 }
                 },
                 Items = new List<ItemType>
                 {
                     ItemType.Jailbird,
-                    ItemType.GunE11SR,
+                    ItemType.ParticleDisruptor,
+                    ItemType.GunFRMG0,
                     ItemType.GrenadeHE,
                     ItemType.GrenadeHE,
                     ItemType.GrenadeFlash,
-                    ItemType.ArmorCombat
+                    ItemType.ArmorCombat,
+                    ItemType.Medkit
+
                 },
                 Effects = new List<EffectData>
                 {
@@ -581,8 +595,8 @@ namespace Next_generationSite_27.UnionP.testing
                 InfiniteAmmo = AmmoMode.InfiniteAmmo,
                 ArtificialHealth = new ArtificialHealth
                 {
-                    InitialAmount = 200f,
-                    MaxAmount = 200f,
+                    InitialAmount = 300f,
+                    MaxAmount = 300f,
                     RegenerationAmount = 5,
                     Permanent = false,
                     Duration = 10f

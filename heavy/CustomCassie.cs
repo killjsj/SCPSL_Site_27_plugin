@@ -1,5 +1,7 @@
-﻿using Exiled.API.Features;
+﻿using Cassie;
+using Exiled.API.Features;
 using Exiled.API.Features.Pools;
+using Next_generationSite_27.UnionP.UI;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -86,14 +88,19 @@ namespace Next_generationSite_27.UnionP.heavy
                         return $"<voffset={Math.Floor(newVal)}em";
                     },
                     RegexOptions.IgnoreCase);
-                var Text = $"<voffset={TotalOffest}em><size=0>{(string.IsNullOrEmpty(tts) ? "1" : tts)}</size><voffset={TotalOffest / 2}em><indent=0%>";
+                var Text = $"<voffset={TotalOffest}em>1<voffset={TotalOffest / 2}em><indent=0%>";
                 if (!string.IsNullOrEmpty(who))
                 {
-                    Text += $"<color={color}>\u2005{who.Replace(" ", "\u2005")}</color> : ";
+                    Text += $"<color={color}>\u2005{who.Replace(" ", " \u2005")}</color> : ";
                 }
                 Text += $"{replaced}</indent></voffset>";
                 Log.SendRaw("Sending CustomCassie Message: " + Text + "",ConsoleColor.Cyan);
-                Exiled.API.Features.Cassie.Message(Text, isHeld, isNoisy, isSubtitles);
+                foreach (var item in Player.Enumerable)
+                {
+                    item.SendConsoleMessage("<noparse>"+Text+"</noparse>","white");
+                }
+                var s = new CassieTtsPayload(tts, Text, true);
+                new CassieAnnouncement(s, 0f, 0f).AddToQueue();
             }
             catch (Exception ex)
             {

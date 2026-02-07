@@ -202,7 +202,7 @@ namespace Next_generationSite_27.UnionP
                                 i--;
                                 continue;
                             }
-                            ChatStrings += chatMsg.text + "\n";
+                            ChatStrings += $"[{(chatMsg.exp - Time.time):F0}] "+chatMsg.text + "\n";
                         }
                         ChatStrings += "</size></align>";
                     }
@@ -246,7 +246,7 @@ namespace Next_generationSite_27.UnionP
                                 i--;
                                 continue;
                             }
-                            AdminStrings += "<color=red>" + chatMsg.text + "</color>\n";
+                            AdminStrings += $"<color=red>[{(chatMsg.exp - Time.time):F0}] " + chatMsg.text + "</color>\n";
                         }
                         AdminStrings += "</size></align>";
 
@@ -271,7 +271,7 @@ namespace Next_generationSite_27.UnionP
                                     i--;
                                     continue;
                                 }
-                                TeamStrings[item.Key] += "<color=yellow>" + chatMsg.text + "</color>\n";
+                                TeamStrings[item.Key] += $"<color=yellow>[{(chatMsg.exp - Time.time):F0}] " + chatMsg.text + "</color>\n";
                             }
                             TeamStrings[item.Key] += "</size></align>";
                         }

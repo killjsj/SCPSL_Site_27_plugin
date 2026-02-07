@@ -141,7 +141,7 @@ namespace Next_generationSite_27.UnionP
 
                 try
                 {
-                    _player.ChangeAppearance(LastType);
+                    _player.ChangeAppearance(_player.ReferenceHub.roleManager.CurrentRole.RoleTypeId);
                 }
                 catch (Exception e)
                 {

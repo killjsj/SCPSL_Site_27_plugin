@@ -19,9 +19,9 @@ namespace Next_generationSite_27.UnionP
 {
     public class ScpHpShow : BaseClass
     {
-        public static float targetX = 930;
+        public static float targetX = 700;
         public static float targetY = 800;
-        public string ScpText = "<color=red><size=18>SCP{scp}:<color=green>血量 {hp} <color=purple>护盾 {sh}</size></color>";
+        public string ScpText = "<color=red><size=18>SCP{scp}:<color=green>血量 {hp} <color=purple>护盾 {sh} <color=yellow>位于 {pos}</size></color>";
         public string Scp079Text = "<color=red><size=18>SCP079:<color=green>LV {lv} <color=yellow>Exp {exp}</size></color>";
         public string ZombieText = "<color=red><size=18>SCP049-2:<color=green>{count}个</size></color>";
 
@@ -34,10 +34,12 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.ChangingRole += ChangingRole;
             Exiled.Events.Handlers.Player.Died += Died;
             Exiled.Events.Handlers.Player.Left += Left;
-            shower = new Hint() { 
+            shower = new Hint() {
                 XCoordinate = targetX,
                 YCoordinate = targetY,
                 AutoText = new HintServiceMeow.Core.Models.HintContent.AutoContent.TextUpdateHandler(Update),
+                SyncSpeed = HintServiceMeow.Core.Enum.HintSyncSpeed.Fast,
+                Alignment = HintServiceMeow.Core.Enum.HintAlignment.Center,
                 FontSize = 10
             };
         }
@@ -109,36 +111,42 @@ namespace Next_generationSite_27.UnionP
             StringBuilder show = new();
             while (true)
             {
-                show.Clear();
-                var ZombieCount = 0;
-                foreach (var item in Scp)
+                try
                 {
-                    if (item.Role == RoleTypeId.Scp0492)
+                    show.Clear();
+                    var ZombieCount = 0;
+                    foreach (var item in Scp)
                     {
-                        ZombieCount += 1;
+                        if (item.Role == RoleTypeId.Scp0492)
+                        {
+                            ZombieCount += 1;
+                        }
+                        else if (item.Role is Scp079Role scp079)
+                        {
+                            show.AppendLine(Scp079Text.Replace("{lv}", scp079.Level.ToString())
+                                .Replace("{exp}", scp079.RelativeExperience.ToString("F2")));
+                        }
+                        else
+                        {
+                            var hp = item.Health;
+                            var sh = item.HumeShield;
+                            show.AppendLine(ScpText.Replace("{scp}", GetScpNumber(item.Role))
+                                .Replace("{hp}", ((int)hp).ToString("F2"))
+                                .Replace("{sh}", sh.ToString("F2")))
+                                .Replace("{pos}", item.CurrentRoom.RoomToString());
+                        }
                     }
-                    else if (item.Role is Scp079Role scp079)
-                    {
-                        show.AppendLine(Scp079Text.Replace("{lv}", scp079.Level.ToString())
-                            .Replace("{exp}", scp079.RelativeExperience.ToString("F2")));
-                    }
-                    else
-                    {
-                        var hp = item.Health;
-                        var sh = item.HumeShield;
-                        show.AppendLine(ScpText.Replace("{scp}", GetScpNumber(item.Role))
-                            .Replace("{hp}", ((int)hp).ToString("F2"))
-                            .Replace("{sh}", sh.ToString("F2")));
-                    }
+                    show.AppendLine(ZombieText.Replace("{count}", ZombieCount.ToString()));
+                    showing = show.ToString();
+                } catch(Exception e) {
+                    Log.Error(e); 
                 }
-                show.AppendLine(ZombieText.Replace("{count}", ZombieCount.ToString()));
-                showing = show.ToString();
-                yield return Timing.WaitForSeconds(0.3f);
+                yield return Timing.WaitForSeconds(0.2f);
             }
         }
         string Update(AutoContentUpdateArg ev)
         {
-
+            
             return showing;
         }
 

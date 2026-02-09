@@ -91,17 +91,16 @@ namespace Next_generationSite_27
             // 用户不存在或无数据
             return (string.Empty, null, null);
         }
-        public (int uid, string name, int level, int experience,double? experience_multiplier, int point, string ip, DateTime? last_time, TimeSpan? total_duration, TimeSpan? today_duration) QueryUser(string userid)
+        public (int uid, string name, int experience,double? experience_multiplier, int point, string ip, DateTime? last_time, TimeSpan? total_duration, TimeSpan? today_duration) QueryUser(string userid)
         {
             if (!connected)
-                return (0, null, 0, 0,0,1,null, null, null, null);
+                return (0, null, 0,0,1,null, null, null, null);
 
             string query = @"
         SELECT 
             uid,
             name,
             userid,
-            level,
             experience,
             experience_multiplier,
             point,
@@ -124,7 +123,6 @@ namespace Next_generationSite_27
                         {
                             int uidOrdinal = reader.GetOrdinal("uid");
                             int nameOrdinal = reader.GetOrdinal("name");
-                            int levelOrdinal = reader.GetOrdinal("level");
                             int experienceOrdinal = reader.GetOrdinal("experience");
                             int experience_multiplierOrdinal = reader.GetOrdinal("experience_multiplier");
                             int PointOrdinal = reader.GetOrdinal("point");
@@ -135,7 +133,6 @@ namespace Next_generationSite_27
 
                             int uid = reader.IsDBNull(nameOrdinal) ? 0 : reader.GetInt32(uidOrdinal);
                             string name = reader.IsDBNull(nameOrdinal) ? null : reader.GetString(nameOrdinal);
-                            int level = reader.IsDBNull(levelOrdinal) ? 0 : reader.GetInt32(levelOrdinal);
                             int experience = reader.IsDBNull(experienceOrdinal) ? 0 : reader.GetInt32(experienceOrdinal);
                             double? experience_multiplier = reader.IsDBNull(experience_multiplierOrdinal) ? (double?)null : reader.GetDouble(experience_multiplierOrdinal);
                             int point = reader.IsDBNull(PointOrdinal) ? 0: reader.GetInt32(PointOrdinal);
@@ -144,7 +141,7 @@ namespace Next_generationSite_27
                             TimeSpan? today_duration = reader.IsDBNull(today_durationOrdinal) ? (TimeSpan?)null : reader.GetTimeSpan(today_durationOrdinal);
                             TimeSpan? total_duration = reader.IsDBNull(total_durationOrdinal) ? (TimeSpan?)null : reader.GetTimeSpan(total_durationOrdinal);
 
-                            return (uid, name, level, experience, experience_multiplier, point, ip, last_time, total_duration, today_duration);
+                            return (uid, name, experience, experience_multiplier, point, ip, last_time, total_duration, today_duration);
                         }
                     }
                 }
@@ -158,7 +155,7 @@ namespace Next_generationSite_27
                 if (connection.State == ConnectionState.Open)
                     connection.Close();
             }
-            return (0, null, 0, 0, 0, 1, null, null, null, null);
+            return (0, null, 0, 0, 1, null, null, null, null);
         }
         //public (string name,int level, int exp) QueryUser(string userid)
         //{
@@ -370,7 +367,6 @@ WHERE userid = @userid;";
         public void Update(
             string userid,
             string name = null,
-            int level = -1,
             int experience = -1,
             double? experience_multiplier = null,
             string ip = null,
@@ -393,7 +389,6 @@ WHERE userid = @userid;";
 
                     // 填充默认值（来自数据库）
                     name = name ?? p.name;
-                    level = level == -1 ? p.level : level;
                     point = point == -1 ? p.point : point;
                     experience = experience == -1 ? p.experience : experience;
                     experience_multiplier = experience_multiplier ?? p.experience_multiplier;
@@ -405,12 +400,11 @@ WHERE userid = @userid;";
                     // 使用 INSERT ... ON DUPLICATE KEY UPDATE
                     string upsertSql = @"
 INSERT INTO user 
-    (userid, name, level, experience, experience_multiplier, ip,point, today_duration, total_duration, last_time)
+    (userid, name, experience, experience_multiplier, ip,point, today_duration, total_duration, last_time)
 VALUES 
-    (@userid, @name, @level, @experience, @experience_multiplier, @ip,@point, @today_duration, @total_duration, @last_time)
+    (@userid, @name, @experience, @experience_multiplier, @ip,@point, @today_duration, @total_duration, @last_time)
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
-    level = VALUES(level),
     experience = VALUES(experience),
     experience_multiplier = VALUES(experience_multiplier),
     ip = VALUES(ip),
@@ -421,7 +415,6 @@ ON DUPLICATE KEY UPDATE
                     cmd.CommandText = upsertSql;
                     cmd.Parameters.AddWithValue("@userid", userid);
                     cmd.Parameters.AddWithValue("@name", name ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@level", level);
                     cmd.Parameters.AddWithValue("@experience", experience);
                     cmd.Parameters.AddWithValue("@experience_multiplier", experience_multiplier ?? 1.0);
                     cmd.Parameters.AddWithValue("@ip", ip ?? string.Empty);

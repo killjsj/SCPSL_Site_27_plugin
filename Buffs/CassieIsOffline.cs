@@ -90,12 +90,13 @@ namespace Next_generationSite_27.UnionP.Buffs
             {
                 return;
             }
-            if(ev.SubtitleSource == Cassie.CassieTtsPayload.SubtitleMode.Custom)
+            if(ev.SubtitleSource == Cassie.CassieTtsPayload.SubtitleMode.Automatic)
             {
                 //ShowEACFSubtitles(ev.Words);
-                return;
+                //ev.IsAllowed = false;
+                //return;
             }
-            ev.IsAllowed = false;
+            //ev.IsAllowed = false;/
         }
         void ChangedRole(PlayerChangedRoleEventArgs ev)
         {

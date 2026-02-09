@@ -128,6 +128,43 @@ namespace Next_generationSite_27.UnionP
         }
     }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class TPRCommand : ICommand
+    {
+        string ICommand.Command { get; } = "TPR";
+
+        string[] ICommand.Aliases { get; } = new[] { "传送到房间" };
+
+        string ICommand.Description { get; } = "tp RoomName";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (!sender.CheckPermission(PlayerPermissions.Noclip, out response))
+            {
+                return false;
+            }
+            if (arguments.Count < 1)
+            {
+                response = "To execute this command provide at least 1 arguments!";
+                return false;
+            }
+
+            List<string> newargs = arguments.ToList();
+            response = $"done! op:{runner.Position}";
+
+            RoomName r = (RoomName)Enum.Parse(typeof(RoomName),newargs[0],true);
+            var room = Room.Get(x=>x.RoomName == r).First();
+            if(room == null)
+            {
+                response = $"Room {r} not found!";
+                return false;
+            }
+            runner.Position = room.Position;
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class WhipCommand : ICommand
     {
         string ICommand.Command { get; } = "whip";
@@ -1250,7 +1287,7 @@ namespace Next_generationSite_27.UnionP
                 return false;
             }
             var r = Room.Get(runner.Position);
-            response = "done!" + $"{r.Position} {r.RoomName} ";
+            response = "done!" + $"{r.Position} {r.RoomName} {r.Type} ({r}) ";
             return true;
 
         }

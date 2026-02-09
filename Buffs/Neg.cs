@@ -1,4 +1,5 @@
 ﻿using Exiled.API.Enums;
+using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Doors;
 using Exiled.API.Features.Items;
@@ -6,8 +7,10 @@ using Exiled.API.Features.Roles;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Scp914;
 using Exiled.Events.Handlers;
+using GameCore;
 using InventorySystem.Items.Autosync;
 using NetworkManagerUtils.Dummies;
+using PlayerRoles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -151,33 +154,145 @@ namespace Next_generationSite_27.UnionP.Buffs
         public override string BuffName => "什么是枪";
         public override void Init()
         {
+            Exiled.Events.Handlers.Server.RoundStarted += RoundStarted;
             Exiled.Events.Handlers.Player.ChangingItem += ChangingItem;
             base.Init();
         }
         public override void Delete()
         {
+            Exiled.Events.Handlers.Server.RoundStarted -= RoundStarted;
             Exiled.Events.Handlers.Player.ChangingItem -= ChangingItem;
             base.Delete();
         }
+        public List<ushort> AllowSerials = new();
+        public void RoundStarted()
+        {
+            AllowSerials.Clear();
+        }
         public void ChangingItem(ChangingItemEventArgs ev)
         {
-            if (ev.Item.IsFirearm && this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
+            if (this.CheckEnabled() && ev.Item != null && ev.Item.IsFirearm && ev.Item.Type != ItemType.ParticleDisruptor && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
             {
+                if (AllowSerials.Contains(ev.Item.Serial))
+                {
+                    return;
+                }
                 var r = UnityEngine.Random.Range(0, 100);
-                if (r <= 1)
+                if (r <= 5)
                 {
                     ev.IsAllowed = true;
+                    AllowSerials.Add(ev.Item.Serial);
                 }
                 else if (r < 99) {
                     ev.Player.RemoveItem(ev.Item);
-                    ev.Item = ev.Player.AddItem(ItemType.Jailbird);
-                } else
+                        ev.Item = ev.Player.AddItem(ItemType.ParticleDisruptor);
+                }
+                else
                 {
                     ev.Player.RemoveItem(ev.Item);
-                    ev.Item = ev.Player.AddItem(ItemType.ParticleDisruptor);
+                    r = UnityEngine.Random.Range(0, 10);
+                    if (r == 0)
+                    {
+                        ev.Item = ev.Player.AddItem(ItemType.MicroHID);
+
+                    }
+                    else
+                    {
+                    ev.Item = ev.Player.AddItem(ItemType.Jailbird);
+                    }
                 }
             }
         }
     }
+    public class ZakoZako : BuffBase
+    {
+        public override BuffType Type => BuffType.Negative;
 
+        public override string BuffName => ((UnityEngine.Random.Range(0,100) == 0 ? "杂鱼" : "")+"没吃饭吗?");
+        public override void Init()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole += ChangingItem;
+            base.Init();
+        }
+        public override void Delete()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole -= ChangingItem;
+            base.Delete();
+        }
+        public void ChangingItem(ChangingRoleEventArgs ev)
+        {
+            if (this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
+            {
+                MEC.Timing.CallDelayed(0.3f, () =>
+                {
+                    if (ev.Player.Role.Type.IsScp())
+                    {
+                        if (ev.Player.Role.Base is IHealthbarRole h)
+                        {
+                            ev.Player.MaxHealth = h.MaxHealth + 1200;
+                            ev.Player.Health = ev.Player.MaxHealth;
+                        }
+                    }
+                });
+            }
+        }
+    }
+    public class CarIsComing : BuffBase
+    {
+        public override BuffType Type => BuffType.Negative;
+
+        public override string BuffName => "大运来了";
+        public override void Init()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole += ChangingItem;
+            base.Init();
+        }
+        public override void Delete()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole -= ChangingItem;
+            base.Delete();
+        }
+        public void ChangingItem(ChangingRoleEventArgs ev)
+        {
+            if (this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
+            {
+                MEC.Timing.CallDelayed(0.3f, () =>
+                {
+                    if (ev.Player.Role.Type.IsScp())
+                    {
+                        ev.Player.EnableEffect(EffectType.MovementBoost, 30, 0f);
+                    }
+                });
+            }
+        }
+    }
+    public class IAmGod : BuffBase
+    {
+        public override BuffType Type => BuffType.Negative;
+
+        public override string BuffName => "我硬了";
+        public override void Init()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole += ChangingItem;
+            base.Init();
+        }
+        public override void Delete()
+        {
+            Exiled.Events.Handlers.Player.ChangingRole -= ChangingItem;
+            base.Delete();
+        }
+        public void ChangingItem(ChangingRoleEventArgs ev)
+        {
+            if (this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
+            {
+                MEC.Timing.CallDelayed(0.3f, () =>
+                {
+                    if (ev.Player.Role.Type.IsScp())
+                    {
+                        ev.Player.EnableEffect(EffectType.DamageReduction, 30, 0f);
+                    }
+                });
+            }
+        }
+    }
 }

@@ -243,29 +243,7 @@ namespace Next_generationSite_27.UnionP
 
             connect.Connect(connectionString);
             eventhandle = new EventHandle(Config);
-            foreach (var item in Assembly.GetTypes())
-            {
-                if (!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(BaseClass)))
-                {
-                    try
-                    {
-                        object obj = Activator.CreateInstance(item);
-                        if (obj != null)
-                        {
-                            if (obj is BaseClass BC)
-                            {
-                                BC.StartInit();
-                                baseClasses.Add(BC);
-                            }
 
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Error($"Error initializing class {item.FullName}: {ex.Message}");
-                    }
-                }
-            }
             Exiled.Events.Handlers.Map.Generated += eventhandle.Generated;
             Exiled.Events.Handlers.Player.Joined += eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam += eventhandle.RespawningTeam;
@@ -326,6 +304,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Hurting += UnionP.testing.FlightFailed.OnHurt;
             Exiled.Events.Handlers.Player.Left += UnionP.testing.FlightFailed.OnLeft;
             Exiled.Events.Handlers.Player.ChangingRole += UnionP.testing.FlightFailed.OnChangingRole;
+
             try
             {
                 // 1. 获取类型：使用完整类名（含命名空间）
@@ -386,6 +365,29 @@ namespace Next_generationSite_27.UnionP
             DefaultAudioManager.RegisterAudio("Scp500_StartAudio", () =>
                 File.OpenRead($"{SettingPath}\\Scp5kStart.wav"));
             CustomRole.RegisterRoles(assembly: Assembly);
+            foreach (var item in Assembly.GetTypes())
+            {
+                if (!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(BaseClass)))
+                {
+                    try
+                    {
+                        object obj = Activator.CreateInstance(item);
+                        if (obj != null)
+                        {
+                            if (obj is BaseClass BC)
+                            {
+                                BC.StartInit();
+                                baseClasses.Add(BC);
+                            }
+
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Error initializing class {item.FullName}: {ex}");
+                    }
+                }
+            }
             base.OnEnabled();
         }
         public void OnLeft(LeftEventArgs ev)
@@ -397,19 +399,7 @@ namespace Next_generationSite_27.UnionP
         }
         public override void OnDisabled()
         {
-            foreach (var item in baseClasses)
-            {
-                if (item != null)
-                {
-                    if (item is BaseClass BC)
-                    {
-                        BC.StartInit();
-                        baseClasses.Add(BC);
-                    }
 
-
-                }
-            }
             Exiled.Events.Handlers.Player.Left -= OnLeft;
 
             Exiled.Events.Handlers.Map.Generated -= eventhandle.Generated;
@@ -468,6 +458,19 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Hurting -= UnionP.testing.FlightFailed.OnHurt;
             Exiled.Events.Handlers.Player.Left -= UnionP.testing.FlightFailed.OnLeft;
             Exiled.Events.Handlers.Player.ChangingRole -= UnionP.testing.FlightFailed.OnChangingRole;
+            foreach (var item in baseClasses)
+            {
+                if (item != null)
+                {
+                    if (item is BaseClass BC)
+                    {
+                        BC.StartInit();
+                        baseClasses.Add(BC);
+                    }
+
+
+                }
+            }
             harmony.UnpatchAll();
             eventhandle.update();
             eventhandle.stopBroadcast();
@@ -656,6 +659,189 @@ namespace Next_generationSite_27.UnionP
         ColorChangerRole,
         ScpTalk,
         Omega1ChangeGForce,
+    }
+    public static class RoomToName
+    {
+        public static string ZoneToString(this ZoneType zone)
+        {
+            string name = "未知";
+            switch (zone)
+            {
+                case ZoneType.Unspecified:
+                    break;
+                case ZoneType.LightContainment:
+                    name = "轻收容";
+                    break;
+                case ZoneType.HeavyContainment:
+                    name = "重收容";
+                    break;
+                case ZoneType.Entrance:
+                    name = "办公";
+                    break;
+                case ZoneType.Surface:
+                    name = "地表";
+                    break;
+                case ZoneType.Pocket:
+                    name = "口袋空间";
+                    break;
+                case ZoneType.Other:
+                    break;
+                default:
+                    break;
+            }
+            return name;
+        }
+
+        public static string RoomToString(this Room room)
+        {
+            if(room == null)
+            {
+                return "未知房间";
+            }
+            string Zone="";
+            if(room.Zone != null)
+            {
+                Zone = room.Zone.ZoneToString() + " ";
+            }
+            string name = Zone;
+            if (room.Type == RoomType.HczIntersectionJunk || room.Type == RoomType.HczIntersectionJunk)
+            {
+                name += "管道房";
+            }
+            else
+            {
+                switch (room.RoomName)
+                {
+                    case MapGeneration.RoomName.EzCollapsedTunnel:
+                        name += "EzCollapsedTunnel";
+                        break;
+                    case MapGeneration.RoomName.Unnamed:
+                        break;
+                    case MapGeneration.RoomName.LczClassDSpawn:
+                        name += "D级人员出生点";
+                        break;
+                    case MapGeneration.RoomName.LczComputerRoom:
+                        name += "D级人员出生点";
+                        break;
+                    case MapGeneration.RoomName.LczCheckpointB:
+                        name += "B电梯";
+                        break;
+                    case MapGeneration.RoomName.LczCheckpointA:
+                        name += "A电梯";
+                        break;
+                    case MapGeneration.RoomName.LczToilets:
+                        name += "厕所";
+                        break;
+                    case MapGeneration.RoomName.LczArmory:
+                        name += "军械库";
+                        break;
+                    case MapGeneration.RoomName.Lcz173:
+                        name += "(前)173收容室";
+                        break;
+                    case MapGeneration.RoomName.LczGlassroom:
+                        name += "玻璃房";
+                        break;
+                    case MapGeneration.RoomName.Lcz330:
+                        name += "330收容室";
+                        break;
+                    case MapGeneration.RoomName.Lcz914:
+                        name += "914收容室";
+                        break;
+                    case MapGeneration.RoomName.LczGreenhouse:
+                        name += "绿房";
+                        break;
+                    case MapGeneration.RoomName.LczAirlock:
+                        name += "空气闸";
+                        break;
+                    case MapGeneration.RoomName.HczCheckpointToEntranceZone:
+                        name += "检查点";
+                        break;
+                    case MapGeneration.RoomName.HczCheckpointB:
+                        name += "轻收容B电梯";
+                        break;
+                    case MapGeneration.RoomName.HczCheckpointA:
+                        name += "轻收容A电梯";
+                        break;
+                    case MapGeneration.RoomName.HczWarhead:
+                        name += "核弹";
+                        break;
+                    case MapGeneration.RoomName.Hcz049:
+                        name += "049收容室";
+                        break;
+                    case MapGeneration.RoomName.Hcz079:
+                        name += "079收容室";
+                        break;
+                    case MapGeneration.RoomName.Hcz096:
+                        name += "096收容室";
+                        break;
+                    case MapGeneration.RoomName.Hcz106:
+                        name += "106收容室";
+                        break;
+                    case MapGeneration.RoomName.Hcz939:
+                        name += "939收容室";
+                        break;
+                    case MapGeneration.RoomName.HczMicroHID:
+                        name += "H.I.D储存室";
+                        break;
+                    case MapGeneration.RoomName.HczArmory:
+                        name += "军械库";
+                        break;
+                    case MapGeneration.RoomName.HczServers:
+                        name += "机房";
+                        break;
+                    case MapGeneration.RoomName.HczTesla:
+                        name += "特斯拉电网";
+                        break;
+                    case MapGeneration.RoomName.EzGateA:
+                        name += "A门";
+                        break;
+                    case MapGeneration.RoomName.EzGateB:
+                        name += "B门";
+                        break;
+                    case MapGeneration.RoomName.EzRedroom:
+                        name += "红房";
+                        break;
+                    case MapGeneration.RoomName.EzEvacShelter:
+                        name += "避难所";
+                        break;
+                    case MapGeneration.RoomName.EzIntercom:
+                        name += "广播室";
+                        break;
+                    case MapGeneration.RoomName.EzOfficeStoried:
+                        name += "储存室";
+                        break;
+                    case MapGeneration.RoomName.EzOfficeLarge:
+                        name += "大办公室";
+                        break;
+                    case MapGeneration.RoomName.EzOfficeSmall:
+                        name += "小办公室";
+                        break;
+                    case MapGeneration.RoomName.Outside:
+                        name += "地表";
+                        break;
+                    case MapGeneration.RoomName.Pocket:
+                        name += "";
+                        break;
+                    case MapGeneration.RoomName.HczTestroom:
+                        name += "939收容室";
+                        break;
+                    case MapGeneration.RoomName.Hcz127:
+                        name += "127收容室";
+                        break;
+                    case MapGeneration.RoomName.HczAcroamaticAbatement:
+                        name += "瀑布房";
+                        break;
+                    case MapGeneration.RoomName.HczWaysideIncinerator:
+                        name += "熔炉房";
+                        break;
+                    case MapGeneration.RoomName.HczRampTunnel:
+                        name += "坏大门(发光)";
+                        break;
+                }
+            }
+
+            return name;
+        }
     }
     public class RunningMan : Event<GwangjuRunningManLoader.RunningManConfig, RunningManTranslation>, IEventMap, IEventSound
     {

@@ -611,7 +611,6 @@ namespace Next_generationSite_27.UnionP.testing
                 response = "不能向自己发起决斗。";
                 return false;
             }
-
             var battleType = FlightFailed.BattleType.JailBird;
             if (arguments.Count > 1)
             {

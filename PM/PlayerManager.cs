@@ -9,6 +9,7 @@ using Exiled.API.Features.Toys;
 using Exiled.CustomRoles.API.Features;
 using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
+using Exiled.Events.EventArgs.Scp079;
 using Exiled.Events.EventArgs.Scp914;
 using Exiled.Events.EventArgs.Server;
 using Exiled.Events.EventArgs.Warhead;
@@ -20,12 +21,14 @@ using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using MEC;
 using Mirror;
+using Mysqlx.Expr;
 using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
 using PlayerRoles.PlayableScps.HumeShield;
 using PlayerRoles.PlayableScps.Scp079;
+using PlayerStatsSystem;
 using ProjectMER.Commands.Utility;
 using Respawning;
 using Respawning.Waves;
@@ -36,6 +39,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using UnityEngine;
 using UserSettings.ServerSpecific;
 using Utils;
@@ -61,6 +65,7 @@ namespace Next_generationSite_27.UnionP
         {
             Exiled.Events.Handlers.Player.ChangingRole += ChangingRole;
             Exiled.Events.Handlers.Player.Shot += Shot;
+            Exiled.Events.Handlers.Scp079.GainingExperience += GainingExperience;
             Exiled.Events.Handlers.Warhead.Starting += PlayerManager.Starting;
             Exiled.Events.Handlers.Warhead.Stopping += PlayerManager.Stopping;
             Exiled.Events.Handlers.Player.Verified += PlayerManager.Verified;
@@ -71,7 +76,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Left += PlayerManager.Left;
             Exiled.Events.Handlers.Warhead.Stopping += PlayerManager.Stopping;
             Exiled.Events.Handlers.Player.Hurting += PlayerManager.Hurting;
-            Exiled.Events.Handlers.Player.Died += PlayerManager.Died;
+            Exiled.Events.Handlers.Player.Dying += PlayerManager.Dying;
             Exiled.Events.Handlers.Player.Escaped += Escaping;
             Exiled.Events.Handlers.Server.RoundEnded += RoundEnded;
             Exiled.Events.Handlers.Player.EnteringPocketDimension += EnteringPocketDimension;
@@ -95,6 +100,7 @@ namespace Next_generationSite_27.UnionP
             Plugin.MenuCache.RemoveAll(x => x.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader] || x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]);
             Plugin.MenuCache.RemoveAll(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]);
             Exiled.Events.Handlers.Warhead.Starting -= PlayerManager.Starting;
+            Exiled.Events.Handlers.Scp079.GainingExperience -= GainingExperience;
             Exiled.Events.Handlers.Player.DroppingAmmo -= PlayerManager.DroppedAmmo;
             Exiled.Events.Handlers.Player.Verified -= PlayerManager.Verified;
             Exiled.Events.Handlers.Player.PreAuthenticating -= PlayerManager.PreAuthenticating;
@@ -103,7 +109,7 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Hurting -= PlayerManager.Hurting;
             Exiled.Events.Handlers.Player.Left -= PlayerManager.Left;
             Exiled.Events.Handlers.Warhead.Stopping -= PlayerManager.Stopping;
-            Exiled.Events.Handlers.Player.Died -= PlayerManager.Died;
+            Exiled.Events.Handlers.Player.Dying -= PlayerManager.Dying;
             Exiled.Events.Handlers.Server.RoundEnded -= RoundEnded;
             Exiled.Events.Handlers.Player.Escaped -= Escaping;
             Exiled.Events.Handlers.Scp914.ChangingKnobSetting -= ChangingKnobSetting;
@@ -117,6 +123,7 @@ namespace Next_generationSite_27.UnionP
             Timing.KillCoroutines(rec);
             //base.Delete();
         }
+
         public static Dictionary<Player, Player> Scp106CatchPlayers = new Dictionary<Player, Player>();
         public static void EnteringPocketDimension(EnteringPocketDimensionEventArgs ev)
         {
@@ -154,16 +161,17 @@ namespace Next_generationSite_27.UnionP
         {
             if (ev.PlayerDisplay.ReferenceHub == null)
             {
-                    ev.PlayerDisplay.RemoveHint(ev.Hint);
-                return "";
-            } else if (!Room.TryGetRoomAtPosition( ev.PlayerDisplay.ReferenceHub.GetPosition(),out var r))
-            {
-                    ev.PlayerDisplay.RemoveHint(ev.Hint);
+                ev.PlayerDisplay.RemoveHint(ev.Hint);
                 return "";
             }
-            else if(r.Base.Name != MapGeneration.RoomName.Lcz914)
+            else if (!Room.TryGetRoomAtPosition(ev.PlayerDisplay.ReferenceHub.GetPosition(), out var r))
             {
-                    ev.PlayerDisplay.RemoveHint(ev.Hint);
+                ev.PlayerDisplay.RemoveHint(ev.Hint);
+                return "";
+            }
+            else if (r.Base.Name != MapGeneration.RoomName.Lcz914)
+            {
+                ev.PlayerDisplay.RemoveHint(ev.Hint);
                 return "";
 
             }
@@ -303,7 +311,6 @@ namespace Next_generationSite_27.UnionP
             {
                 foreach (var item in Player.Enumerable.Where(x => x.Role.Team == ev.Generator.LastActivator.Role.Team))
                 {
-                    if (GetLevel(item) > 10)
                     {
                         AddExp(item, 15, true, AddExpReason.Scp079Gener);
                     }
@@ -314,14 +321,13 @@ namespace Next_generationSite_27.UnionP
         {
             foreach (var item in Player.Enumerable)
             {
-                if (GetLevel(item) > 10)
                 {
                     AddExp(item, 5, reason: AddExpReason.RoundEnd);
                     if (ev.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies || (Scp5k_Control.Is5kRound && ev.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces))
                     {
                         if (item.Role.Type.IsScp())
                         {
-                            AddExp(item, 15, reason: AddExpReason.ScpWin);
+                            AddExp(item, 10, reason: AddExpReason.ScpWin);
                         }
                     }
                     if (ev.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces ||
@@ -329,7 +335,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         if (item.Role.Type.IsHuman())
                         {
-                            AddExp(item, 15, reason: AddExpReason.HumanWin);
+                            AddExp(item, 10, reason: AddExpReason.HumanWin);
                         }
                     }
                 }
@@ -345,29 +351,54 @@ namespace Next_generationSite_27.UnionP
                     AddExp(ev.Player.Cuffer, 15, false, AddExpReason.CuffedPeopleEscaped);
                 }
             }
-            if (Scp5k_Control.Is5kRound) {
+            if (Scp5k_Control.Is5kRound)
+            {
                 ev.Player.Role.Set(RoleTypeId.ChaosConscript);
             }
         }
-        public static void Died(DiedEventArgs ev)
+        public static void GainingExperience(GainingExperienceEventArgs ev)
+        {
+            if (ev.Player != null)
+            {
+                if (ev.GainType == Scp079HudTranslation.ExpGainTerminationDirect)
+                {
+                    AddExp(ev.Player, 20, true, AddExpReason.ScpKillPeoPle);
+                }
+                if (ev.GainType == Scp079HudTranslation.ExpGainTerminationAssist)
+                {
+                    AddExp(ev.Player, 5, true, AddExpReason.ScpKillPeoPle);
+                }
+            }
+        }
+        public static void Dying(DyingEventArgs ev)
         {
             if (ev.Attacker != null)
             {
+                bool isHandGunKill = (ev.DamageHandler.Base is FirearmDamageHandler f && (f.WeaponType == ItemType.GunCOM15 || f.WeaponType == ItemType.GunCOM18));
+                bool x3orJailBirdKill096 = (ev.Player.Role.Type == RoleTypeId.Scp096 && (ev.DamageHandler.Base is JailbirdDamageHandler || ev.DamageHandler.Base is DisruptorDamageHandler));
+                bool GunKilledRage096 = (ev.Player.Role is Scp096Role s && s.RageState == PlayerRoles.PlayableScps.Scp096.Scp096RageState.Enraged && (ev.DamageHandler.Base is FirearmDamageHandler));
                 if (!ev.Attacker.IsScp)
                 {
-                    if (!ev.TargetOldRole.IsScp())
+                    if (!ev.Player.Role.Type.IsScp())
                     {
-                        AddExp(ev.Attacker, 5, true, AddExpReason.PeopleKillPeoPle);
+                        int exp = 10;
+                        exp = exp + 10 * ev.Player.GetEffect(EffectType.Scp207).Intensity
+                            + 20 * ev.Player.GetEffect(EffectType.Scp1344).Intensity
+                            + (isHandGunKill ? 5 : 0)
+                            + 10 * ev.Player.GetEffect(EffectType.Scp1853).Intensity;
+                        AddExp(ev.Attacker, exp, true, AddExpReason.PeopleKillPeoPle);
+
                     }
                     else
                     {
-                        if (ev.TargetOldRole == RoleTypeId.Scp0492)
+                        int exp = (isHandGunKill ? 5 : 0) + (x3orJailBirdKill096 ? 50 : 0) + (GunKilledRage096 ? 100 : 0);
+                        if (ev.Player.Role.Type == RoleTypeId.Scp0492)
                         {
-                            AddExp(ev.Attacker, 15, true, AddExpReason.KillZombie);
+                            AddExp(ev.Attacker, exp + 20, true, AddExpReason.KillZombie);
                         }
                         else
                         {
-                            AddExp(ev.Attacker, 40, false, AddExpReason.killScp);
+                            AddExp(ev.Attacker, exp + 50, false, AddExpReason.killScp);
 
                         }
 
@@ -375,7 +406,11 @@ namespace Next_generationSite_27.UnionP
                 }
                 else
                 {
-                    AddExp(ev.Attacker, 5, true, AddExpReason.ScpKillPeoPle);
+                    int exp = 10;
+                    exp = exp + 10 * ev.Player.GetEffect(EffectType.Scp207).Intensity
+    + 20 * ev.Player.GetEffect(EffectType.Scp1344).Intensity
+    + 10 * ev.Player.GetEffect(EffectType.Scp1853).Intensity;
+                    AddExp(ev.Attacker, exp, true, AddExpReason.ScpKillPeoPle);
 
                 }
             }
@@ -419,7 +454,6 @@ namespace Next_generationSite_27.UnionP
             foreach (var i in Enum.GetValues(typeof(AmmoType)))
             {
                 ev.Player.SetAmmo((AmmoType)i, ev.Player.GetAmmoLimit((AmmoType)i));
-
             }
         }
         public static IEnumerator<float> ClearPower(Scp079Role sr)
@@ -561,90 +595,8 @@ namespace Next_generationSite_27.UnionP
 
        }
    }));
-            if (Plugin.Instance.Config.Level)
-            {
 
-                settings.Add(new HeaderSetting(Plugin.Instance.Config.SettingIds[Features.LevelHeader], "等级插件"));
 
-                settings.Add(new ButtonSetting(Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey], "一键开关核", "开核", 0.2f, "(Scp079 设施等级为5 且 游戏等级大于211级)\n使用后消耗全部电力开关核，使用后18秒内不会回复电力值",
-                    onChanged: (player, SB) =>
-                    {
-                        try
-                        {
-
-                            var PU = Plugin.Instance.connect.QueryUser(player.UserId);
-                            var lv = PU.level;
-                            if (player.Role is Scp079Role SR)
-                            {
-                                if (SR.Level == 5)
-                                {
-                                    if (lv >= 211)
-                                    {
-                                        if (SR.Energy >= SR.MaxEnergy - 2)
-                                        {
-
-                                            if (AlphaWarheadController.Singleton.IsLocked)
-                                            {
-                                                player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>核弹已锁定!</color>", 3), true);
-                                                return;
-                                            }
-                                            if (AlphaWarheadController.Singleton.Info.InProgress)
-                                            {
-                                                SR.Energy = 0;
-                                                Plugin.RunCoroutine(ClearPower(SR));
-                                                AlphaWarheadController.Singleton.CancelDetonation(player.ReferenceHub);
-                                                player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>核弹已取消!</color>", 3), true);
-                                                return;
-                                            }
-                                            else
-                                            {
-                                                if (!AlphaWarheadNukesitePanel.Singleton.Networkenabled)
-                                                {
-                                                    player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>拉杆未拉下!</color>", 3), true);
-                                                    return;
-                                                }
-                                                if (!AlphaWarheadActivationPanel.IsUnlocked)
-                                                {
-                                                    player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>地表未开盖!</color>", 3), true);
-                                                    return;
-                                                }
-                                                SR.Energy = 0;
-                                                Plugin.RunCoroutine(ClearPower(SR));
-                                                AlphaWarheadController.Singleton.InstantPrepare();
-                                                AlphaWarheadController.Singleton.StartDetonation(false, false, player.ReferenceHub);
-                                                AlphaWarheadController.Singleton.IsLocked = false;
-                                                player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>核弹已开始!</color>", 3), true);
-                                                return;
-                                            }
-
-                                        }
-                                        else
-                                        {
-                                            player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>电力不足！</color>", 3), true);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>你没到211级！</color>", 3), true);
-                                    }
-                                }
-                                else
-                                {
-                                    player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>设施等级不足5级！</color>", 3), true);
-                                }
-                            }
-                            else
-                            {
-                                player.Broadcast(new Exiled.API.Features.Broadcast("<color=red>你不是SCP079！</color>", 3), true);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Exiled.API.Features.Log.Error(ex.ToString());
-
-                        }
-                    }));
-            }
             return settings;
         }
         public static void Stopping(StoppingEventArgs ev)
@@ -653,10 +605,6 @@ namespace Next_generationSite_27.UnionP
             {
                 Timing.CallDelayed(0.2f, () =>
                 {
-                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
-                    var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
-                    nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
-
                 });
             }
         }
@@ -664,12 +612,6 @@ namespace Next_generationSite_27.UnionP
         {
             if (Plugin.Instance.Config.Level)
             {
-                Timing.CallDelayed(0.2f, () =>
-                {
-                    var nuke = Plugin.MenuCache.Find(x => x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]) as ButtonSetting;
-                    var Text = Exiled.API.Features.Warhead.IsInProgress ? "关核" : "开核";
-                    nuke.UpdateSetting(Text, 0.2f, filter: (p) => p.Role.Type == RoleTypeId.Scp079);
-                });
             }
 
         }
@@ -702,6 +644,36 @@ namespace Next_generationSite_27.UnionP
                 return "";
             }
         }
+        public static List<CandyKindID> CandyList = new List<CandyKindID>()
+    {
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+            CandyKindID.Rainbow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Yellow,
+             CandyKindID.Purple,
+             CandyKindID.Purple,
+             CandyKindID.Purple,
+             CandyKindID.Purple,
+             CandyKindID.Red,
+             CandyKindID.Red,
+             CandyKindID.Red,
+             CandyKindID.Green,
+             CandyKindID.Green,
+             CandyKindID.Green,
+             CandyKindID.Blue,
+             CandyKindID.Blue,
+             CandyKindID.Blue,
+             CandyKindID.Pink,
+             CandyKindID.Pink,
+    };
         public static void ChangingRole(ChangingRoleEventArgs ev)
         {
             //Log.Info($"{ev.Player} changing role");
@@ -747,424 +719,262 @@ namespace Next_generationSite_27.UnionP
                 }
 
             }
-            
-            
-                var menuItems = Plugin.MenuCache?
+
+
+            var menuItems = Plugin.MenuCache?
 .Where(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk])
 ?.ToList();
-                if (true)
+            if (true)
+            {
+                if (menuItems != null && menuItems.Count > 0)
                 {
-                    if (menuItems != null && menuItems.Count > 0)
-                    {
                     if (Plugin.GetPlayerRegistered(ev.Player).Any(x => menuItems.Contains(x)))
                     {
                         Plugin.Unregister(ev.Player, menuItems);
                     }
-                    }
-                    else
+                }
+                else
+                {
+                    Log.Debug($"[ChangingRole] 未找到 SettingIds[{Features.ScpTalk}] 对应菜单项。");
+                }
+            }
+
+
+
+
+            if (ev.Reason != SpawnReason.RoundStart) return;
+            Timing.CallDelayed(0.4f, () =>
+        {
+            try
+            {
+                if (ev.Player == null) return;
+                foreach (var i in Enum.GetValues(typeof(AmmoType)))
+                {
+                    ev.Player.SetAmmo((AmmoType)i, ev.Player.GetAmmoLimit((AmmoType)i));
+                }
+                if (ev.Player.IsScp)
+                {
+
+                    if (menuItems != null)
                     {
-                        Log.Debug($"[ChangingRole] 未找到 SettingIds[{Features.ScpTalk}] 对应菜单项。");
+                        if (!Plugin.GetPlayerRegistered(ev.Player).Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]))
+                        {
+                            Plugin.Register(ev.Player, menuItems);
+                        }
+
                     }
                 }
-
-
-            
-
-            
-                Timing.CallDelayed(0.4f, () =>
-            {
-                try
-                {
-                    if (ev.Player == null) return;
-                    if (ev.Player.IsScp)
-                    {
-
-                        if (menuItems != null)
-                        {
-                            if (!Plugin.GetPlayerRegistered(ev.Player).Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]))
-                            {
-                                Plugin.Register(ev.Player, menuItems);
-                            }
-
-                        }
-                    }
 
 
                     if (Plugin.Instance.Config.Level)
                     {
-                        if(AutoEvent.AutoEvent.EventManager.CurrentEvent != null)
+                        if (AutoEvent.AutoEvent.EventManager.CurrentEvent != null)
                         {
                             return;
                         }
-                        if (Plugin.GetPlayerRegistered(ev.Player).Any(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]))
-                        {
-                            //if (menuItems != null && menuItems.Count > 0)
-                            {
-                                Plugin.Unregister(ev.Player, Plugin.MenuCache.Where((a) => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
 
-                            }
+                        CandyList.ShuffleList();
+                        var player = ev.Player;
+                    /*E段每人10%一个糖， D每人15%一颗
+糖，10%概率给手电筒，C段25%一颗
+糖，10%给手电，20%给对讲机；B段40%
+给一个糖，15%概率给第二课糖，15%给手
+电，15%给对讲，8%给闪光，7%给手雷。
+A段50%概率给一颗糖，15%给第二颗糖
+20%概率手电，20%对讲机，0.5%保安枪，
+2%com15，2%com17，0.5%左轮。5%给轻
+甲，4%战术甲，1%重甲。S段50概率给第
+一颗糖，20%给第二颗糖，10%给轻甲，5%
+给战术甲，5%给重甲，3%保安枪，
+2%com15，3%com17，5%左轮，0.01%给
+e11*/
+                    if (player.Role.Type == RoleTypeId.ClassD || player.Role.Type == RoleTypeId.Scientist)
+                    {
+                        if (UnityEngine.Random.Range(0, 4) <= 1)
+                        {
+                            player.AddItem(ItemType.KeycardScientist);
+
                         }
-                        var CandyList = new List<CandyKindID>()
-        {
-            CandyKindID.Rainbow,
-            CandyKindID.Rainbow,
-            CandyKindID.Rainbow,
-            CandyKindID.Rainbow,
-            CandyKindID.Rainbow,
-            CandyKindID.Rainbow,
-             CandyKindID.Yellow,
-             CandyKindID.Yellow,
-             CandyKindID.Yellow,
-             CandyKindID.Yellow,
-             CandyKindID.Yellow,
-             CandyKindID.Yellow,
-             CandyKindID.Purple,
-             CandyKindID.Purple,
-             CandyKindID.Purple,
-             CandyKindID.Purple,
-             CandyKindID.Red,
-             CandyKindID.Red,
-             CandyKindID.Red,
-             CandyKindID.Green,
-             CandyKindID.Green,
-             CandyKindID.Green,
-             CandyKindID.Blue,
-             CandyKindID.Blue,
-             CandyKindID.Blue,
-             CandyKindID.Pink,
-             CandyKindID.Pink,
-        };
-        var player = ev.Player;
-                        //var PU = Plugin.nav.connect.QueryUser(player.UserId);
-                        var level = GetLevel(player);
-                        var bufList = new List<EffectType>()
-            {
-                EffectType.MovementBoost,// 20
-                EffectType.DamageReduction,// 50
-                EffectType.SilentWalk, // 7
-            };
-
-                        Random.InitState(level + DateTime.UtcNow.Second + DateTime.UtcNow.Minute * 60 + DateTime.UtcNow.DayOfYear + DateTime.Now.Hour);
-                        if (level >= 1 && level <= 10)
+                        else
+                        if (UnityEngine.Random.Range(0, 5) <= 1)
                         {
-                            if (player.Role.Type == RoleTypeId.ClassD)
-                            {
-                                if (Random.Range(0, 100) < 50)
-                                    player.AddItem(ItemType.KeycardJanitor, 1);
-                            }
-                            player.AddItem(ItemType.Painkillers, 2);
+                            player.AddItem(ItemType.KeycardZoneManager);
                         }
-
-                        // ====== 11-20级 ======
-                        if (level >= 11 && level <= 20)
+                        else
                         {
-                            if (player.Role.Type == RoleTypeId.ClassD)
-                                player.AddItem(ItemType.KeycardJanitor, 1);
-
-                            player.AddItem(ItemType.Medkit, 1);
+                            player.AddItem(ItemType.KeycardJanitor);
                         }
+                        player.AddItem(ItemType.Medkit);
 
-                        // ====== 21-30级 ======
-                        if (level >= 21)
-                        {
-                            if (player.Role.Type == RoleTypeId.ClassD)
-                                player.AddItem(ItemType.KeycardJanitor, 1);
-
-                            player.AddItem(ItemType.Medkit, 1);
-
-                            if (player.Role.Type == RoleTypeId.ClassD || player.Role.Type == RoleTypeId.Scientist)
+                    }
+                    switch (GetLevel(player))
+                    {
+                        case ExpTier.Small:
+                            if(UnityEngine.Random.Range(0,100)<=10)
                             {
-                                player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
                             }
-                        }//dd:2
-
-                        // ====== 41-50级 ======
-                        if (level >= 41)
-                        {
-                            if (player.Role.Type == RoleTypeId.ClassD || player.Role.Type == RoleTypeId.Scientist)
+                            break;
+                        case ExpTier.Medium:
+                            if (UnityEngine.Random.Range(0, 100) <= 15)
                             {
-                                player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
                             }
-                            if (player.Role.Type == RoleTypeId.Scientist && Random.Range(0, 100) < 25)
-                                player.AddItem(ItemType.KeycardResearchCoordinator, 1); // 黄卡
-                        }
-
-                        // ====== 51-60级 ======
-                        if (level >= 51)
-                        {
-                            if (player.Role.Type == RoleTypeId.FacilityGuard && Random.Range(0, 100) < 40)
+                            if (UnityEngine.Random.Range(0, 100) <= 10)
                             {
-                                player.AddItem(ItemType.KeycardResearchCoordinator, 1); // 黄卡
-
+                                player.AddItem(ItemType.Flashlight);
                             }
-                            if (level >= 61)
+                            break;
+                        case ExpTier.Large:
+                            if (UnityEngine.Random.Range(0, 100) <= 25)
                             {
-                                if (player.Role.Type == RoleTypeId.FacilityGuard)
-                                {
-                                    if (Random.Range(0, 100) < 75)
-                                        player.AddItem(ItemType.KeycardScientist, 1);
-
-                                    player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                    player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                }
-
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
                             }
-                            if (level >= 71)
+                            if (UnityEngine.Random.Range(0, 100) <= 10)
                             {
-                                if (player.Role.Type == RoleTypeId.FacilityGuard)
-                                {
-                                    player.AddItem(ItemType.KeycardScientist, 1);
-                                    player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                    player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                }
+                                player.AddItem(ItemType.Flashlight);
                             }
-                            if (player.Role.Type == RoleTypeId.ClassD || player.Role.Type == RoleTypeId.Scientist)
+                            if (UnityEngine.Random.Range(0, 100) <= 20)
                             {
-                                player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
+                                player.AddItem(ItemType.Radio);
                             }
-                        }
-
-                        // ====== 81-90级 ======
-                        if (level >= 81)
-                        {
-                            if (player.Role.Type == RoleTypeId.ClassD || player.Role.Type == RoleTypeId.Scientist)
-
+                            break;
+                        case ExpTier.Pot:
+                            if (UnityEngine.Random.Range(0, 100) <= 40)
                             {
-                                player.AddItem(ItemType.ArmorLight, 1);
-                            }//3
-                        }
-
-                        // ====== 91-99级 ======
-                        if (level >= 91 && level <= 99)
-                        {
-
-                            if (player.Role.Type == RoleTypeId.FacilityGuard)
-                            {
-                                // 安保人员替换为轻甲
-                                player.AddItem(ItemType.ArmorLight, 1);
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
                             }
-                        }
-                        if (Scp5k_Control.Is5kRound) return;
-                        if (level >= 101)
-                        {
-                            switch (player.RoleManager.CurrentRole.RoleTypeId)
+                            if (UnityEngine.Random.Range(0, 100) <= 15)
                             {
-                                case RoleTypeId.ClassD:
-                                case RoleTypeId.Scientist:
-                                    {
-                                        //Log.Debug($"ClassD/Scientist {player} Level 101,processing");
-                                        if (Random.Range(0, 100) >= 50)
-                                        {
-                                            //Log.Debug($"ClassD/Scientist {player} Level 101,AddItem fl");
-                                            player.AddItem(ItemType.Flashlight, 1);
-                                        }
-                                        else if(Random.Range(0, 100) < 45)
-                                        {
-                                            player.AddItem(ItemType.KeycardZoneManager, 1); // 绿卡
-
-                                        }
-                                        player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                        player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                        player.ReferenceHub.GrantCandy(CandyList.RandomItem(), InventorySystem.Items.ItemAddReason.StartingItem);
-                                        break;
-                                    }
-                                case RoleTypeId.FacilityGuard:
-                                    {
-                                        //Log.Debug($"FacilityGuard {player} Level 101,processing");
-                                        int extraHealth = Math.Min((level - 101) / 2, 15);
-                                        player.MaxHealth += extraHealth;
-                                        player.EnableEffect(EffectType.MovementBoost, 24, 12f, false);
-                                        break;
-                                    }
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
                             }
-                        }
-
-                        if (level >= 131)
-                        {
-                            switch (player.RoleManager.CurrentRole.RoleTypeId)
+                            if (UnityEngine.Random.Range(0, 100) <= 15)
                             {
-                                case RoleTypeId.Scp049:
-                                    {
-                                        //Log.Debug($"049 {player} Level 131,processing");
-                                        int extraHealth = Math.Min((level - 131) * 4, 180);
-                                        int extraShield = Math.Min((level - 131) * 2, 90);
-                                        player.MaxHealth += extraHealth;
-                                        IHumeShieldedRole healthbarRole = player.RoleManager.CurrentRole as IHumeShieldedRole;
-                                        player.MaxHumeShield = healthbarRole.HumeShieldModule.HsMax + extraShield;
-                                        //player.ArtificialHealth = player.MaxArtificialHealth;
-                                        break;
-                                    }
-                                case RoleTypeId.Scp0492:
-                                    {
-                                        //Log.Debug($"Scp0492 {player} Level 131,processing");
-                                        int extraHealth = Math.Min((level - 131) * 4, 180);
-                                        player.MaxHealth += extraHealth;
-                                        break;
-                                    }
-                                case RoleTypeId.ClassD:
-                                case RoleTypeId.Scientist:
-                                    {
-                                        //Log.Debug($"ClassD/Scientist {player} Level 131,processing");
-                                        if (Random.Range(0, 100) >= 30)
-                                        {
-                                            player.AddItem(ItemType.SCP500, 1);
-                                        }
-                                        else
-                                        {
-                                            player.AddItem(ItemType.Medkit, 2);
-                                        }
-                                        break;
-                                    }
+                                player.AddItem(ItemType.Flashlight);
                             }
-                        }
-                        if (level >= 176)
-                        {
-                            switch (player.RoleManager.CurrentRole.RoleTypeId)
+                            if (UnityEngine.Random.Range(0, 100) <= 15)
                             {
-                                case RoleTypeId.Scp173:
-                                    {
-                                        //Log.Debug($"173 {player} Level 176,processing");
-                                        int extraHealth = Math.Min((level - 176) * 6, 210);
-                                        player.MaxHealth += extraHealth;
-                                        break;
-                                    }
-                                case RoleTypeId.NtfCaptain:
-                                case RoleTypeId.NtfPrivate:
-                                case RoleTypeId.NtfSpecialist:
-                                case RoleTypeId.NtfSergeant:
-                                    {
-                                        //Log.Debug($"NTF {player} Level 176,processing");
-                                        int extraHealth = 0;
-                                        if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.NtfCaptain) extraHealth = 12;
-                                        else if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.NtfPrivate) extraHealth = 7;
-                                        else if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.NtfSpecialist) extraHealth = 9;
-                                        else if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.NtfSergeant) extraHealth = 9;
-                                        player.MaxHealth += extraHealth;
-                                        player.AddItem(ItemType.Painkillers, 1);
-                                        break;
-                                    }
-                                case RoleTypeId.ChaosConscript:
-                                case RoleTypeId.ChaosMarauder:
-                                case RoleTypeId.ChaosRepressor:
-                                case RoleTypeId.ChaosRifleman:
-                                    {
-                                        //Log.Debug($"Chaos {player} Level 176,processing");
-                                        int extraHealth = 0;
-                                        if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.ChaosRepressor) extraHealth = 12;
-                                        else if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.ChaosRifleman) extraHealth = 7;
-                                        else if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.ChaosMarauder) extraHealth = 9;
-                                        else if (player.RoleManager.CurrentRole.RoleTypeId == RoleTypeId.ChaosConscript) extraHealth = 9;
-                                        player.MaxHealth += extraHealth;
-                                        player.AddItem(ItemType.Painkillers, 1);
-                                        break;
-                                    }
+                                player.AddItem(ItemType.Radio);
                             }
-                        }
-                        if (level >= 211)
-                        {
-                            //Log.Debug(player.RoleManager.CurrentRole.RoleTypeId.ToString() + $" {player} Level 211,processing");
-
-                            switch (player.RoleManager.CurrentRole.RoleTypeId)
+                            if (UnityEngine.Random.Range(0, 100) <= 8)
                             {
-                                case RoleTypeId.FacilityGuard:
-                                    {
-
-                                        switch (bufList.RandomItem())
-                                        {
-                                            case EffectType.MovementBoost:
-                                                player.EnableEffect(EffectType.MovementBoost, 20, 99999f, false);
-                                                Log.Debug($"{player} get MovementBoost");
-                                                break;
-                                            case EffectType.DamageReduction:
-                                                Log.Debug($"{player} get DamageReduction");
-                                                player.EnableEffect(EffectType.DamageReduction, 50, 99999f, false);
-                                                break;
-                                            case EffectType.SilentWalk:
-                                                Log.Debug($"{player} get SilentWalk");
-                                                player.EnableEffect(EffectType.SilentWalk, 7, 99999f, false);
-                                                break;
-                                        }
-                                        break;
-                                    }
-                                case RoleTypeId.Scp106:
-                                    {
-
-                                        break;
-                                    }
-                                case RoleTypeId.Scp079:
-                                    {
-                                        var r = player.Role as Scp079Role;
-
-                                        FieldInfo field = typeof(Scp079DoorLockChanger).GetField("_lockCostPerSec", BindingFlags.NonPublic | BindingFlags.Instance);
-                                        float original = (float)field.GetValue(r.DoorLockChanger);
-                                        float adjusted = level >= 220 ? original * 0.75f : original;
-                                        field.SetValue(r.DoorLockChanger, adjusted);
-                                        Plugin.Unregister(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]));
-                                        Plugin.Register(player, Plugin.MenuCache.Where(a => a.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey] || a.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader]));
-                                        break;
-                                    }
+                                player.AddItem(ItemType.GrenadeFlash);
                             }
-                        }
-                        if (level >= 241)
-                        {
-                            //Log.Debug(player.RoleManager.CurrentRole.RoleTypeId.ToString() + $" {player} Level 241,processing");
-                            switch (player.RoleManager.CurrentRole.RoleTypeId)
+                            else if (UnityEngine.Random.Range(0, 100) <= 7)
                             {
-                                case RoleTypeId.FacilityGuard:
-                                    {
-                                        if (Random.Range(0, 100) < 35)
-                                        {
-                                            player.AddItem(ItemType.SCP2176, 1);
-                                            Log.Debug($"{player} get SCP2176");
-                                        }
-                                        if (Random.Range(0, 100) < 2)
-                                        {
-                                            Log.Debug($"{player} get SurfaceAccessPass");
-                                            player.AddItem(ItemType.SurfaceAccessPass, 1);
-                                        }
-                                        break;
-                                    }
-                                case RoleTypeId.Scp096:
-                                case RoleTypeId.Scp939:
-                                    {
-                                        int extraShield = Math.Min((level - 241) * 7, 210);
-                                        IHumeShieldedRole healthbarRole = player.RoleManager.CurrentRole as IHumeShieldedRole;
-                                        player.MaxHumeShield = healthbarRole.HumeShieldModule.HsMax + extraShield;
-                                        break;
-                                    }
+                                player.AddItem(ItemType.GrenadeHE);
                             }
-                        }
-                        if (level >= 270)
-                        {
-                            //Log.Debug(player.RoleManager.CurrentRole.RoleTypeId.ToString() + $" {player} Level 270,processing");
-                            switch (player.RoleManager.CurrentRole.RoleTypeId)
+                            break;
+                        case ExpTier.Shao:
+                            if (UnityEngine.Random.Range(0, 100) <= 50)
                             {
-                                case RoleTypeId.ClassD:
-                                case RoleTypeId.Scientist:
-                                    {
-                                        if (Random.Range(0, 100) < 15)
-                                        {
-                                            player.AddItem(ItemType.SCP207, 1);
-                                            Log.Debug($"{player} get SCP207");
-                                            if (Random.Range(0, 100) < 2)
-                                            {
-                                                Log.Debug($"{player} get double SCP207");
-                                                player.AddItem(ItemType.SCP207, 1);
-                                            }
-                                        }
-                                        break;
-                                    }
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
                             }
-                        }
+                            if (UnityEngine.Random.Range(0, 100) <= 15)
+                            {
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 20)
+                            {
+                                player.AddItem(ItemType.Flashlight);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 20)
+                            {
+                                player.AddItem(ItemType.Radio);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 2)
+                            {
+                                player.AddItem(ItemType.GunCOM15);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 2)
+                            {
+                                player.AddItem(ItemType.GunCOM18);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 1)
+                            {
+                                player.AddItem(ItemType.GunFSP9);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 1)
+                            {
+                                player.AddItem(ItemType.GunRevolver);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 5)
+                            {
+                                player.AddItem(ItemType.ArmorLight);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 4)
+                            {
+                                player.AddItem(ItemType.ArmorCombat);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 1)
+                            {
+                                player.AddItem(ItemType.ArmorHeavy);
+                            }
+                            break;
+                        case ExpTier.Eat:
+                        case ExpTier.EatPlus:
+                            if (UnityEngine.Random.Range(0, 100) <= 50)
+                            {
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 20)
+                            {
+                                var candy = CandyList.RandomItem();
+                                player.TryAddCandy(candy);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 20)
+                            {
+                                player.AddItem(ItemType.Flashlight);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 20)
+                            {
+                                player.AddItem(ItemType.Radio);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 2)
+                            {
+                                player.AddItem(ItemType.GunCOM15);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 2)
+                            {
+                                player.AddItem(ItemType.GunCOM18);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 3)
+                            {
+                                player.AddItem(ItemType.GunFSP9);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 5)
+                            {
+                                player.AddItem(ItemType.GunRevolver);
+                            }
+                            if (UnityEngine.Random.Range(0, 100) <= 10)
+                            {
+                                player.AddItem(ItemType.ArmorLight);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 5)
+                            {
+                                player.AddItem(ItemType.ArmorCombat);
+                            }
+                            else if (UnityEngine.Random.Range(0, 100) <= 5)
+                            {
+                                player.AddItem(ItemType.ArmorHeavy);
+                            }
+                            break;
                     }
                 }
-                catch (Exception e)
-                {
-                    Log.Warn(e.ToString());
-                }
-            });
+            }
+            catch (Exception e)
+            {
+                Log.Warn(e.ToString());
+            }
+        });
 
         }
         public static Dictionary<Player, CoroutineHandle> rainbowC = new Dictionary<Player, CoroutineHandle>();
@@ -1285,12 +1095,8 @@ namespace Next_generationSite_27.UnionP
 
             // 触发逃脱后事件
             PlayerEvents.OnEscaped(new PlayerEscapedEventArgs(hub, currentRoleType, args.NewRole, args.EscapeScenario, zone));
+            AddExp(player, 10, false, AddExpReason.GuardEscaped);
 
-            // 经验奖励
-            if (GetLevel(player) > 10)
-            {
-                AddExp(player, 10, false, AddExpReason.GuardEscaped);
-            }
         }
 
         private static void HandleBadgeSync(Player player, ReferenceHub hub)
@@ -1314,11 +1120,11 @@ namespace Next_generationSite_27.UnionP
             // 同步颜色
             //if (hub.serverRoles.Network_myColor != badgeData.color)
             {
-                if (badgeData.color.Contains( "rainbow"))
+                if (badgeData.color.Contains("rainbow"))
                 {
                     if (!rainbowC.ContainsKey(player))
                     {
-                        rainbowC[player] = Timing.RunCoroutine(rainbowTime(player,colors));
+                        rainbowC[player] = Timing.RunCoroutine(rainbowTime(player, colors));
                     }
                     else if (!rainbowC[player].IsRunning)
                     {
@@ -1425,8 +1231,8 @@ namespace Next_generationSite_27.UnionP
 
         private static void UpdatePlayerDisplayName(Player player)
         {
-            int level = GetLevel(player);
-            string expectedName = $"Lv.{level} | {player.Nickname}";
+            string level = LevelToName(GetLevel(player));
+            string expectedName = $"{level} | {player.Nickname}";
 
             // 避免 Contains 引起误判（比如名字里有 Lv.x）
             if (!player.DisplayNickname.Contains(expectedName))
@@ -1499,7 +1305,7 @@ namespace Next_generationSite_27.UnionP
             XCoordinate = 0,
             YCoordinate = 190
         };
-        public static IEnumerator<float> rainbowTime(Player player,List<string> colors)
+        public static IEnumerator<float> rainbowTime(Player player, List<string> colors)
         {
             if (player == null)
             {
@@ -1528,42 +1334,44 @@ namespace Next_generationSite_27.UnionP
         {
             var p = GetTodayTimer(player);
             int SpecCount = 0;
-
+            short totalTick = ServerStatic.ServerTickrate;
+            double currentTick = Math.Round((double)(1f / Time.smoothDeltaTime));
             string upLine = "";
             string downLine = "";
             if (player.Role is SpectatorRole SR)
             {
-                if (SR.SpectatedPlayer != null)
+                if (SR.SpectatedPlayer != null) // 在观战
                 {
                     if (SpecList.ContainsKey(SR.SpectatedPlayer))
                     {
                         SpecCount = SpecList[SR.SpectatedPlayer].Count;
                     }
-                    upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>薯条:{GetPoint(SR.SpectatedPlayer)}</color> | 称号: <color=white>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
+                    upLine = $"<align=center><size=25><color=green>{LevelToName(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{ExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>薯条:{GetPoint(SR.SpectatedPlayer)}</color> | 称号: <color=white>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
                     if (SR.SpectatedPlayer.UniqueRole != "")
                     {
                         var showing = "";
                         CustomRole role = CustomRole.Get(SR.SpectatedPlayer.UniqueRole);
-                            showing = role.Name;
-                        
-                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(SR.SpectatedPlayer)}</color> | <color=yellow>{SR.SpectatedPlayer.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {GetTodayTimer(SR.SpectatedPlayer).Hours.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Minutes.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Seconds.ToString("D2")}</color> | <color=yellow>扮演: {showing}</color>  | <color=#add8e6ff>观众:{SpecCount}</color></size>";
-                    } else
+                        showing = role.Name;
+
+                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(SR.SpectatedPlayer)}</color> | <color=yellow>{SR.SpectatedPlayer.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {GetTodayTimer(SR.SpectatedPlayer).Hours.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Minutes.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Seconds.ToString("D2")}</color> | <color=yellow>扮演: {showing}</color>  |  <color=#FFD700>TPS: {currentTick}/{totalTick}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                    }
+                    else
                     {
-                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(SR.SpectatedPlayer)}</color> | <color=yellow>{SR.SpectatedPlayer.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {GetTodayTimer(SR.SpectatedPlayer).Hours.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Minutes.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Seconds.ToString("D2")}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(SR.SpectatedPlayer)}</color> | <color=yellow>{SR.SpectatedPlayer.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {GetTodayTimer(SR.SpectatedPlayer).Hours.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Minutes.ToString("D2")}:{GetTodayTimer(SR.SpectatedPlayer).Seconds.ToString("D2")}</color> |  <color=#FFD700>TPS: {currentTick}/{totalTick}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                     }
                     if (Misc.TryParseColor(SR.SpectatedPlayer.RankColor, out var color))
                     {
-                        upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(SR.SpectatedPlayer)}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{GetExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>薯条:{GetPoint(SR.SpectatedPlayer)}</color> | 称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
+                        upLine = $"<align=center><size=25><color=green>{LevelToName(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>{GetExperience(SR.SpectatedPlayer)}/{ExpToNextLevel(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>薯条:{GetPoint(SR.SpectatedPlayer)}</color> | 称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(SR.SpectatedPlayer.RankName) ? "无" : SR.SpectatedPlayer.RankName)}</color></size></align>";
                     }
 
                 }
                 else
                 {
-                    upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  |  称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
-                    downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                    upLine = $"<align=center><size=25><color=green>{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color> |  称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
+                    downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> |  <color=#FFD700>TPS: {currentTick}/{totalTick}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                     if (Misc.TryParseColor(player.RankColor, out var color))
                     {
-                        upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align></width>";
+                        upLine = $"<align=center><size=25><color=green>{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color> |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align></width>";
                     }
                 }
 
@@ -1574,18 +1382,18 @@ namespace Next_generationSite_27.UnionP
                 {
                     SpecCount = SpecList[player].Count;
                 }
-                upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  | <color=green>薯条:{GetPoint(player)}</color> | 称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
-                downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                upLine = $"<align=center><size=25><color=green>Lv.{LevelToName(GetLevel(player))}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color>  | <color=green>薯条:{GetPoint(player)}</color> | 称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
+                downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> |  <color=#FFD700>TPS: {currentTick}/{totalTick}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                 if (Misc.TryParseColor(player.RankColor, out var color))
                 {
-                    upLine = $"<align=center><size=25><color=green>Lv.{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{GetExpToNextLevel(GetLevel(player))}</color>  |  <color=green>薯条:{GetPoint(player)}</color> | 称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align>";
+                    upLine = $"<align=center><size=25><color=green>{LevelToName(GetLevel(player))}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color>  |  <color=green>薯条:{GetPoint(player)}</color> | 称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align>";
                 }
                 if (player.UniqueRole != "")
                 {
                     var showing = "";
                     CustomRole role = CustomRole.Get(player.UniqueRole);
-                        showing = role.Name;
-                        downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> | <color=yellow>你是: {showing}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
+                    showing = role.Name;
+                    downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> |  <color=#FFD700>TPS: {currentTick}/{totalTick}</color> | <color=yellow>你是: {showing}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                 }
             }
 
@@ -1763,9 +1571,9 @@ namespace Next_generationSite_27.UnionP
         public static void Verified(VerifiedEventArgs ev)
         {
 
-            sql.Update(ev.Player.UserId, ev.Player.Nickname, last_time: DateTime.Now,ip:ev.Player.IPAddress);
+            sql.Update(ev.Player.UserId, ev.Player.Nickname, last_time: DateTime.Now, ip: ev.Player.IPAddress);
 
-            
+
             var PU = Plugin.Instance.connect.QueryUser(ev.Player.UserId);
             if (PU.uid == 0)
             {
@@ -1782,7 +1590,7 @@ namespace Next_generationSite_27.UnionP
 
             }
             var PA = sql.QueryAdmin(userid: ev.Player.UserId);
-                    (string player_name, string port, string permissions, DateTime expiration_date, bool is_permanent, string notes)? target = null;
+            (string player_name, string port, string permissions, DateTime expiration_date, bool is_permanent, string notes)? target = null;
             if (PA != null)
             {
 
@@ -1831,22 +1639,22 @@ namespace Next_generationSite_27.UnionP
                             var text = item.badge;
                             if (target != null && target.HasValue)
                             {
-                                                            Log.Info($"get group:{target.Value.permissions} due badgeSystem");
+                                Log.Info($"get group:{target.Value.permissions} due badgeSystem");
                                 var UserGroup = ServerStatic.PermissionsHandler.GetGroup(target.Value.permissions);
                                 if (UserGroup != null)
                                 {
-                                        text += $"({UserGroup.Name})";
-                                    
+                                    text += $"({UserGroup.Name})";
+
                                 }
                                 else
                                 {
                                     Log.Info($"failed to get group! target:{target.Value.permissions}");
                                 }
                             }
-                            
-                                    List<string> colors = new List<string>();
+
+                            List<string> colors = new List<string>();
                             item.color.Split(',').ForEach(c => colors.Add(c));
-                            badges[ev.Player.UserId] = (item.player_name, text, colors, item.expiration_date,item.is_permanent,item.notes);
+                            badges[ev.Player.UserId] = (item.player_name, text, colors, item.expiration_date, item.is_permanent, item.notes);
                             break;
                         }
                     }
@@ -1873,32 +1681,26 @@ namespace Next_generationSite_27.UnionP
             Scp079Gener
         }
 
-        public static Dictionary<string, (string player_name, string badge, List<string> color, DateTime expiration_date, bool is_permanent, string notes)> badges = new Dictionary<string, (string player_name, string badge, List< string> color, DateTime expiration_date, bool is_permanent, string notes)>();
-        public static void AddLevel(Player player, int level)
-        {
-            var pU = sql.QueryUser(player.UserId);
-            SetLevel(player, pU.level + level);
-        }
+        public static Dictionary<string, (string player_name, string badge, List<string> color, DateTime expiration_date, bool is_permanent, string notes)> badges = new Dictionary<string, (string player_name, string badge, List<string> color, DateTime expiration_date, bool is_permanent, string notes)>();
         public static Dictionary<Player, int> levelCache = new Dictionary<Player, int>();
         public static Dictionary<Player, int> expCache = new Dictionary<Player, int>();
         public static Dictionary<Player, int> UidCache = new Dictionary<Player, int>();
+        public static Dictionary<Player, int> PointCache = new Dictionary<Player, int>();
         public static Dictionary<Player, Stopwatch> TodayTimer = new Dictionary<Player, Stopwatch>();
         public static Dictionary<Player, TimeSpan> TodayTimeCache = new Dictionary<Player, TimeSpan>();
-        public static int GetLevel(Player player)
+        public static ExpTier GetLevel(Player player)
         {
-            if (levelCache.ContainsKey(player))
-            {
-
-                return levelCache[player];
-            }
-            var l = sql.QueryUser(player.UserId).level;
-            levelCache[player] = l;
-            return l;
+            return ExpToLevel(GetExperience(player));
 
         }
         public static int GetPoint(Player player)
         {
+            if (PointCache.ContainsKey(player))
+            {
+                return PointCache[player];
+            }
             var l = sql.QueryUser(player.UserId).point;
+            PointCache[player] = l;
             return l;
 
         }
@@ -1963,23 +1765,16 @@ namespace Next_generationSite_27.UnionP
             return l;
 
         }
-        public static void SetLevel(Player player, int level)
-        {
-            levelCache[player] = level;
-
-            sql.Update(player.UserId, level: level);
-        }
         public static void AddExp(Player player, int exp, bool igronMul = false, AddExpReason reason = AddExpReason.Custom, string CustomReasonStr = "")
         {
             if (player == null || !player.IsConnected) return;
-            if (exp <= 0 || global_experience_multiplier <= 0)
+            if (global_experience_multiplier <= 0)
             {
                 return;
             }
-            AddPoint(player,exp);
+            AddPoint(player, exp);
 
             var pU = sql.QueryUser(player.UserId);
-            int currentLevel = GetLevel(player);
             int currentExp = GetExperience(player);
             int totalExp = (int)(currentExp + exp);
             // 玩家当前总经验 + 新增经验
@@ -2049,74 +1844,114 @@ namespace Next_generationSite_27.UnionP
             {
                 player.SendConsoleMessage($"你获得{(exp * experience_multiplier * global_experience_multiplier)} = {exp} * {pU.experience_multiplier} * {global_experience_multiplier} 原因:{reasonStr}", "grenn");
             }
-            // 逐步升级，直到无法升级或达到100级
-            while (true)
-            {
-                int expToNextLevel = GetExpToNextLevel(currentLevel);
 
-                if (totalExp >= expToNextLevel)
-                {
-                    currentLevel++;
-                    totalExp -= expToNextLevel; // 扣除升级消耗的经验
-
-                    // 可选：广播升级消息
-                    //player.ShowHint($"<size=20><b>🎉 恭喜升级！</b> 您已升到 <color=yellow>等级 {currentLevel}</color>！</size>", 5);
-                    player.AddMessage("LevelUpdated", $"<align=center><color=yellow><size=22>👏 Lv{pU.level}->Lv{currentLevel}</size></color></color>", 3f, ScreenLocation.CenterBottom);
-
-                    Log.Info($"{player.Nickname} 升级到了 {currentLevel} 级！");
-                }
-                else
-                {
-                    break; // 经验不足，停止升级
-                }
-            }
-
-            // 保存最终等级和剩余经验
-            SetLevel(player, level: currentLevel);
             SetExp(player, totalExp);
-            if (OnLevelUp != null)
+            if (OnExpUp != null)
             {
-                OnLevelUp(player, pU.level, currentLevel);
+                OnExpUp(player, totalExp);
             }
         }
-        public delegate void onlevelup(Player player, int level, int currentLevel);
-        public static event onlevelup OnLevelUp;
-        /// <summary>
-        /// 获取从当前等级升到下一级所需的经验值
-        /// </summary>
-        /// <param name="currentLevel">当前等级（1-99）</param>
-        /// <returns>升级所需经验；若 >=100 返回 0</returns>
-        /// <summary>
-        /// 获取从当前等级升到下一级所需的经验值（兼容 C# 7.3）
-        /// </summary>
-        /// <param name="currentLevel">当前等级（1-99）</param>
-        /// <returns>升级所需经验；若 >=100 返回 0</returns>
-        public static int GetExpToNextLevel(int currentLevel)
+        public delegate void onexpup(Player player, int NewExp);
+        public static event onexpup OnExpUp;
+        /*0-100为小份薯条，100-300为中份薯
+条，300-800为大份薯条，800-1500为炸
+锅，1500-3000为漏勺，3000-10000为吃薯
+条，全服前三单服给称号*/
+        public enum ExpTier
         {
-            if (currentLevel < 1) return 100;
-
-            if (currentLevel >= 1 && currentLevel <= 10)
-                return 100;
-            else if (currentLevel >= 11 && currentLevel <= 20)
-                return 250;
-            else if (currentLevel >= 21 && currentLevel <= 30)
-                return 350;
-            else if (currentLevel >= 31 && currentLevel <= 40)
-                return 500;
-            else if (currentLevel >= 41 && currentLevel <= 50)
-                return 750;
-            else if (currentLevel >= 51 && currentLevel <= 60)
-                return 1000;
-            else if (currentLevel >= 61 && currentLevel <= 70)
-                return 1400;
-            else if (currentLevel >= 71 && currentLevel <= 80)
-                return 1800;
-            else if (currentLevel >= 81 && currentLevel <= 90)
-                return 2100;
-            else if (currentLevel >= 91 && currentLevel <= 99)
-                return 2500;
+            Small,//小份薯条
+            Medium,//中份薯条
+            Large,//大份薯条
+            Pot,//炸锅
+            Shao,//漏勺
+            Eat,//吃薯条
+            EatPlus,//吃薯条(>10000)
+        }
+        public static ExpTier ExpToLevel(int currentExp)
+        {
+            if (currentExp <= 100)
+            {
+                return ExpTier.Small;
+            }
+            else if (currentExp <= 300)
+            {
+                return ExpTier.Medium;
+            }
+            else if (currentExp <= 800)
+            {
+                return ExpTier.Large;
+            }
+            else if (currentExp <= 1500)
+            {
+                return ExpTier.Pot;
+            }
+            else if (currentExp <= 3000)
+            {
+                return ExpTier.Shao;
+            }
+            else if (currentExp <= 10000)
+            {
+                return ExpTier.Eat;
+            }
             else
-                return 10000;
+            {
+                return ExpTier.EatPlus;
+            }
+        }
+        public static int ExpToNextLevel(ExpTier currentLevel)
+        {
+            switch (currentLevel)
+            {
+                case ExpTier.Small:
+                    return 100;
+                    break;
+                case ExpTier.Medium:
+                    return 300;
+                    break;
+                case ExpTier.Large:
+                    return 800;
+                    break;
+                case ExpTier.Pot:
+                    return 1500;
+                    break;
+                case ExpTier.Shao:
+                    return 3000;
+                    break;
+                case ExpTier.Eat:
+                    return 10000;
+                    break;
+                case ExpTier.EatPlus:
+                    return 0;
+                default:
+                    return 10000;
+                    break;
+            }
+        }
+        public static string LevelToName(ExpTier currentLevel)
+        {
+            switch (currentLevel)
+            {
+                case ExpTier.Small:
+                    return "小份薯条";
+                    break;
+                case ExpTier.Medium:
+                    return "中份薯条";
+                    break;
+                case ExpTier.Large:
+                    return "大份薯条";
+                    break;
+                case ExpTier.Pot:
+                    return "炸锅";
+                    break;
+                case ExpTier.Shao:
+                    return "漏勺";
+                    break;
+                case ExpTier.EatPlus:
+                case ExpTier.Eat:
+                    return "吃薯条";
+                default:
+                    return "?";
+            }
         }
         public static void SetExp(Player player, int exp)
         {
@@ -2130,6 +1965,7 @@ namespace Next_generationSite_27.UnionP
             if (player == null) return;
             if (point < 0) point = 0;
             sql.Update(player.UserId, point: point);
+            PointCache[player] = point;
         }
         public static void AddPoint(Player player, int point)
         {
@@ -2219,7 +2055,7 @@ namespace Next_generationSite_27.UnionP
                                 sql.InsertBanRecord(targetUserID, targetUserID, runner.UserId, runner.Nickname, text, DateTime.Now, end_time: DateTime.Now.AddSeconds(num), ServerStatic.ServerPort.ToString());
                                 foreach (var item in Player.Enumerable)
                                 {
-                                    if(item.UserId == targetUserID)
+                                    if (item.UserId == targetUserID)
                                     {
                                         item.Kick(text);
                                     }
@@ -2380,16 +2216,16 @@ namespace Next_generationSite_27.UnionP
                 {
                     string targetUserID = arguments.At(0);
                     string text = string.Empty;
-                            var Pbans = sql.QueryAllBan(targetUserID);
+                    var Pbans = sql.QueryAllBan(targetUserID);
 
-                            if (Pbans != null)
-                            {
-                                foreach (var arg in Pbans)
-                                {
-                                    response += $"{arg.start_time} 到 {arg.end_time} by:{arg.issuer_name} reason:{arg.reason} \n";
-                                }
-                            }
-                            return true;
+                    if (Pbans != null)
+                    {
+                        foreach (var arg in Pbans)
+                        {
+                            response += $"{arg.start_time} 到 {arg.end_time} by:{arg.issuer_name} reason:{arg.reason} \n";
+                        }
+                    }
+                    return true;
                 }
                 else
                 {
@@ -2404,7 +2240,7 @@ namespace Next_generationSite_27.UnionP
                         return false;
                     }
                     var target = list[0];
-                    if(target == null)
+                    if (target == null)
                     {
                         response = "Fialed To get target";
                         return false;
@@ -2489,7 +2325,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         AddExp(Player.Get(item), exp, true, reason: AddExpReason.RaAdded);
                     }
-                    response = "done";
+                    response = $"done added {exp}!";
 
                     return true;
                 }

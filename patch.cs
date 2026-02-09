@@ -16,6 +16,7 @@ using HarmonyLib;
 using Hazards;
 using Interactables.Interobjects;
 using Interactables.Interobjects.DoorUtils;
+using InventorySystem.Configs;
 using InventorySystem.Items.Armor;
 using InventorySystem.Items.Autosync;
 using InventorySystem.Items.Firearms.Extensions;
@@ -108,13 +109,14 @@ namespace Next_generationSite_27.UnionP
             return false;
         }
     }
-    [HarmonyPatch(typeof(BodyArmorUtils))]
-    public class BodyArmorUtilsPatch
+    [HarmonyPatch(typeof(InventoryLimits))]
+    public class InventoryLimitsPatch
     {
-        [HarmonyPatch("RemoveEverythingExceedingLimits")]
+        [HarmonyPatch(nameof(InventoryLimits.GetAmmoLimit),typeof(BodyArmor),typeof(ItemType))]
         [HarmonyPrefix]
-        public static bool Prefix()
+        public static bool Prefix(BodyArmor armor, ItemType ammoType,ref ushort __result)
         {
+            __result = 150;
             return false;
         }
     }

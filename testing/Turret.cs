@@ -1,4 +1,5 @@
 ﻿using AdminToys;
+using CommandSystem;
 using Decals;
 using DrawableLine;
 using Exiled.API.Extensions;
@@ -8,6 +9,7 @@ using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Items;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Spawn;
+using Exiled.Events.EventArgs.Player;
 using Exiled.Events.Handlers;
 using Footprinting;
 using InventorySystem;
@@ -25,6 +27,7 @@ using Org.BouncyCastle.Asn1.X509;
 using PlayerRoles;
 using PlayerStatsSystem;
 using ProjectMER.Commands.Modifying.Rotation;
+using ProjectMER.Commands.Utility;
 using ProjectMER.Features.Enums;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
@@ -36,13 +39,82 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using Utils;
 using Utils.Networking;
 using Item = Exiled.API.Features.Items.Item;
+using Pickup = Exiled.API.Features.Pickups.Pickup;
 using Player = Exiled.API.Features.Player;
 using Time = UnityEngine.Time;
 
-namespace Next_generationSite_27.UnionP
+namespace Next_generationSite_27.UnionP.Turret
 {
+    class Builder : MonoBehaviour
+    {
+        public Exiled.API.Features.Pickups.Pickup pickup = null;
+        public Quaternion playerRotation;
+        public Player Owner = null;
+        void OnCollisionEnter(Collision collision)
+        {
+            if (Owner == null)
+            {
+                Log.Error("Owner is null!");
+            }
+
+            if (pickup == null)
+            {
+                Log.Error("pickup is null!");
+            }
+
+            if (collision == null)
+            {
+                Log.Error("wat");
+            }
+
+            if (!collision.collider)
+            {
+                Log.Error("water");
+            }
+
+            if (collision.collider.gameObject == null)
+            {
+                Log.Error("pepehm");
+            }
+
+            if (!(collision.collider.gameObject == Owner.GameObject) && (Player.Get(collision.gameObject) != Owner) && !Spawned)
+            {
+                Spawned = true;
+                Vector3 wallNormal = collision.contacts[0].normal;
+                Quaternion bunkerRotation = CalculateBunkerRotation(wallNormal, playerRotation);
+
+                Turret.Create(collision.contacts[0].point, bunkerRotation.eulerAngles,Owner);
+                pickup.Destroy();
+                Destroy(this);
+            }
+        }
+        public bool Spawned = false;
+        public void init(Pickup Pickup, Quaternion rotation, Player player)
+        {
+            playerRotation = rotation;
+            pickup = Pickup;
+            Owner = player;
+        }
+
+        private Quaternion CalculateBunkerRotation(Vector3 wallNormal, Quaternion playerRot)
+        {
+            Vector3 playerForward = playerRot * Vector3.forward;
+            Vector3 playerRight = playerRot * Vector3.right;
+            Vector3 projectedForward = Vector3.ProjectOnPlane(playerForward, wallNormal).normalized;
+            Vector3 projectedRight = Vector3.ProjectOnPlane(playerRight, wallNormal).normalized;
+            if (projectedForward.magnitude < 0.1f)
+            {
+                projectedForward = Vector3.ProjectOnPlane(Vector3.forward, wallNormal).normalized;
+                projectedRight = Vector3.ProjectOnPlane(Vector3.right, wallNormal).normalized;
+            }
+
+            // 创建旋转：向前方向是投影后的玩家方向，向上方向是墙面法线
+            return Quaternion.LookRotation(projectedForward, wallNormal);
+        }
+    }
     public class Turret : MonoBehaviour
     {
         public static Turret Create(Vector3 pos, Vector3 rotate, Player Onwer)
@@ -82,7 +154,7 @@ namespace Next_generationSite_27.UnionP
             turret.hp = turret.maxhp;
             try
             {
-                turret.Type = ItemType.GunA7;
+                turret.Type = ItemType.GunCOM15;
             }
             catch (Exception e)
             {
@@ -96,8 +168,13 @@ namespace Next_generationSite_27.UnionP
         {
             get => _Type;
             set { _Type = value; itemBase = CreateOnwerItem(); c_firerate = 0f;
+                var _ = firerate;
                 handler = new PlayerStatsSystem.FirearmDamageHandler(firearm: (itemBase as InventorySystem.Items.Firearms.Firearm), 0, 1);
                  ammoLeft = totalAmmo;
+                var fireM = (itemBase as InventorySystem.Items.Firearms.Firearm).Modules.FirstOrDefault(x => x is HitscanHitregModuleBase) as HitscanHitregModuleBase;
+
+                Log.Info($"Turret damage set to {fireM.BaseDamage},1 shot");
+
             }
         }
         public ItemBase itemBase { get; private set; }
@@ -169,8 +246,8 @@ namespace Next_generationSite_27.UnionP
         {
             SpawnTrace(Info, shotPoint.transform.position, Onwer.Role.Team);
             SpawnDecal(Info.point, shotPoint.transform.position, DecalPoolType.Bullet);
-            new DrawableLineMessage(0.6f, Color.white, new Vector3[2] { shotPoint.transform.position, Info.point }).SendToAuthenticated();
 
+            new DrawableLineMessage(0.2f, Color.white, new Vector3[2] { shotPoint.transform.position, Info.point }).SendToAuthenticated();
         }
         protected void Awake()
         {
@@ -283,13 +360,37 @@ namespace Next_generationSite_27.UnionP
         public void FixedUpdate()
         {
             if (!init || Onwer == null) return;
-            if (Locking != null && point != null)
+            Lock();
+            if (Locking != null && point != null && Locking.IsAlive
+                && Vector3.Distance(shotPoint.transform.position, Locking.Position) <= DistanceToLock)
             {
+                // Calculate the direction to the target (Locking.Position)
                 Vector3 direction = (Locking.Position - point.transform.position).normalized;
                 direction.x = Mathf.Clamp(direction.x, -45f, 45f);
-                point.transform.rotation = Quaternion.LookRotation(direction);
+
+                // Smoothly rotate from the current rotation to the desired rotation
+                Quaternion targetRotation = Quaternion.LookRotation(direction);
+
+                // Smoothing factor (adjust this value for faster/slower smoothing)
+                float smoothFactor = 5f;
+                point.transform.rotation = Quaternion.Slerp(point.transform.rotation, targetRotation, Time.deltaTime * smoothFactor);
             }
-            Text.TextFormat = $"<color={(ammoLeft <= 0 ? "red" : "green")}>{ammoLeft}/{totalAmmo} {hp}hp";
+            try
+            {
+                foreach (var player in Player.Enumerable)
+                {
+                    if(player == null) continue;
+                    var isfriend = player == null || !player.IsAlive || player == Onwer ||
+                        player.Role.Team == Onwer.Role.Team ||
+                        !HitboxIdentity.IsDamageable(Onwer.ReferenceHub, player.ReferenceHub);
+                    var text = $"<color={(ammoLeft <= 0 ? "yellow" : (isfriend ? "green" : "red"))}>{ammoLeft}/{totalAmmo} {hp}hp";
+                    MirrorExtensions.SendFakeSyncVar(player, Text.netIdentity, typeof(AdminToys.TextToy), "Network_textFormat", text);
+
+                }
+            }catch(Exception e)
+            {
+                Log.Error(e);
+            }
 
             if (limiter.Ready)
             {
@@ -298,7 +399,6 @@ namespace Next_generationSite_27.UnionP
                     ammoLeft = totalAmmo;
                     reloading = false;
                 }
-                Lock();
 
                 if (Locking != null)
                 {
@@ -327,16 +427,19 @@ namespace Next_generationSite_27.UnionP
         }
         public float DistanceToLock = 15f;
 
+        private float lockProgress = 0f;  // Locking progress, starts at 0 and goes to 1
+        private float maxLockTime = 1.5f; // Maximum time to lock when at max range (15m)
+        private float minLockTime = 0.5f; // Minimum time to lock when close (you can adjust this)
+
         void Lock()
         {
-            // 如果当前锁定目标有效且在范围内，保持锁定
             if (Locking != null && Locking.IsAlive &&
                 Vector3.Distance(shotPoint.transform.position, Locking.Position) <= DistanceToLock)
             {
-                return; // 不需要重新搜索
+                return; // If the target is already locked and in range, no need to redo
             }
 
-            // 否则搜索新的最近敌人
+            // Search for a new target if the previous one is invalid or out of range
             Locking = null;
             float closestDist = DistanceToLock;
 
@@ -347,18 +450,35 @@ namespace Next_generationSite_27.UnionP
                     !HitboxIdentity.IsDamageable(Onwer.ReferenceHub, player.ReferenceHub))
                 {
                     continue;
-
                 }
 
                 float dist = Vector3.Distance(shotPoint.transform.position, player.Position);
-                if (dist < closestDist)
+
+                // If the player is within range
+                if (dist <= DistanceToLock)
                 {
-                    closestDist = dist;
-                    Locking = player;
+                    // Calculate the lock time based on distance
+                    float lockTime = Mathf.Lerp(maxLockTime, minLockTime, dist / DistanceToLock);
+
+                    // Accumulate the lock progress based on distance (closer = faster accumulation)
+                    lockProgress += Time.deltaTime / lockTime;
+
+                    // Once the lock progress reaches 1 (meaning fully locked), set the target
+                    if (lockProgress >= 1f)
+                    {
+                        Locking = player;
+                        lockProgress = 0f;  // Reset the progress once locked
+                        break;  // Lock the first valid target
+                    }
+                }
+                else
+                {
+                    // Reset lock progress if the target goes out of range
+                    lockProgress = 0f;
                 }
             }
-
         }
+
         PlayerStatsSystem.AttackerDamageHandler handler = new PlayerStatsSystem.FirearmDamageHandler();
         protected virtual void ServerApplyDestructibleDamage(DestructibleHitPair target, HitscanResult result)
         {
@@ -373,21 +493,34 @@ namespace Next_generationSite_27.UnionP
                 {
                     var fireM = item.Modules.FirstOrDefault(x => x is HitscanHitregModuleBase) as HitscanHitregModuleBase;
                     var damage = fireM.BaseDamage;
+                    float dist = Vector3.Distance(shotPoint.transform.position, target.Hit.point);
+                    dist -= damage;
+
+                    float num = dist / fireM.DamageFalloffDistance;
+                    damage *= Mathf.Clamp01(1f - num);
                     handler.Damage = damage;
                     //handler.Attacker = Onwer.Footprint;
                     IDestructible destructible = target.Destructible;
                     HitboxIdentity hitboxIdentity = destructible as HitboxIdentity;
+                    if (hitboxIdentity != null)
+                    {
+                        if (hitboxIdentity.TargetHub.roleManager.CurrentRole.Team == Team.SCPs)
+                        {
+                            damage = 12;
+                            handler.Damage = damage;
+                        }
+                    }
                     if (hitboxIdentity != null && !hitboxIdentity.TargetHub.IsAlive())
                     {
                         result.RegisterDamage(destructible, damage, handler);
                         return;
                     }
                     Vector3 point = target.Hit.point;
+
                     if (!destructible.Damage(damage, handler, point))
                     {
                         return;
                     }
-                    result.RegisterDamage(destructible, damage, handler);
                     CreateTracer(target.Hit);
                     Onwer.ShowHitMarker();
                 }
@@ -425,8 +558,8 @@ namespace Next_generationSite_27.UnionP
         }
     }
 
-    [CustomItem(ItemType.Coin)]
-    class TurretItem : CustomItemPlus
+    [CustomItem(ItemType.GrenadeFlash)]
+    public class TurretItem : CustomItemPlus
     {
         public static uint TurretId = 9178;
         public override uint Id { get => TurretId; set => TurretId = value; }
@@ -434,20 +567,77 @@ namespace Next_generationSite_27.UnionP
         public override string Description { get => "使用后在5米内表面创建炮台"; set { } }
         public override float Weight { get =>11; set { } }
         public override SpawnProperties SpawnProperties { get; set; } = new SpawnProperties();
+        public static TurretItem Instance;
         public override void Init()
         {
             base.Init();
-            this.Type = ItemType.Coin;
+            this.Type = ItemType.GrenadeFlash;
+            Instance = this;
         }
-        protected override void OnUsed(Player player, Item item)
+        public override void Destroy()
         {
-            base.OnUsed(player, item);
-            if(Physics.Raycast(player.CameraTransform.position + player.CameraTransform.forward * 0.2f, player.CameraTransform.forward, out RaycastHit hit, 5f))
+            IUnsubscribeEvents();
+            base.Destroy();
+        }
+        protected void ISubscribeEvents()
+        {
+            Exiled.Events.Handlers.Player.ThrownProjectile += OnDroppedItem;
+        }
+        protected void IUnsubscribeEvents()
+        {
+            Exiled.Events.Handlers.Player.ThrownProjectile -= OnDroppedItem;
+        }
+        public void OnDroppedItem(ThrownProjectileEventArgs ev)
+        {
+            if (this.Check(ev.Pickup))
             {
-                Turret.Create(hit.point + hit.normal * 0.1f, hit.normal, player);
-                return;
+                ev.Pickup.Base.gameObject.AddComponent<Builder>().init(ev.Pickup, ev.Player.Rotation, ev.Player);
             }
-            Turret.Create(player.CameraTransform.position + player.CameraTransform.forward * 2f, Vector3.right, player);
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class TurretCommand : ICommand
+    {
+        string ICommand.Command { get; } = "turret";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "!!! 使用后产生一个炮塔 turret [PlayerId(主人 可选)]";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            Player Owner = null;
+            if (arguments.Count < 1)
+            {
+                Owner = runner;
+            }
+            else
+            {
+
+                string[] newargs;
+                List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out newargs);
+                if (list == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.";
+                    return false;
+                }
+                if (list[0] == null)
+                {
+                    response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
+                    return false;
+                }
+                Owner = Player.Get(list[0]);
+            }
+            if (runner.KickPower < 12)
+            {
+                response = "你没权 （player.KickPower < 12）";
+                return false;
+            }
+            Turret.Create(Owner.CameraTransform.position, Vector3.right, Owner);
+            response = $"done!";
+            return true;
+
         }
     }
 }

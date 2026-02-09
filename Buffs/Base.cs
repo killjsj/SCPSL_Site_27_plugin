@@ -153,6 +153,24 @@ namespace Next_generationSite_27.UnionP.Buffs
                 }
                 PlayerManager.AddPoint(Player.Get(sender), -40);
                 response = "Done!";
+                response += $"本回合Buff列表{(Round.IsStarted ? "" : "(可能在回合开始后有变化)")}：\n";
+                foreach (var i in BuffBase.RoundBuffs)
+                {
+                    string color = "";
+                    switch (i.Type)
+                    {
+                        case BuffBase.BuffType.Positive:
+                            color = "<color=green>";
+                            break;
+                        case BuffBase.BuffType.Negative:
+                            color = "<color=red>";
+                            break;
+                        case BuffBase.BuffType.Mixed:
+                            color = "<color=yellow>";
+                            break;
+                    }
+                    response += $"- {color} {i.BuffName} ({i.Type})</color>\n";
+                }
                 return true;
             }
             else

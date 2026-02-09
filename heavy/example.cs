@@ -53,7 +53,7 @@ namespace Next_generationSite_27.UnionP.heavy
             Exiled.Events.Handlers.Server.RoundStarted -= OnRoundStart;
             //throw new NotImplementedException();
         }
-        public static void OnRoundStart()
+        public void OnRoundStart()
         {
         }
        

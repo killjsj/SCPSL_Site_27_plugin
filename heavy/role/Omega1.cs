@@ -78,7 +78,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public void SubEvent()
             {
                 //Exiled.Events.Handlers.Player.Dying += OnDying;
-                //Exiled.Events.Handlers.Player.Hurting += OnHurting;
+                //Exiled.Events.Handlers.Player.Hurting += start;
                 //Exiled.Events.Handlers.Player.Verified += OnVerified;
                 //Exiled.Events.Handlers.Player.ChangingRole += OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating += OnDecontaminating;
@@ -86,7 +86,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public void UnSubEvent()
             {
                 //Exiled.Events.Handlers.Player.Dying -= OnDying;
-                //Exiled.Events.Handlers.Player.Hurting -= OnHurting;
+                //Exiled.Events.Handlers.Player.Hurting -= start;
                 //Exiled.Events.Handlers.Player.Verified -= OnVerified;
                 //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
@@ -151,7 +151,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public void SubEvent()
             {
                 //Exiled.Events.Handlers.Player.Dying += OnDying;
-                //Exiled.Events.Handlers.Player.Hurting += OnHurting;
+                //Exiled.Events.Handlers.Player.Hurting += start;
                 //Exiled.Events.Handlers.Player.Verified += OnVerified;
                 //Exiled.Events.Handlers.Player.ChangingRole += OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating += OnDecontaminating;
@@ -159,7 +159,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public void UnSubEvent()
             {
                 //Exiled.Events.Handlers.Player.Dying -= OnDying;
-                //Exiled.Events.Handlers.Player.Hurting -= OnHurting;
+                //Exiled.Events.Handlers.Player.Hurting -= start;
                 //Exiled.Events.Handlers.Player.Verified -= OnVerified;
                 //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;
@@ -263,7 +263,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public void SubEvent()
             {
                 //Exiled.Events.Handlers.Player.Dying += OnDying;
-                //Exiled.Events.Handlers.Player.Hurting += OnHurting;
+                //Exiled.Events.Handlers.Player.Hurting += start;
                 //Exiled.Events.Handlers.Player.Verified += OnVerified;
                 //Exiled.Events.Handlers.Player.ChangingRole += OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating += OnDecontaminating;
@@ -271,7 +271,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public void UnSubEvent()
             {
                 //Exiled.Events.Handlers.Player.Dying -= OnDying;
-                //Exiled.Events.Handlers.Player.Hurting -= OnHurting;
+                //Exiled.Events.Handlers.Player.Hurting -= start;
                 //Exiled.Events.Handlers.Player.Verified -= OnVerified;
                 //Exiled.Events.Handlers.Player.ChangingRole -= OnChangingRole;
                 //Exiled.Events.Handlers.Map.Decontaminating -= OnDecontaminating;

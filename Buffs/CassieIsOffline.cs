@@ -1,4 +1,5 @@
-﻿using Exiled.API.Enums;
+﻿using Cassie;
+using Exiled.API.Enums;
 using Exiled.API.Features;
 using Exiled.API.Features.Doors;
 using Exiled.API.Features.Items;
@@ -23,42 +24,36 @@ using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using Utils.Networking;
+using Utils.NonAllocLINQ;
 using static InventorySystem.Items.Firearms.ShotEvents.ShotEventManager;
 using Map = Exiled.API.Features.Map;
 using Player = Exiled.API.Features.Player;
 
 namespace Next_generationSite_27.UnionP.Buffs
 {
-    [HarmonyPatch]
+    [HarmonyPatch(typeof(CassieAnnouncementDispatcher))]
+
     public static class CassieIsOfflinePatch
     {
-        public static List<SubtitleType> AllowTypes = new List<SubtitleType>() {
-        SubtitleType.Custom,
-        SubtitleType.AlphaWarheadCancelled,
-        SubtitleType.AlphaWarheadEngage,
-        SubtitleType.AlphaWarheadResumed,
-        SubtitleType.DeadMansSwitch,
-    };
-
-        static MethodBase TargetMethod()
-        {
-            return typeof(NetworkUtils)
-                .GetMethod("SendToHubsConditionally", BindingFlags.Static | BindingFlags.Public)
-                ?.MakeGenericMethod(typeof(SubtitleMessage));
-        }
-
+        static FieldInfo a = typeof(CassieAnnouncementDispatcher).GetField("AllAnnouncements",BindingFlags.Static | BindingFlags.NonPublic);
+        [HarmonyPatch(nameof(Cassie.CassieAnnouncementDispatcher.AddToQueue))]
         [HarmonyPrefix]
-        static bool Prefix(SubtitleMessage msg, Func<ReferenceHub, bool> predicate, int channelId)
+        [HarmonyPriority(Priority.HigherThanNormal)]
+
+        static bool Prefix(CassieAnnouncement announcement)
         {
             if (!CassieIsOffline.Instance.CheckEnabled()) return true;
-            foreach (var item in msg.SubtitleParts)
+            if (announcement.Payload.SubtitleSource == CassieTtsPayload.SubtitleMode.FromTranslation)
             {
-                if (!AllowTypes.Contains(item.Subtitle))
-                {
-                    return false;
-                }
+                    var s = new CassieTtsPayload("",announcement.Payload.Content, false);
+                    var ca = new CassieAnnouncement(s, 0f, 0f);
+                    ((List<CassieAnnouncement>)(a.GetValue(null))).AddIfNotContains(ca);
             }
-            return true;
+            else if (announcement.Payload.SubtitleSource == CassieTtsPayload.SubtitleMode.Custom)
+            {
+                CassieIsOffline.Instance.ShowEACFSubtitles(announcement.Payload.Content);
+            }
+            return false;
         }
     }
     public class CassieIsOffline : BuffBase
@@ -71,9 +66,9 @@ namespace Next_generationSite_27.UnionP.Buffs
             return !Scp5k.Scp5k_Control.Is5kRound;
         }
         public override string BuffName => "断开连接";
-        void ShowEACFSubtitles(string message)
+        public void ShowEACFSubtitles(string message)
         {
-            CustomCassie.SendCustomCassieMessage(message, "", "E.A.F.C", "yellow");
+            CustomCassie.CustomCassieMessage(message,  "E.A.F.C", "yellow");
         }
         void RoundStarted()
         {
@@ -86,16 +81,16 @@ namespace Next_generationSite_27.UnionP.Buffs
         }
         void SendingCassieMessage(SendingCassieMessageEventArgs ev)
         {
-            if (CheckEnabled() == false)
+            if (!CheckEnabled())
             {
                 return;
             }
-            if(ev.SubtitleSource == Cassie.CassieTtsPayload.SubtitleMode.Automatic)
-            {
-                //ShowEACFSubtitles(ev.Words);
-                //ev.IsAllowed = false;
-                //return;
-            }
+            //if(ev.SubtitleSource == Cassie.CassieTtsPayload.SubtitleMode.Automatic)
+            //{
+            //    //ShowEACFSubtitles(ev.Words);
+            //    ev.IsAllowed = false;
+            //    return;
+            //}
             //ev.IsAllowed = false;/
         }
         void ChangedRole(PlayerChangedRoleEventArgs ev)
@@ -105,7 +100,7 @@ namespace Next_generationSite_27.UnionP.Buffs
                 {
                     if(s.SubroutineModule.TryGetSubroutine<Scp079TierManager>(out var a))
                     {
-                        a.TotalExp = 1;
+                        a.AccessTierIndex = 1;
                     }
                 }
             }

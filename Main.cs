@@ -561,7 +561,8 @@ namespace Next_generationSite_27.UnionP
         public Dictionary<Features, int> SettingIds { get; set; } = new Dictionary<Features, int>
         {
             { Features.LevelHeader, 114 },
-            { Features.Scp079NukeKey, 514 },
+            { Features.ScpDestroyYanTiButton, 514 },
+            { Features.ScpDestroyYanTiKey, 515 },
             { Features.Scp5kHeader, 5000 },
             { Features.Scp5kGOCAnswer, 5001 },
             { Features.AEHKey, 5141 },
@@ -652,7 +653,8 @@ namespace Next_generationSite_27.UnionP
     public enum Features
     {
         LevelHeader,
-        Scp079NukeKey,
+        ScpDestroyYanTiButton,
+        ScpDestroyYanTiKey,
         Scp5kHeader,
         AEHKey,
         Scp5kGOCAnswer,

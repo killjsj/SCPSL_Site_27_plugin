@@ -540,6 +540,8 @@ namespace Next_generationSite_27.UnionP.testing
             {
                 return $"我是{winner.Nickname}的猫娘喵❤❤";
             }
+            //写这个的时候起星雨了
+            // 来自https://github.com/CSneko/toNeko
         }
     }
 

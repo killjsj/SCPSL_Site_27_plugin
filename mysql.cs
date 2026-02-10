@@ -410,6 +410,7 @@ ON DUPLICATE KEY UPDATE
     ip = VALUES(ip),
     today_duration = VALUES(today_duration),
     total_duration = VALUES(total_duration),
+    point = VALUES(point),
     last_time = VALUES(last_time);";
 
                     cmd.CommandText = upsertSql;

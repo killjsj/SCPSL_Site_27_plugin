@@ -1,14 +1,18 @@
 ﻿using Cassie;
 using Exiled.API.Features;
 using Exiled.API.Features.Pools;
+using HarmonyLib;
+using Next_generationSite_27.UnionP.Buffs;
 using Next_generationSite_27.UnionP.UI;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Utils.NonAllocLINQ;
 
 namespace Next_generationSite_27.UnionP.heavy
 {
@@ -24,7 +28,8 @@ namespace Next_generationSite_27.UnionP.heavy
             foreach (string text in array)
             {
                 var t1 = text.Replace(" ", "\u2005");
-                if (t1.Length > max) {
+                if (t1.Length > max)
+                {
                     for (int i = 0; i < t1.Length; i += max)
                     {
                         int len = Math.Min(max, t1.Length - i);
@@ -43,18 +48,18 @@ namespace Next_generationSite_27.UnionP.heavy
                 //finallyList.Add(item);
                 n++;
                 finallystring.Append(item);
-                if(n==TempList.Count)
+                if (n == TempList.Count)
                 {
                     break;
                 }
                 finallystring.Append($"<pos={pos}em><voffset=-{n}em>");
             }
             SendCustomCassieMessage(finallystring.ToString(), "", who, color, isHeld, isNoisy, isSubtitles);
-            
+
             StringBuilderPool.Pool.Return(finallystring);
-            
+
         }
-        public static void SendCustomCassieMessage(string message, string tts = "",string who = "",string color = "red", bool isHeld = false, bool isNoisy = false, bool isSubtitles = true)
+        public static void SendCustomCassieMessage(string message, string tts = "", string who = "", string color = "red", bool isHeld = false, bool isNoisy = false, bool isSubtitles = true)
         {
             int TotalOffest = 100;
             Log.Info("Org CustomCassie Message: " + message);
@@ -94,13 +99,21 @@ namespace Next_generationSite_27.UnionP.heavy
                     Text += $"<color={color}>\u2005{who.Replace(" ", " \u2005")}</color> : ";
                 }
                 Text += $"{replaced}</indent></voffset>";
-                Log.SendRaw("Sending CustomCassie Message: " + Text + "",ConsoleColor.Cyan);
+                Log.SendRaw("Sending CustomCassie Message: " + Text + "", ConsoleColor.Cyan);
                 foreach (var item in Player.Enumerable)
                 {
-                    item.SendConsoleMessage("<noparse>"+Text+"</noparse>","white");
+                    item.SendConsoleMessage("<noparse>" + Text + "</noparse>", "white");
                 }
-                var s = new CassieTtsPayload(tts, Text, true);
-                new CassieAnnouncement(s, 0f, 0f).AddToQueue();
+                if (CassieIsOffline.Instance.CheckEnabled())
+                {
+                    var s = new CassieTtsPayload(Text, false, new Subtitles.SubtitlePart());
+                    new CassieAnnouncement(s, 0f, 0f).AddToQueue();
+                }
+                else
+                {
+                    var s = new CassieTtsPayload(tts,Text, false);
+                    new CassieAnnouncement(s, 0f, 0f).AddToQueue();
+                }
             }
             catch (Exception ex)
             {

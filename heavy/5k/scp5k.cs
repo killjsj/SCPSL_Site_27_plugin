@@ -1159,6 +1159,7 @@ namespace Next_generationSite_27.UnionP.Scp5k
 
                             //Pickup.CreateAndSpawn(ItemType.Gu)
                             Log.Info($"Saying O5");
+                            StartSubtitles();
                         }
                     }
                     catch (Exception ex)

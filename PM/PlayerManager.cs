@@ -97,7 +97,7 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Player.ChangingRole -= ChangingRole;
             Exiled.Events.Handlers.Player.Shot -= Shot;
-            Plugin.MenuCache.RemoveAll(x => x.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader] || x.Id == Plugin.Instance.Config.SettingIds[Features.Scp079NukeKey]);
+            Plugin.MenuCache.RemoveAll(x => x.Id == Plugin.Instance.Config.SettingIds[Features.LevelHeader] || x.Id == Plugin.Instance.Config.SettingIds[Features.ScpDestroyYanTiButton]);
             Plugin.MenuCache.RemoveAll(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpTalk]);
             Exiled.Events.Handlers.Warhead.Starting -= PlayerManager.Starting;
             Exiled.Events.Handlers.Scp079.GainingExperience -= GainingExperience;
@@ -440,12 +440,17 @@ namespace Next_generationSite_27.UnionP
 
             expCache.Clear();
             levelCache.Clear();
-            TodayTimeCache.Clear();
             foreach (var item in TodayTimer)
             {
                 item.Value.Stop();
                 sql.Update(item.Key.UserId, name: item.Key.Nickname, today_duration: GetTodayTimer(item.Key));
             }
+            TodayTimeCache.Clear();
+            foreach (var item in PointCache)
+            {
+                sql.Update(item.Key.UserId,point:item.Value);
+            }
+            PointCache.Clear();
             TodayTimer.Clear();
             SpecList.Clear();
         }

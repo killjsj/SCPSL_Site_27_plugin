@@ -46,6 +46,7 @@ using PlayerRoles.Visibility;
 using PlayerRoles.Voice;
 using PlayerStatsSystem;
 using RelativePositioning;
+using RemoteAdmin;
 using Respawning.Waves;
 using Scp914;
 using System;
@@ -105,18 +106,26 @@ namespace Next_generationSite_27.UnionP
         [HarmonyPrefix]
         public static bool Prefix(ArraySegment<string> arguments, ICommandSender sender, ref string response, ref bool __result)
         {
-            __result = new Next_generationSite_27.UnionP.PlayerManager.BanCommand().Execute(arguments, sender, out response);
+            Next_generationSite_27.UnionP.PlayerManager.BanCommand b = CommandProcessor.GetAllCommands().First(x => x is Next_generationSite_27.UnionP.PlayerManager.BanCommand) as Next_generationSite_27.UnionP.PlayerManager.BanCommand;
+            __result = b.Execute(arguments, sender, out response);
             return false;
         }
     }
     [HarmonyPatch(typeof(InventoryLimits))]
     public class InventoryLimitsPatch
     {
-        [HarmonyPatch(nameof(InventoryLimits.GetAmmoLimit),typeof(BodyArmor),typeof(ItemType))]
+        [HarmonyPatch(nameof(InventoryLimits.GetAmmoLimit), typeof(BodyArmor), typeof(ItemType))]
         [HarmonyPrefix]
-        public static bool Prefix(BodyArmor armor, ItemType ammoType,ref ushort __result)
+        public static bool Prefix(BodyArmor armor, ItemType ammoType, ref ushort __result)
         {
             __result = 150;
+            return false;
+        }
+        [HarmonyPatch(nameof(InventoryLimits.GetCategoryLimit), typeof(BodyArmor), typeof(ItemCategory))]
+        [HarmonyPrefix]
+        public static bool FireArmnPrefix(BodyArmor armor, ItemCategory category, ref sbyte __result)
+        {
+            __result = 8;
             return false;
         }
     }

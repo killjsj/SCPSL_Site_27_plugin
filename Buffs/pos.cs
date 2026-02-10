@@ -1,11 +1,13 @@
 ﻿using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Items;
+using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
 using GameCore;
 using Next_generationSite_27.UnionP.heavy;
 using Next_generationSite_27.UnionP.Turret;
 using Next_generationSite_27.UnionP.UI;
+using PlayerRoles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -171,6 +173,7 @@ namespace Next_generationSite_27.UnionP.Buffs
             Exiled.Events.Handlers.Server.RoundStarted -= RoundStarted;
             base.Delete();
         }
+
         public void RoundStarted()
         {
             if (CheckEnabled())
@@ -181,10 +184,56 @@ namespace Next_generationSite_27.UnionP.Buffs
                     var luck = Player.Enumerable.Where(x => x.Role.Type == PlayerRoles.RoleTypeId.Scientist).GetRandomValue();
                     if (luck != null)
                     {
-                        luck.AddItem(ItemType.MicroHID);
+                        luck.AddItem(ItemType.ParticleDisruptor);
                     }
                 });
 
+            }
+        }
+    }
+    public class GRunningMan : BuffBase
+    {
+        public override BuffType Type => BuffType.Positive;
+        public override string BuffName => "光州跑男";
+
+        public override void Init()
+        {
+            Exiled.Events.Handlers.Server.RespawnedTeam += RespawnedTeam;
+            Exiled.Events.Handlers.Server.RoundStarted += RoundStarted;
+
+            base.Init();
+        }
+        public override void Delete()
+        {
+            Exiled.Events.Handlers.Server.RespawnedTeam += RespawnedTeam;
+            Exiled.Events.Handlers.Server.RoundStarted -= RoundStarted;
+
+            base.Delete();
+        }
+        public void RoundStarted()
+        {
+            if (this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
+            {
+                var p = Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.FacilityGuard).GetRandomValue();
+                p.AddItem(ItemType.Jailbird);
+                    
+            }
+        }
+        public void RespawnedTeam(RespawnedTeamEventArgs ev)
+        {
+            if (CheckEnabled())
+            {
+                foreach (var item in ev.Players)
+                {
+                    if (item.Role.Type == PlayerRoles.RoleTypeId.ChaosMarauder)
+                    {
+                        item.AddItem(ItemType.SCP1509);
+                    }
+                    if (item.Role.Type == PlayerRoles.RoleTypeId.ChaosRepressor)
+                    {
+                        item.TryAddCandy(InventorySystem.Items.Usables.Scp330.CandyKindID.Black);
+                    }
+                }
             }
         }
     }
@@ -268,7 +317,7 @@ namespace Next_generationSite_27.UnionP.Buffs
         {
             while (Round.InProgress)
             {
-                yield return MEC.Timing.WaitForSeconds(60f);
+                yield return MEC.Timing.WaitForSeconds(120f);
                 if (this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null) { 
                     Exiled.API.Features.Cassie.MessageTranslated("", "正在扫描设施, 预计10s后完成....");
                     yield return MEC.Timing.WaitForSeconds(10f + UnityEngine.Random.Range(-2,3));
@@ -288,7 +337,7 @@ namespace Next_generationSite_27.UnionP.Buffs
                     SB.AppendLine($"<color=yellow>混沌总数: {chaos}</color>");
                     foreach (var item in Player.Enumerable)
                     {
-                        item.AddMessage("",SB.ToString(), 3f);
+                        item.AddMessage("",SB.ToString(), 6f,ScreenLocation.Top);
                     }
                 }
             }

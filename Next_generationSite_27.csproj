@@ -420,6 +420,7 @@
     <Compile Include="Buffs\CassieIsOffline.cs" />
     <Compile Include="Buffs\Neg.cs" />
     <Compile Include="Buffs\pos.cs" />
+    <Compile Include="RaPlayerQueryReplacer.cs" />
     <Compile Include="heavy\IFFManager.cs" />
     <Compile Include="heavy\5k\Scp5kFFManager.cs" />
     <Compile Include="heavy\5k\GocBomb.cs" />

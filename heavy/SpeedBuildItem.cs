@@ -2,6 +2,7 @@
 using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Attributes;
+using Exiled.API.Features.Core.UserSettings;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Spawn;
 using Exiled.API.Features.Toys;
@@ -17,6 +18,7 @@ using MEC;
 using Mirror;
 using Next_generationSite_27.UnionP.heavy.role;
 using Next_generationSite_27.UnionP.Scp5k;
+using Next_generationSite_27.UnionP.testing;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
 using PlayerRoles.FirstPersonControl;
@@ -64,16 +66,89 @@ namespace Next_generationSite_27.UnionP.heavy
             {
                 ISubscribeEvents();
                 instance = this;
+                MenuInit();
                 base.Init();
+            }
+            public void ChangingRole(ChangingRoleEventArgs ev)
+            {
+                var b = Plugin.MenuCache.First(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpDestroyYanTiButton]);
+                var k = Plugin.MenuCache.First(x => x.Id == Plugin.Instance.Config.SettingIds[Features.ScpDestroyYanTiKey]);
+                if (ev.Player.Role.Type.IsScp())
+                {
+                    Plugin.Unregister(ev.Player, new SettingBase[] { b, k });
+                }
+                if (ev.NewRole.IsScp())
+                {
+                    Plugin.Register(ev.Player, new SettingBase[] { b, k });
+                }
+            }
+            public static void MenuInit()
+            {
+                var m = new List<SettingBase>() {
+                    new ButtonSetting(Plugin.Instance.Config.SettingIds[Features.ScpDestroyYanTiButton], "销毁掩体", "", 0.5f, "销毁周围5m的掩体", onChanged: (player, sb) =>
+                    {
+                        if(sb != null)
+                        {
+                            if(player != null)
+                            {
+                                if(!ScpDisarmer.p2b.TryGetValue(player,out var bs) )
+                                {
+                                    Log.Info($"{player} a");
+                                    return;
+                                }
+                                if(bs != null)
+                                {
+                                Log.Info($"{player} b");
+                                    foreach (var item in bs)
+                                    {
+                                Log.Info($"{player} b1");
+
+                                        if(Vector3.Distance(item.transform.position,player.Position) <= 5)
+                                        {
+                                            Log.Info($"{player} c");
+                                            GameObject.Destroy(item.gameObject);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }),
+                    new KeybindSetting(Plugin.Instance.Config.SettingIds[Features.ScpDestroyYanTiKey], "销毁掩体", KeyCode.Mouse1, onChanged: (player, sb) =>
+                    {
+                        if(sb != null)
+                        {
+                            if(player != null)
+                            {
+                                var ray = new Ray(player.CameraTransform.position,player.CameraTransform.forward);
+                                Log.Info($"{player} 1");
+                                if(Physics.Raycast(ray,out var hitInfo, 5f))
+                                {
+                                Log.Info($"{player} 2");
+                                    var b = hitInfo.collider.gameObject.GetComponent<bunker>();
+                                    if(b != null)
+                                    {
+                                        Log.Info($"{player} 3");
+                                        GameObject.Destroy(b.gameObject);
+                                    }
+                                }
+                                
+                            }
+                        }
+                    })
+                };
+                Plugin.MenuCache.AddRange(m);
             }
             protected void ISubscribeEvents()
             {
                 Exiled.Events.Handlers.Player.ThrownProjectile += OnDroppedItem;
+            Exiled.Events.Handlers.Player.ChangingRole += ChangingRole;
             }
             protected void IUnsubscribeEvents()
             {
                 Exiled.Events.Handlers.Player.ThrownProjectile -= OnDroppedItem;
+            Exiled.Events.Handlers.Player.ChangingRole -= ChangingRole;
             }
+
             public void OnDroppedItem(ThrownProjectileEventArgs ev)
             {
                 if (this.Check(ev.Pickup))
@@ -151,7 +226,89 @@ namespace Next_generationSite_27.UnionP.heavy
             }
         }
 
+        class ScpDisarmer : MonoBehaviour
+        {
+            public bunker Owner = null;
+            public static Dictionary<Player, List<bunker>> p2b = new();
+            private BoxCollider _collider;
 
+            private void Start()
+            {
+                _collider = gameObject.AddComponent<BoxCollider>();
+                _collider.isTrigger = true;
+                gameObject.layer = LayerMask.NameToLayer("InvisibleCollider");
+            }
+
+            void OnTriggerEnter(Collider collision)
+            {
+                if (Owner == null)
+                {
+                    Log.Error("Owner is null!");
+                }
+
+                if (collision == null)
+                {
+                    Log.Error("wat");
+                }
+
+                if (!collision)
+                {
+                    Log.Error("water");
+                }
+
+                if (collision.gameObject == null)
+                {
+                    Log.Error("pepehm");
+                }
+
+                if (!(collision.gameObject == Owner.gameObject) && (Player.TryGet(collision.gameObject, out var p)))
+                {
+                    Log.Info($"{p} entered");
+                    if (!p2b.ContainsKey(p))
+                    {
+                        p2b[p] = new List<bunker>();
+                    }
+                    p2b[p].Add(Owner);
+                }
+            }
+            public void OnTriggerExit(Collider collision)
+
+            {
+                if (Owner == null)
+                {
+                    Log.Error("Owner is null!");
+                }
+
+                if (collision == null)
+                {
+                    Log.Error("wat");
+                }
+
+                if (!collision)
+                {
+                    Log.Error("water");
+                }
+
+                if (collision.gameObject == null)
+                {
+                    Log.Error("pepehm");
+                }
+
+                if (!(collision.gameObject == Owner.gameObject) && (Player.TryGet(collision.gameObject, out var p)))
+                {
+                    Log.Info($"{p} exited");
+                    if (!p2b.ContainsKey(p))
+                    {
+                        p2b[p] = new List<bunker>();
+                    }
+                    p2b[p].Remove(Owner);
+                }
+            }
+            public void init(bunker b)
+            {
+                Owner = b;
+            }
+        }
 
         public static void CreateBunker(Vector3 pos, Quaternion rot)
         {
@@ -163,14 +320,24 @@ namespace Next_generationSite_27.UnionP.heavy
             p.Color = Color.gray;
             p.Collidable = true;
             p.Visible = true;
-            foreach (var item in p.GameObject.GetComponentsInChildren<Transform>())
-            {
-                item.gameObject.layer = LayerMask.GetMask("Glass");
-            }
-            p.GameObject.layer = LayerMask.GetMask("Glass");
             p.Spawn();
 
+            Primitive i = Primitive.Get(Object.Instantiate(Primitive.Prefab));
+            i.Position = pos;
+            i.Base.NetworkPrimitiveType = PrimitiveType.Sphere;
+            i.Rotation = rot;
+            i.Scale = new Vector3(5,5,5);
+            i.Color = Color.red;
+            i.Collidable = false;
+            i.Visible = false;
+            if (!i.GameObject.TryGetComponent(out SphereCollider boxCollider))
+                boxCollider = i.GameObject.AddComponent<SphereCollider>();
+
+            boxCollider.isTrigger = true;
+            i.Spawn();
             var BW = p.GameObject.AddComponent<bunker>();
+            i.GameObject.AddComponent<ScpDisarmer>().init(BW);
+            i.Transform.parent = p.GameObject.transform;
             BW.Health = 200;
         }
         public static RaycastHit CreateRaycastHit(Vector3 from, Vector3 to)
@@ -320,6 +487,6 @@ namespace Next_generationSite_27.UnionP.heavy
         public static void OnRoundStart()
         {
         }
-       
+
     }
 }

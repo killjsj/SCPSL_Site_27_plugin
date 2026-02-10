@@ -57,7 +57,7 @@ namespace Next_generationSite_27.UnionP.Buffs
             {
                 yield return MEC.Timing.WaitForSeconds(0.1f);
                 c += 0.1f;
-                var tim = UnityEngine.Random.Range(0.1f, 0.4f);
+                var tim = UnityEngine.Random.Range(0.5f, 4f);
                 foreach (var item in Door.List)
                 {
                     if(item.IsGate || item.IsElevator || item.IsElevator || item.IsKeycardDoor || item.IsPartOfCheckpoint)
@@ -79,24 +79,14 @@ namespace Next_generationSite_27.UnionP.Buffs
                             role.Experience += 1;
                         }
                     }
-                    if (item.Role is Scp173Role role1)
-                    {
-                        role1.BlinkReady = true;
-                    }
                 }
-                tim = UnityEngine.Random.Range(0.4f, 0.9f);
+                tim = UnityEngine.Random.Range(0.9f, 1.4f);
                 c += tim;
                 yield return MEC.Timing.WaitForSeconds(tim);
             }
             Map.TurnOffAllLights(0);
             foreach (var item in Player.Enumerable)
             {
-                if (item.Role is Scp173Role role1)
-                {
-                    role1.ObserversTracker.ResetObject();
-                    role1.ObserversTracker.UpdateObservers();
-                        role1.BlinkReady = false;
-                }
             }
         }
         void RoundStarted()
@@ -128,7 +118,7 @@ namespace Next_generationSite_27.UnionP.Buffs
         {
             if (CheckEnabled())
             {
-                if (UnityEngine.Random.Range(0, 100) <= 5)
+                if (UnityEngine.Random.Range(0, 100) <= 15)
                 {
                     ev.IsAllowed = false;
                     ev.CanInteract = false;

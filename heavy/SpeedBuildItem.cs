@@ -101,7 +101,7 @@ namespace Next_generationSite_27.UnionP.heavy
                                     {
                                         if(Vector3.Distance(item.transform.position,player.Position) <= 5)
                                         {
-                                            GameObject.Destroy(item.gameObject);
+                                            NetworkServer.Destroy(item.gameObject);
                                         }
                                     }
                                 }
@@ -120,7 +120,7 @@ namespace Next_generationSite_27.UnionP.heavy
                                     var b = hitInfo.collider.gameObject.GetComponent<bunker>();
                                     if(b != null)
                                     {
-                                        GameObject.Destroy(b.gameObject);
+                                        NetworkServer.Destroy(b.gameObject);
                                     }
                                 }
                                 

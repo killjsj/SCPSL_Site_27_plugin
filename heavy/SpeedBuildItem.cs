@@ -93,19 +93,14 @@ namespace Next_generationSite_27.UnionP.heavy
                             {
                                 if(!ScpDisarmer.p2b.TryGetValue(player,out var bs) )
                                 {
-                                    Log.Info($"{player} a");
                                     return;
                                 }
                                 if(bs != null)
                                 {
-                                Log.Info($"{player} b");
                                     foreach (var item in bs)
                                     {
-                                Log.Info($"{player} b1");
-
                                         if(Vector3.Distance(item.transform.position,player.Position) <= 5)
                                         {
-                                            Log.Info($"{player} c");
                                             GameObject.Destroy(item.gameObject);
                                         }
                                     }
@@ -120,14 +115,11 @@ namespace Next_generationSite_27.UnionP.heavy
                             if(player != null)
                             {
                                 var ray = new Ray(player.CameraTransform.position,player.CameraTransform.forward);
-                                Log.Info($"{player} 1");
                                 if(Physics.Raycast(ray,out var hitInfo, 5f))
                                 {
-                                Log.Info($"{player} 2");
                                     var b = hitInfo.collider.gameObject.GetComponent<bunker>();
                                     if(b != null)
                                     {
-                                        Log.Info($"{player} 3");
                                         GameObject.Destroy(b.gameObject);
                                     }
                                 }
@@ -263,7 +255,6 @@ namespace Next_generationSite_27.UnionP.heavy
 
                 if (!(collision.gameObject == Owner.gameObject) && (Player.TryGet(collision.gameObject, out var p)))
                 {
-                    Log.Info($"{p} entered");
                     if (!p2b.ContainsKey(p))
                     {
                         p2b[p] = new List<bunker>();
@@ -296,7 +287,6 @@ namespace Next_generationSite_27.UnionP.heavy
 
                 if (!(collision.gameObject == Owner.gameObject) && (Player.TryGet(collision.gameObject, out var p)))
                 {
-                    Log.Info($"{p} exited");
                     if (!p2b.ContainsKey(p))
                     {
                         p2b[p] = new List<bunker>();

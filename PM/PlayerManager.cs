@@ -1753,6 +1753,7 @@ e11*/
         public static int GetUid(Player player)
         {
             if (player == null) return 0;
+            if (player.IsNPC) return -1;
             if (UidCache.ContainsKey(player))
             {
                 return UidCache[player];
@@ -1765,6 +1766,8 @@ e11*/
         public static int GetExperience(Player player)
         {
             if (player == null) return 0;
+            if (player.IsNPC) return -1;
+
             if (expCache.ContainsKey(player))
             {
                 return expCache[player];
@@ -1781,6 +1784,8 @@ e11*/
             {
                 return;
             }
+            if (player.IsNPC) return;
+
             AddPoint(player, exp);
 
             var pU = sql.QueryUser(player.UserId);
@@ -1875,9 +1880,14 @@ e11*/
             Shao,//漏勺
             Eat,//吃薯条
             EatPlus,//吃薯条(>10000)
+            Robot, // dummy专属 -1
         }
         public static ExpTier ExpToLevel(int currentExp)
         {
+            if(currentExp == -1)
+            {
+                return ExpTier.Robot;
+            }
             if (currentExp <= 100)
             {
                 return ExpTier.Small;
@@ -1906,6 +1916,7 @@ e11*/
             {
                 return ExpTier.EatPlus;
             }
+
         }
         public static int ExpToNextLevel(ExpTier currentLevel)
         {
@@ -1930,6 +1941,8 @@ e11*/
                     return 10000;
                     break;
                 case ExpTier.EatPlus:
+                    return 0;
+                case ExpTier.Robot:
                     return 0;
                 default:
                     return 10000;
@@ -1958,6 +1971,8 @@ e11*/
                 case ExpTier.EatPlus:
                 case ExpTier.Eat:
                     return "吃薯条";
+                case ExpTier.Robot:
+                    return "人机";
                 default:
                     return "?";
             }
@@ -1965,6 +1980,7 @@ e11*/
         public static void SetExp(Player player, int exp)
         {
             if (player == null) return;
+            if (player.IsNPC) return;
             if (exp < 0) exp = 0;
             expCache[player] = exp;
             sql.Update(player.UserId, experience: exp);

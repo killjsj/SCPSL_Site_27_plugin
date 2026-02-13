@@ -453,17 +453,6 @@ autoCleanup: false);
                             yield break;
                     }
                     Log.Info("Kill");
-                    try
-                    {
-                        //StaticSpeakerFactory.ClearSpeakers();
-                        foreach (var item in Player.Enumerable)
-                        {
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Log.Warn(ex);
-                    }
                     Warhead.Shake();
                     foreach (var player in Player.Enumerable)
                     {

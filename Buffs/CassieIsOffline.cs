@@ -43,6 +43,7 @@ namespace Next_generationSite_27.UnionP.Buffs
         static bool Prefix(CassieAnnouncement announcement)
         {
             if (!CassieIsOffline.Instance.CheckEnabled()) return true;
+            if(Round.IsLobby) return true;
             if (announcement.Payload.SubtitleSource == CassieTtsPayload.SubtitleMode.FromTranslation)
             {
                     var s = new CassieTtsPayload("",announcement.Payload.Content, false);

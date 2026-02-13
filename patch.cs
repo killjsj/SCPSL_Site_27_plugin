@@ -31,6 +31,7 @@ using LabApi.Events.Handlers;
 using MapGeneration.Holidays;
 using Mirror;
 using MySqlX.XDevAPI;
+using Next_generationSite_27.UnionP.Buffs;
 using Next_generationSite_27.UnionP.Scp5k;
 using NorthwoodLib.Pools;
 using Org.BouncyCastle.Pkix;
@@ -49,6 +50,7 @@ using RelativePositioning;
 using RemoteAdmin;
 using Respawning.Waves;
 using Scp914;
+using Subtitles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -60,6 +62,7 @@ using UnityEngine;
 using UserSettings.ServerSpecific;
 using Utils.Networking;
 using VoiceChat;
+using VoiceChat.Networking;
 using ZstdSharp;
 using static HarmonyLib.AccessTools;
 using static PlayerStatsSystem.DamageHandlerBase;
@@ -70,6 +73,26 @@ using Object = UnityEngine.Object;
 using Type = System.Type;
 namespace Next_generationSite_27.UnionP
 {
+    class Scp049Attckcd : BaseClass
+    {
+        public override void Delete()
+        {
+            LabApi.Events.Handlers.Scp049Events.Attacking -= Scp049Events_Attacking;
+        }
+
+        private void Scp049Events_Attacking(LabApi.Events.Arguments.Scp049Events.Scp049AttackingEventArgs ev)
+        {
+            ev.CooldownTime = GetCooldown();
+        }
+        private static float GetCooldown()
+        {
+            return Plugin.enableSSCP ? 1.1f : 1.5f;
+        }
+        public override void Init()
+        {
+            LabApi.Events.Handlers.Scp049Events.Attacking += Scp049Events_Attacking;
+        }
+    }
     [HarmonyPatch(typeof(PlayerEvents))]
     public class PlayerEventsUpdatePatch
     {
@@ -177,32 +200,6 @@ namespace Next_generationSite_27.UnionP
                     }
                 }
             }
-        }
-    }
-
-    [HarmonyPatch(typeof(Scp049AttackAbility), nameof(Scp049AttackAbility.ServerProcessCmd))]
-    public class Scp049AttackPatch
-    {
-        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-        {
-            List<CodeInstruction> newInstructions = new List<CodeInstruction>(instructions);
-
-            // 查找 ldc.r8 1.5 并替换为 1.1（如果启用 SSCP）
-            for (int i = 0; i < newInstructions.Count; i++)
-            {
-                if (newInstructions[i].opcode == OpCodes.Ldc_R8 && (double)newInstructions[i].operand == 1.5)
-                {
-                    // 只有当 enableSSCP 为 true 时才修改冷却时间
-                    newInstructions[i] = new CodeInstruction(OpCodes.Call, typeof(Scp049AttackPatch).GetMethod(nameof(GetCooldown), BindingFlags.Static | BindingFlags.NonPublic));
-                    break;
-                }
-            }
-
-            return newInstructions;
-        }
-        private static double GetCooldown()
-        {
-            return Plugin.enableSSCP ? 1.1 : 1.5;
         }
     }
     [HarmonyPatch(typeof(Scp173BlinkTimer))]
@@ -716,6 +713,7 @@ namespace Next_generationSite_27.UnionP
         typeof(ClientInstanceMode)
     })]
         [HarmonyPrefix]
+        [HarmonyPriority(Priority.First)]
         public static bool Prefix(
             ClientInstanceMode allowedState,
             ClientInstanceMode allowedState2,
@@ -732,9 +730,41 @@ namespace Next_generationSite_27.UnionP
                     num++;
                 }
             }
-
             __result = num - Plugin.plugin.eventhandle.SPD.Count;
+            if(LobbySOng.Ins != null)
+            {
+                if (LobbySOng.Ins.DummyHub != null)
+                {
+                    __result--;
+                }
+
+            }
+            //Log.Info($"__result={__result}");
             return false;
+        }
+    }
+    [HarmonyPatch]
+
+    public static class NetworkCOnnectionPatchTemp
+    {
+        static MethodBase TargetMethod()
+        {
+            var method = typeof(NetworkConnection)
+                .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+                .First(m =>
+                    m.Name == "Send" &&
+                    m.IsGenericMethod &&
+                    m.GetParameters().Length == 2);
+
+            return method.MakeGenericMethod(typeof(VoiceMessage));
+        }
+
+        [HarmonyPrefix]
+        static bool Prefix(VoiceMessage message, int channelId = 0)
+
+        {
+            //Log.Info(message.Channel);
+            return true;
         }
     }
     [HarmonyPatch(typeof(CharacterClassManager))]
@@ -745,6 +775,7 @@ namespace Next_generationSite_27.UnionP
         public static bool Prefix()
         {
             Plugin.plugin.eventhandle.assing();
+            LobbySOng.Ins.RoundStarted();
             return true;
         }
     }

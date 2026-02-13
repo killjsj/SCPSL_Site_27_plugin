@@ -60,40 +60,6 @@ using Log = Exiled.API.Features.Log;
 using Type = System.Type;
 namespace Next_generationSite_27.UnionP.Scp5k
 {
-    [HarmonyPatch(typeof(Scp049AttackAbility), nameof(Scp049AttackAbility.ServerProcessCmd))]
-    public class Scp049AttackPatch
-    {
-        public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions, ILGenerator generator)
-        {
-            var codes = new List<CodeInstruction>(instructions);
-            var found = false;
-            for (int i = 0; i < codes.Count - 2; i++)
-            {
-                // 查找 this.Cooldown.Trigger(1.5) 的指令序列
-                if (
-                    codes[i].opcode == OpCodes.Ldarg_0 &&
-                    codes[i + 1].opcode == OpCodes.Ldfld &&
-                    codes[i + 2].opcode == OpCodes.Ldc_R8 && (double)codes[i + 2].operand == 1.5 &&
-                    codes[i + 3].opcode == OpCodes.Callvirt
-                )
-                {
-                    // 替换 ldc.r8 1.5 为 Scp5k_Control.Is5kRound ? 0.7 : 1.5
-                    codes[i + 2] = new CodeInstruction(OpCodes.Call, typeof(Scp049AttackPatch).GetMethod(nameof(GetCooldown), BindingFlags.Static | BindingFlags.NonPublic));
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-                Log.Warn("[SCP-049 Attack Patch] 未找到冷却时间指令，未做任何修改。");
-            return codes;
-        }
-
-        // 用于 Transpiler 的静态方法
-        private static double GetCooldown()
-        {
-            return Scp5k_Control.Is5kRound ? 0.7 : 1.5;
-        }
-    }
     [HarmonyPatch(typeof(CustomPlayerEffects.CardiacArrest), "ServerUpdate")]
     public class CardiacArrestPatch
     {

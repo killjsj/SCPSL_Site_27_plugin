@@ -22,7 +22,7 @@ namespace Next_generationSite_27
         public void Connect(string connectionString)
         {
             this.connectionString = connectionString;
-
+            Log.Info(connectionString);
             try
             {
                 connection = new MySqlConnection(connectionString);
@@ -33,7 +33,7 @@ namespace Next_generationSite_27
             }
             catch (Exception ex)
             {
-                Log.Error($"❌ 连接数据库失败: {ex.Message}");
+                Log.Error($"❌ 连接数据库失败: {ex}");
             }
         }
 

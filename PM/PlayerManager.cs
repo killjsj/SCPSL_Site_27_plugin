@@ -1372,11 +1372,11 @@ e11*/
                 }
                 else
                 {
-                    upLine = $"<align=center><size=25><color=green>{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color> |  称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
+                    upLine = $"<align=center><size=25><color=green>{LevelToName(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color> |  称号: <color=white>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)}</color></size></align>";
                     downLine = $"<align=center><size=25><color=green>UID:{GetUid(player)}</color> | <color=yellow>尊敬的 {player.Nickname} {GetGreetingWord()}</color>| <color=#00ffffff>今日时长: {p.Hours.ToString("D2")}:{p.Minutes.ToString("D2")}:{p.Seconds.ToString("D2")}</color> |  <color=#FFD700>TPS: {currentTick}/{totalTick}</color> | <color=#add8e6ff>观众:{SpecCount}</color></size>";
                     if (Misc.TryParseColor(player.RankColor, out var color))
                     {
-                        upLine = $"<align=center><size=25><color=green>{GetLevel(player)}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color> |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align></width>";
+                        upLine = $"<align=center><size=25><color=green>{LevelToName(GetLevel(SR.SpectatedPlayer))}</color>  |  <color=green>{GetExperience(player)}/{ExpToNextLevel(GetLevel(player))}</color> |  称号: <color={color.ToHex()}>{(string.IsNullOrEmpty(player.RankName) ? "无" : player.RankName)} </color></size></align></width>";
                     }
                 }
 
@@ -1700,6 +1700,7 @@ e11*/
         }
         public static int GetPoint(Player player)
         {
+            if (player == null) return 0;
             if (PointCache.ContainsKey(player))
             {
                 return PointCache[player];
@@ -1711,6 +1712,7 @@ e11*/
         }
         public static TimeSpan GetTodayTimer(Player player)
         {
+            if (player == null) return default;
             if (TodayTimer.ContainsKey(player))
             {
                 if (TodayTimeCache.ContainsKey(player))
@@ -1750,6 +1752,7 @@ e11*/
         }
         public static int GetUid(Player player)
         {
+            if (player == null) return 0;
             if (UidCache.ContainsKey(player))
             {
                 return UidCache[player];
@@ -1761,6 +1764,7 @@ e11*/
         }
         public static int GetExperience(Player player)
         {
+            if (player == null) return 0;
             if (expCache.ContainsKey(player))
             {
                 return expCache[player];

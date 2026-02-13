@@ -215,7 +215,10 @@ namespace Next_generationSite_27.UnionP.Buffs
             if (this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
             {
                 var p = Player.Enumerable.Where(x => x.Role.Type == RoleTypeId.FacilityGuard).GetRandomValue();
-                p.AddItem(ItemType.Jailbird);
+                if (p != null)
+                {
+                    p.AddItem(ItemType.Jailbird);
+                }
                     
             }
         }

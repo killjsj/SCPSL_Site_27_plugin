@@ -115,7 +115,7 @@ namespace Next_generationSite_27.UnionP
         public List<ScpChangeReq> scpChangeReqs = new List<ScpChangeReq>();
         //public Stopwatch RoundTime = new Stopwatch();
         public override string Name => "UnionPlugin";
-        public override string Author => "killjsj";
+        public override string Author => "killjsj & eggandtomatoes";
         public MySQLConnect connect = new MySQLConnect();
         public static Plugin plugin;
         public static Plugin Instance { get { return plugin; } }
@@ -238,7 +238,7 @@ namespace Next_generationSite_27.UnionP
                               $"Database={Config.Database};" +
                               $"Uid={Config.Username};" +
                               $"Pwd={Config.Password};" +
-                              "SslMode=none;" +
+                              //"SslMode=none;" +
                               "Connection Timeout=30;";
 
             connect.Connect(connectionString);

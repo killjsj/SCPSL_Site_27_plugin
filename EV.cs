@@ -37,6 +37,7 @@ using Next_generationSite_27.UnionP.Scp5k;
 using Next_generationSite_27.UnionP.UI;
 using PlayerRoles;
 using PlayerRoles.RoleAssign;
+using PlayerRoles.Spectating;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable.Schematics;
@@ -522,7 +523,7 @@ namespace Next_generationSite_27.UnionP
                             .ToList();
 
                         Log.Debug($"Ready players count: {readyPlayers.Count}");
-                        readyPlayers.ShuffleListSecure();
+                        readyPlayers.ShuffleList(random);
                         Dictionary<Player, RoleTypeId> initialRoles = readyPlayers.ToDictionary(p => p, p => p.Role.Type);
                         Dictionary<Player, RoleTypeId> finalRoles = new Dictionary<Player, RoleTypeId>(initialRoles);
                         Log.Debug($"notTodaySCP:\n- {string.Join("\n- ", NotTodaySCP)}");
@@ -563,7 +564,7 @@ namespace Next_generationSite_27.UnionP
                                     break;
                             }
                         }
-                        random = new System.Random(DateTime.Now.Hour + DateTime.Now.DayOfYear + DateTime.Now.Day + DateTime.UtcNow.Hour); // 初始化随机数种子
+                        random = new System.Random(DateTime.Now.Hour + DateTime.Now.DayOfYear + DateTime.Now.Day + DateTime.UtcNow.Hour + DateTime.Now.Minute + DateTime.Now.Second + DateTime.UtcNow.Day); // 初始化随机数种子
                         var scpTargetRoles = targetRole
                             .Where(tr => RoleExtensions.GetTeam(tr.Key) == Team.SCPs && scps.Contains(tr.Key))
                             .ToList();
@@ -589,7 +590,7 @@ namespace Next_generationSite_27.UnionP
                                 Log.Debug($"No more SCP slots available. Skipping assignment for {targetScpRole}.");
                                 continue;
                             }
-                            preferredHubs.ShuffleListSecure();
+                            preferredHubs.ShuffleList(random);
                             // 查找当前已经是此SCP角色的玩家
                             Player alreadyScpPlayer = readyPlayers.FirstOrDefault(p => finalRoles[p] == targetScpRole && p.IsConnected);
                             if (alreadyScpPlayer != null)
@@ -599,7 +600,7 @@ namespace Next_generationSite_27.UnionP
                                 {
                                     // 1a: 该玩家在优先列表中 -> 保留角色，消耗名额
                                     Log.Debug($"Player {alreadyScpPlayer.Nickname} is already {targetScpRole} and is preferred. Keeping role.");
-                                    // finalRoles[alreadyScpPlayer] = targetScpRole; // 初始值即为此，无需更改
+                                    finalRoles[alreadyScpPlayer] = targetScpRole; // 初始值即为此，无需更改
                                     assignedScpRoles.Add(targetScpRole); // 标记为已分配
                                     NotTodaySCP.Add(alreadyScpPlayer.UserId);
                                     scpSlots--;
@@ -619,6 +620,7 @@ namespace Next_generationSite_27.UnionP
 
                                         if (eligiblePreferredPlayers.Any())
                                         {
+                                        restart:
                                             var replacementPlayer = SelectChosenSCPPlayer(eligiblePreferredPlayers, nottodaySCP);
 
 
@@ -629,6 +631,7 @@ namespace Next_generationSite_27.UnionP
                                             {
                                                 // 如果 replacementPlayer 原本是SCP，且该SCP角色已被分配给别人，则不能进行此替换
                                                 Log.Debug($"Cannot replace {alreadyScpPlayer.Nickname} with {replacementPlayer.Nickname} because {replacementPlayer.Nickname}'s original role {replacementOriginalRole} is already assigned to {playerHoldingReplacementRole.Nickname}.");
+                                                goto restart;
                                             }
                                             else
                                             {
@@ -638,7 +641,6 @@ namespace Next_generationSite_27.UnionP
                                                 assignedScpRoles.Add(targetScpRole); // 标记目标SCP为已分配
                                                                                      // 注意：replacementOriginalRole (如果也是SCP) 现在由 alreadyScpPlayer 担任，但它本身不是新分配的，所以不加到 assignedScpRoles
 
-                                                //alreadyScpPlayer.ReferenceHub.PlayerCameraReference
                                                 try
                                                 {
                                                     if (!PlayerTicket.TryGetValue(alreadyScpPlayer, out int tickets)) {
@@ -653,7 +655,7 @@ namespace Next_generationSite_27.UnionP
                                                 {
                                                     Log.Warn($"Error modifying tickets for {replacementPlayer.Nickname}: {ex}");
                                                 }
-                                        NotTodaySCP.Add(alreadyScpPlayer.UserId);
+                                                NotTodaySCP.Add(alreadyScpPlayer.UserId);
                                                 unassignedPlayers.Remove(replacementPlayer); // 从待分配列表移除
                                                 unassignedPlayers.Remove(alreadyScpPlayer); // 原SCP玩家也从待分配列表移除（他的角色变了）
                                                 scpSlots--; // 消耗名额
@@ -690,7 +692,7 @@ namespace Next_generationSite_27.UnionP
                             {
                                 RoleTypeId targetRoleType = nonScpTarget.Key;
                                 List<ReferenceHub> candidates = nonScpTarget.Value ?? new List<ReferenceHub>();
-
+                                candidates.ShuffleList(random);
                                 Log.Debug($"Processing target non-SCP role: {targetRoleType}. Candidates: {candidates.Count}.");
 
                                 int availableSlots = 0;
@@ -835,9 +837,8 @@ namespace Next_generationSite_27.UnionP
         }
         public Player SelectChosenSCPPlayer(List<Player> VIPPlayerList, List<string> nottodaySCP)
         {
-                VIPPlayerList.ShuffleList();
-
-            Player chosenPlayer = VIPPlayerList.GetRandomValue();
+            VIPPlayerList.ShuffleList();
+            Player chosenPlayer = VIPPlayerList.RandomItem();
             VIPPlayerList.RemoveAll(p => nottodaySCP.Contains(p.UserId));
             try
             {
@@ -855,6 +856,7 @@ namespace Next_generationSite_27.UnionP
                             }
                         
                     }
+                    Log.Debug($"chosenPlayer:{chosenPlayer},num:{num}");
                     scpTicketsLoader.ModifyTickets(chosenPlayer.ReferenceHub, 10);
 
                 }
@@ -862,9 +864,10 @@ namespace Next_generationSite_27.UnionP
             catch (Exception ex)
             {
                 VIPPlayerList.ShuffleList();
-                chosenPlayer = VIPPlayerList[random.Next(0, VIPPlayerList.Count)]; // 使用 UnityEngine.Random
+                chosenPlayer = VIPPlayerList[random.Next(0, VIPPlayerList.Count)];
 
                 Log.Error($"Error while loading SCP tickets: {ex}");
+                Log.Debug($"chosenPlayer:{chosenPlayer}");
             }
             NotTodaySCP.Add(chosenPlayer.UserId);
             return chosenPlayer;
@@ -1011,20 +1014,22 @@ namespace Next_generationSite_27.UnionP
         public bool st = false;
         public void assing()
         {
-            if (config.RoundSelfChoose) { 
-            st = true;
-            foreach (var item in Player.Enumerable)
+            if (config.RoundSelfChoose)
             {
-                if (item.Role.Type != RoleTypeId.Overwatch)
+                st = true;
+                foreach (var item in Player.Enumerable)
                 {
-                    item.RoleManager.ServerSetRole(RoleTypeId.Spectator, RoleChangeReason.RoundStart);
-                }
-                if (SPD.Contains(item.ReferenceHub))
-                {
-                    item.RoleManager.ServerSetRole(RoleTypeId.Overwatch, RoleChangeReason.RoundStart);
-                    NetworkServer.Destroy(item.ReferenceHub.gameObject);
-                    SPD.Remove(item.ReferenceHub);
+                    if (item.Role.Type != RoleTypeId.Overwatch)
+                    {
+                        item.RoleManager.ServerSetRole(RoleTypeId.Spectator, RoleChangeReason.RoundStart);
+                    }
+                    if (SPD.Contains(item.ReferenceHub))
+                    {
+                        item.RoleManager.ServerSetRole(RoleTypeId.Overwatch, RoleChangeReason.RoundStart);
+                        NetworkServer.Destroy(item.ReferenceHub.gameObject);
+                        SPD.Remove(item.ReferenceHub);
 
+                    }
                 }
             }
             foreach (ReferenceHub obj in ReferenceHub.AllHubs)
@@ -1038,7 +1043,9 @@ namespace Next_generationSite_27.UnionP
                 }
             }
             SPD.Clear();
-            foreach (GameObject p in Plugin.SOB.AttachedBlocks)
+            if (config.RoundSelfChoose)
+            { 
+                foreach (GameObject p in Plugin.SOB.AttachedBlocks)
             {
                 if (p.name == "SCP096P")
                 {
@@ -1101,7 +1108,7 @@ namespace Next_generationSite_27.UnionP
         public bool Cleaned = false;
         GameObject SP;
         //GameObject canvas;
-        AdminToys.TextToy textToy; 
+        AdminToys.TextToy textToy;
         //TeslaOvercon CurrentOvercon = null;
         //TeslaOverconRenderer TeslaOverconRenderer = null;
         public void WaitingForPlayers()
@@ -1151,7 +1158,7 @@ namespace Next_generationSite_27.UnionP
             };
 
             GameObject gameObject = ss.SpawnOrUpdateObject();
-            Plugin.SOB = gameObject.GetComponent< SchematicObject >();
+            Plugin.SOB = gameObject.GetComponent<SchematicObject>();
             //Log.Info($"outside {Exiled.API.Features.Room.Get(RoomType.Surface).Position}");
             foreach (GameObject p in Plugin.SOB.AttachedBlocks)
             {
@@ -1424,6 +1431,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当DD");
                             r.roleManager.ServerSetRole(RoleTypeId.ClassD, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1431,7 +1439,6 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
                             });
 
                         });
@@ -1442,6 +1449,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当科学");
                             r.roleManager.ServerSetRole(RoleTypeId.Scientist, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1449,7 +1457,6 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
                             });
 
                         });
@@ -1461,6 +1468,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当SCP");
                             r.roleManager.ServerSetRole(RoleTypeId.Scp096, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1468,7 +1476,6 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
                             });
                         });
                     }
@@ -1478,6 +1485,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当SCP");
                             r.roleManager.ServerSetRole(RoleTypeId.Scp049, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1485,7 +1493,6 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
                             });
                         });
 
@@ -1496,6 +1503,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当SCP");
                             r.roleManager.ServerSetRole(RoleTypeId.Scp939, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1503,7 +1511,6 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
                             });
                         });
                     }
@@ -1513,6 +1520,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当SCP");
                             r.roleManager.ServerSetRole(RoleTypeId.Scp173, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1520,7 +1528,6 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
                             });
 
                         });
@@ -1531,6 +1538,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当SCP");
                             r.roleManager.ServerSetRole(RoleTypeId.Scp106, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1538,7 +1546,7 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
+
                             });
 
                         });
@@ -1549,6 +1557,7 @@ namespace Next_generationSite_27.UnionP
                         {
                             var r = DummyUtils.SpawnDummy("选择当保安");
                             r.roleManager.ServerSetRole(RoleTypeId.FacilityGuard, RoleChangeReason.RoundStart);
+                            SPD.Add(r);
                             Timing.CallDelayed(0.1f, () =>
                             {
                                 var pl = Player.Get(r);
@@ -1556,7 +1565,6 @@ namespace Next_generationSite_27.UnionP
                                 pl.Rotation = p.transform.rotation;
                                 pl.Heal(99999, true);
                                 pl.IsGodModeEnabled = true;
-                                SPD.Add(r);
                             });
                         });
                     }
@@ -1565,8 +1573,15 @@ namespace Next_generationSite_27.UnionP
                 //RoundStart.RoundStartTimer.Restart();
                 //Log.Info("3");
             }
+            Timing.CallDelayed(1.2f, () =>
+            {
+                foreach (var item in SPD)
+                {
+                    SpectatableVisibilityManager.SetHidden(item, true);
+                    item.serverRoles.NetworkHideFromPlayerList = true;
+                }
+            });
             Cleaned = false;
-            GC.Collect();
             Plugin.RunCoroutine(rounder());
         No:
             BroadcasterHandler = MEC.Timing.RunCoroutine(Broadcaster());
@@ -1588,7 +1603,7 @@ namespace Next_generationSite_27.UnionP
         {
             foreach (var item in targetRole)
             {
-                item.Value.Remove(player.ReferenceHub);
+                item.Value.RemoveAll(x=>x==player.ReferenceHub);
             }
             targetRole[typeId].Add(player.ReferenceHub);
             player.Broadcast(2, $"你选择当{typeId}", Broadcast.BroadcastFlags.Normal, true);
@@ -1695,7 +1710,7 @@ namespace Next_generationSite_27.UnionP
         {
             while (true)
             {
-                Waiting = $"目前有{ReferenceHub.AllHubs.Count - Plugin.plugin.eventhandle.SPD.Count -1}个玩家\n";
+                Waiting = $"目前有{ReferenceHub.GetPlayerCount(ClientInstanceMode.ReadyClient, ClientInstanceMode.Host, ClientInstanceMode.Dummy)}个玩家\n";
                 if (Round.IsLobbyLocked)
                 {
                     Waiting += $"回合已锁定";
@@ -1703,13 +1718,13 @@ namespace Next_generationSite_27.UnionP
                 
                 else if (Round.IsLobby)
                 {
-                    if (RoundStart.singleton.NetworkTimer == -2)
+                    if (RoundStart.singleton.Timer == -2)
                     {
                         Waiting += $"回合不够人";
 
                     } else
                     {
-                        Waiting += $"还有{RoundStart.singleton.NetworkTimer}秒回合开始";
+                        Waiting += $"还有{RoundStart.singleton.Timer}秒回合开始";
 
                     }
                 }
@@ -1843,11 +1858,8 @@ namespace Next_generationSite_27.UnionP
                             {
                                 PlayerTicket.Add(ev.Player, scpTicketsLoader.GetTickets(ev.Player.ReferenceHub,10,true));
                             }
-                            var method = typeof(CharacterClassManager)
-    .GetMethod("RpcRoundStarted", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                            method.Invoke(ev.Player.ReferenceHub.characterClassManager, null);
-
+                            ev.Player.RoleManager.ServerSetRole(RoleTypeId.Tutorial, RoleChangeReason.RoundStart);
+                            ev.Player.Position = SP.transform.position;
                         }
                         catch (Exception e)
                         {

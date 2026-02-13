@@ -1292,4 +1292,26 @@ namespace Next_generationSite_27.UnionP
 
         }
     }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class HideCommand : ICommand
+    {
+        string ICommand.Command { get; } = "hide";
+
+        string[] ICommand.Aliases { get; } = new[] { "" };
+
+        string ICommand.Description { get; } = "把你从playerlist上移除（管理面板可见）Need ServerConsoleCommands to run";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (!sender.CheckPermission(PlayerPermissions.ServerConsoleCommands, out response))
+            {
+                return false;
+            }
+            runner.ReferenceHub.serverRoles.NetworkHideFromPlayerList = !runner.ReferenceHub.serverRoles.NetworkHideFromPlayerList;
+            response = "done!" + $"{(runner.ReferenceHub.serverRoles.NetworkHideFromPlayerList ? "已隐藏" : "未隐藏")}";
+            return true;
+
+        }
+    }
 }

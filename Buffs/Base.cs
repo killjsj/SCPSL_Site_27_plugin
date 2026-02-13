@@ -30,7 +30,7 @@ namespace Next_generationSite_27.UnionP.Buffs
             RegBuffBases.Remove(this);
         }
         public virtual bool CanEnable() => true; // called on ROundStart
-        public bool CheckEnabled() => RoundBuffs.Contains(this);
+        public bool CheckEnabled() => RoundBuffs.Contains(this) && Round.InProgress;
         public override void Init()
         {
             //throw new NotImplementedException();
@@ -137,8 +137,9 @@ namespace Next_generationSite_27.UnionP.Buffs
                 response = "Failed 回合已开始";
                 return false;
             }
-            var p = Plugin.plugin.connect.QueryUser(Player.Get(sender).UserId);
-            if(p.point >= 40)
+            var py = Player.Get(sender);
+            var p = PlayerManager.GetPoint(py);
+            if(p >= 40)
             {
                 BuffBase.RoundBuffs.Clear();
                 var buffcount = 3;
@@ -151,7 +152,7 @@ namespace Next_generationSite_27.UnionP.Buffs
                     BuffBase.RoundBuffs.Add(availableBuffs[index]);
                     availableBuffs.RemoveAt(index);
                 }
-                PlayerManager.AddPoint(Player.Get(sender), -40);
+                PlayerManager.AddPoint(py, -40);
                 response = "Done!";
                 response += $"本回合Buff列表{(Round.IsStarted ? "" : "(可能在回合开始后有变化)")}：\n";
                 foreach (var i in BuffBase.RoundBuffs)

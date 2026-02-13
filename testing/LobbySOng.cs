@@ -18,6 +18,7 @@ using System.Net.Http;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine;
 
 namespace Next_generationSite_27.UnionP
 {
@@ -135,9 +136,9 @@ namespace Next_generationSite_27.UnionP
         {
             if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
 
-                        readytonext = true;
+            readytonext = true;
         }
-        public bool AdminOverride { get => _AdminOverride;set
+        public bool AdminOverride { get => _AdminOverride; set
             {
                 if (_AdminOverride != value)
                 {
@@ -150,8 +151,8 @@ namespace Next_generationSite_27.UnionP
                 _AdminOverride = value;
             }
         }
-        public bool _AdminOverride =false;
-        public bool AdminOverrideEnable =false;
+        public bool _AdminOverride = false;
+        public bool AdminOverrideEnable = false;
         bool SongAble => Round.IsLobby || AdminOverrideEnable;
         public readonly ConcurrentQueue<SongReq> WaitForProcess = new();
         SongReq Processing;
@@ -171,7 +172,7 @@ namespace Next_generationSite_27.UnionP
         }
         void createDummy()
         {
-            if (DummyHub != null){ DummyHub.Destroy();DummyHub = null; }
+            if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
             DummyHub = Npc.Spawn("音乐播放器");
             //Plugin.plugin.eventhandle.SPD.Add(DummyHub.ReferenceHub);
             DummyHub.ReferenceHub.serverRoles.NetworkHideFromPlayerList = true;
@@ -182,8 +183,8 @@ namespace Next_generationSite_27.UnionP
 
         private void VoicePlayerBase_OnFinishedTrack(TrackFinishedEventArgs obj)
         {
-            if(obj == null) return;
-            if(obj.VoicePlayerBase == vpb)
+            if (obj == null) return;
+            if (obj.VoicePlayerBase == vpb)
             {
                 readytonext = true;
                 if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
@@ -202,9 +203,7 @@ namespace Next_generationSite_27.UnionP
                 {
                     if (!long.TryParse(Processing.id, out long songId)) { /* 错误处理 */ continue; }
                     readytonext = false;
-
-                    // 用 Task.Run offload 到线程池（比 new Thread 更好，自动管理）
-                    Task.Run(async () => await ProcessSongAsync(songId  ));
+                    ProcessSongAsync(songId);
                 }
             }
             Log.Info("exit!");
@@ -212,38 +211,43 @@ namespace Next_generationSite_27.UnionP
             yield break;
         }
 
-        private async Task ProcessSongAsync(long songId)
+        private async Awaitable ProcessSongAsync(long songId)
         {
             int retries = 3;
-            while (retries-- > 0)
+            await Awaitable.BackgroundThreadAsync();
+            while (retries >= 0)
             {
                 try
                 {
                     Log.Info($"Loading {songId}");
-                    Processing.player?.SendConsoleMessage($"歌曲加载 - 开始处理{songId} 解析中", "yellow");  // Same assumption as above
-                    var urlTask = api.GetSongUrl(songId, QualityLevel.STANDARD, new Dictionary<string, string>());
+                    Processing.player?.SendConsoleMessage($"歌曲加载 - 开始处理{songId} 解析中", "yellow");
+                    var urlTask = api.GetSongUrl(songId, NeteaseMusicAPI.QualityLevel.STANDARD, new Dictionary<string, string>());
                     var detailTask = api.GetSongDetail(songId);
                     await Task.WhenAll(urlTask, detailTask);
 
-                    var url = await urlTask;  // Use await instead of .Result
+                    var url = await urlTask;
                     var del = await detailTask;
                     Log.Info($"Loading {songId} - ana");
-                    if( url.exception != null)
+                    if (url.exception != null)
                     {
                         Log.Info($"Loading {songId} - exception {url.exception}");
-                        Processing.player?.SendConsoleMessage($"歌曲加载错误 - {url.exception}", "red");  // Same assumption as above
-
+                        Processing.player?.SendConsoleMessage($"歌曲加载错误 - {url.exception}", "red");
+                        if (retries == 0)
+                        {
+                            readytonext = true;
+                            if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
+                            break;
+                        }
                         continue;
                     }
-                    Processing.player?.SendConsoleMessage($"歌曲加载 - 解析完成", "green");  // Same assumption as above
+                    Processing.player?.SendConsoleMessage($"歌曲加载 - 解析完成", "green");
                     if (url.result.data.Count > 0)
                     {
                         var target = url.result.data[0];
                         var name = del.result.songs[0].name;
 
                         Log.Info($"Loading {songId} - downlaoding");
-                        Processing.player?.SendConsoleMessage("歌曲加载 - 下载中", "green");  // Same assumption as above
-
+                        Processing.player?.SendConsoleMessage("歌曲加载 - 下载中", "green");
                         var p = Path.GetTempFileName();
                         var pn = Path.GetTempFileName() + ".ogg";
 
@@ -251,61 +255,64 @@ namespace Next_generationSite_27.UnionP
                         {
                             using (var c = new HttpClient())
                             {
-                                var response = await c.GetAsync(target.url);  // Async Get
+                                var response = await c.GetAsync(target.url);
                                 using (var f = File.OpenWrite(p))
                                 {
-                                    await response.Content.CopyToAsync(f);  // Async Copy
+                                    await response.Content.CopyToAsync(f);
                                 }
                             }
                             Log.Info($"Loading {songId} - decoding");
-                            Processing.player?.SendConsoleMessage("歌曲加载 - 解码中", "green");  // Same assumption as above
-
-                            NeteaseAPI.ConvertToOggMono48kHz(p, pn);  // Assuming this is sync; if async, await it
-                            Timing.CallDelayed(0f, () =>
-                            {
+                            Processing.player?.SendConsoleMessage("歌曲加载 - 解码中", "green");
+                            NeteaseAPI.ConvertToOggMono48kHz(p, pn);
+                            await Awaitable.MainThreadAsync();
+                            if (!_AdminOverride && SongAble) {
                                 createDummy();
-                                Timing.CallDelayed(0.5f, () =>
+                                Timing.CallDelayed(0.5f, () => // wait for dummy init
                                 {
-                                    //DummyHub.RoleManager.ServerSetRole(PlayerRoles.RoleTypeId.Overwatch,PlayerRoles.RoleChangeReason.None);
                                     vpb.BroadcastChannel = VoiceChat.VoiceChatChannel.Intercom;
                                     if (!_AdminOverride && SongAble)
                                     {
-
-
                                         DummyHub.ReferenceHub.nicknameSync.MyNick = $"正在播放 - {name}";
                                         DummyHub.ReferenceHub.nicknameSync.Network_myNickSync = $"正在播放 - {name}";
                                         vpb.Enqueue(pn, -1);
                                         vpb.Play(0);
                                         Log.Info($"Loading {songId} done!");
-                                        Processing.player?.SendConsoleMessage("歌曲加载成功!", "green");  // Same assumption as above
-                                    } else
+                                        Processing.player?.SendConsoleMessage("歌曲加载成功!", "green");
+                                    }
+                                    else
                                     {
                                         readytonext = true;
                                         if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
-                                        Processing.player?.SendConsoleMessage($"歌曲加载 - 处理失败 禁止点歌", "red");  // Same assumption as above
+                                        Processing.player?.SendConsoleMessage($"歌曲加载 - 处理失败 禁止点歌", "red");
 
                                     }
                                 });
-                            });
+
+                            }
+                            else
+                            {
+                                Processing.player?.SendConsoleMessage($"歌曲加载 - 处理失败 禁止点歌", "red");
+
+                            }
                         }
                         catch (Exception ex)
                         {
                             Log.Error($"歌曲 {Processing.id} 处理失败 HttpClient: {ex}");
-                            Processing.player?.SendConsoleMessage($"歌曲加载 - 处理失败 {ex}", "red");  // Same assumption as above
-                            if(retries == 0)
+                            Processing.player?.SendConsoleMessage($"歌曲加载 - 处理失败 {ex}", "red");
+                            if (retries == 0)
                             {
                                 readytonext = true;
                                 if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
-
+                                break;
                             }
                         }
                         finally
                         {
                             File.Delete(p);
-                            // File.Delete(pn);  // Uncomment if VoicePlayerBase copies the file internally and doesn't need it after enqueue
+
                         }
 
-                        break;  // Success, exit retry loop
+                        break;
                     }
                 }
                 catch (Exception ex)
@@ -313,14 +320,15 @@ namespace Next_generationSite_27.UnionP
                     Log.Error($"歌曲 {Processing.id} 处理失败: {ex}");
                     if (retries == 0)
                     {
-                        Processing.player?.SendConsoleMessage($"歌曲加载失败 {ex}", "red");  // Same assumption as above
+                        Processing.player?.SendConsoleMessage($"歌曲加载失败 {ex}", "red");
                         readytonext = true;
                     }
                     else
                     {
-                        await Task.Delay(1000);  // Delay before retry (1 second)
+                        await Awaitable.WaitForSecondsAsync(1000);
                     }
                 }
+                retries--;
             }
         }
     }

@@ -75,7 +75,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.WaitingForPlayers += PlayerManager.WaitingForPlayers;
             Exiled.Events.Handlers.Player.Left += PlayerManager.Left;
             Exiled.Events.Handlers.Warhead.Stopping += PlayerManager.Stopping;
-            Exiled.Events.Handlers.Player.Hurting += PlayerManager.Hurting;
             Exiled.Events.Handlers.Player.Dying += PlayerManager.Dying;
             Exiled.Events.Handlers.Player.Escaped += Escaping;
             Exiled.Events.Handlers.Server.RoundEnded += RoundEnded;
@@ -106,7 +105,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.PreAuthenticating -= PlayerManager.PreAuthenticating;
             Exiled.Events.Handlers.Server.RestartingRound -= PlayerManager.RestartingRound;
             Exiled.Events.Handlers.Server.WaitingForPlayers -= PlayerManager.WaitingForPlayers;
-            Exiled.Events.Handlers.Player.Hurting -= PlayerManager.Hurting;
             Exiled.Events.Handlers.Player.Left -= PlayerManager.Left;
             Exiled.Events.Handlers.Warhead.Stopping -= PlayerManager.Stopping;
             Exiled.Events.Handlers.Player.Dying -= PlayerManager.Dying;
@@ -323,7 +321,7 @@ namespace Next_generationSite_27.UnionP
             {
                 {
                     AddExp(item, 5, reason: AddExpReason.RoundEnd);
-                    if (ev.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies || (Scp5k_Control.Is5kRound && ev.LeadingTeam == Exiled.API.Enums.LeadingTeam.FacilityForces))
+                    if (ev.LeadingTeam == Exiled.API.Enums.LeadingTeam.Anomalies)
                     {
                         if (item.Role.Type.IsScp())
                         {
@@ -350,10 +348,6 @@ namespace Next_generationSite_27.UnionP
                 {
                     AddExp(ev.Player.Cuffer, 15, false, AddExpReason.CuffedPeopleEscaped);
                 }
-            }
-            if (Scp5k_Control.Is5kRound)
-            {
-                ev.Player.Role.Set(RoleTypeId.ChaosConscript);
             }
         }
         public static void GainingExperience(GainingExperienceEventArgs ev)
@@ -415,17 +409,7 @@ namespace Next_generationSite_27.UnionP
                 }
             }
         }
-        public static void Hurting(HurtingEventArgs ev)
-        {
-            if (ev.DamageHandler.Type == DamageType.Scp207 || ev.DamageHandler.Type == DamageType.Poison)
-            {
-                if (ev.DamageHandler.Type != DamageType.Poison)
-                {
-                    ev.Player.DisableEffect(EffectType.Poisoned);
-                }
-                ev.IsAllowed = false;
-            }
-        }
+
         public static void WaitingForPlayers()
         {
 
@@ -983,7 +967,6 @@ e11*/
 
         }
         public static Dictionary<Player, CoroutineHandle> rainbowC = new Dictionary<Player, CoroutineHandle>();
-        public static Dictionary<Player, (Stopwatch stand, double lastTime, Vector3 lastPos)> ScpStandHP = new Dictionary<Player, (Stopwatch stand, double lastTime, Vector3 lastPos)>();
         public static void DroppedAmmo(DroppingAmmoEventArgs ev)
         {
             ev.IsAllowed = false;
@@ -1055,10 +1038,6 @@ e11*/
                             }
                         }
 
-                        // ==================== SCP 自动回血 ====================
-                        if (roleType.IsScp() && role?.Base is IFpcRole fpcRole)
-                            HandleScpStandHeal(player, fpcRole);
-
                         // ==================== 更新名字显示 ====================
                         UpdatePlayerDisplayName(player);
                     }
@@ -1078,7 +1057,7 @@ e11*/
                 return;
 
             var humanRole = role as PlayerRoles.HumanRole;
-            var newRole = Scp5k_Control.Is5kRound ? RoleTypeId.ChaosRifleman : RoleTypeId.NtfSergeant;
+            var newRole =  RoleTypeId.NtfSergeant;
             var currentRoleType = hub.roleManager.CurrentRole.RoleTypeId;
             var escapeScenario = Escape.EscapeScenarioType.Scientist;
 
@@ -1197,41 +1176,7 @@ e11*/
         }
 
 
-        private static void HandleScpStandHeal(Player player, IFpcRole fpcRole)
-        {
-            if (!Plugin.Instance.Config.ScpStandAddHP)
-                return;
 
-            double interval = 1.0; // 每秒回血检查一次
-
-            if (!ScpStandHP.TryGetValue(player, out var data))
-                ScpStandHP[player] = (Stopwatch.StartNew(), 0.0, player.Position);
-
-            var (stopwatch, lastHealTime, lastPos) = ScpStandHP[player];
-            double elapsed = stopwatch.Elapsed.TotalSeconds;
-
-            // 判断是否移动（允许0.05米以内的浮动）
-            if (Vector3.Distance(player.Position, lastPos) < 0.5f)
-            {
-                // 站够指定时间开始回血
-                if (elapsed >= Plugin.Instance.Config.ScpStandAddHPTime)
-                {
-                    if (elapsed - lastHealTime >= interval)
-                    {
-                        player.Heal(Plugin.Instance.Config.ScpStandAddHPCount);
-                        ScpStandHP[player] = (stopwatch, elapsed, player.Position);
-
-                        Log.Debug($"[ScpStandHeal] {player.Nickname} healed {Plugin.Instance.Config.ScpStandAddHPCount} HP");
-                    }
-                }
-            }
-            else
-            {
-                // 移动了，重置计时
-                stopwatch.Restart();
-                ScpStandHP[player] = (stopwatch, 0.0, player.Position);
-            }
-        }
 
 
         private static void UpdatePlayerDisplayName(Player player)

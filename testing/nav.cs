@@ -17,7 +17,7 @@ namespace Next_generationSite_27.UnionP
         private volatile bool building = false;
         public bool Built => Nodes.Count > 0 && !building;
 
-        public static InternalNavigator InternalNav = new InternalNavigator();
+        //public static InternalNavigator InternalNav = new InternalNavigator();
 
         public RoomGraph()
         {
@@ -69,7 +69,7 @@ namespace Next_generationSite_27.UnionP
                 bNode.Edges.Add(edgeBA);
                 connectedPairs.Add(new RoomPair(rA.Identifier, rB.Identifier));
 
-                if (++batch % 32 == 0) yield return Timing.WaitForOneFrame;
+                if (++batch % 32 == 0 || batch % 16 == 0) yield return Timing.WaitForOneFrame;
             }
 
             // 邻近房间连边（跳过已连接对）
@@ -91,7 +91,7 @@ namespace Next_generationSite_27.UnionP
                     nodeB.Edges.Add(edgeB);
                     connectedPairs.Add(pair);
                 }
-                if (++batch % 16 == 0) yield return Timing.WaitForOneFrame;
+                if (++batch % 32 == 0 || batch % 16 == 0) yield return Timing.WaitForOneFrame;
             }
 
             building = false;
@@ -165,233 +165,233 @@ namespace Next_generationSite_27.UnionP
             return edge.Door.IsOpen || edge.Door.IsCheckpoint || edge.Door.IsElevator;
         }
 
-        // ================== 内部导航器（局部寻路） ===================
-        public class InternalNavigator
-        {
-            private const float NodeConnectDistance = 8f;
-            private const float StartEndConnectDistance = 6f;
-            private const float GridSize = 8f;
+        //// ================== 内部导航器（局部寻路） ===================
+        //public class InternalNavigator
+        //{
+        //    private const float NodeConnectDistance = 8f;
+        //    private const float StartEndConnectDistance = 6f;
+        //    private const float GridSize = 8f;
 
-            // 帧内缓存（避免重复 Physics 调用）
-            [ThreadStatic] private static Dictionary<(Vector3, Vector3), bool> _rayCache;
-            private static Dictionary<Vector2Int, List<Vector3>> _gridCache = new Dictionary<Vector2Int, List<Vector3>>();
+        //    // 帧内缓存（避免重复 Physics 调用）
+        //    [ThreadStatic] private static Dictionary<(Vector3, Vector3), bool> _rayCache;
+        //    private static Dictionary<Vector2Int, List<Vector3>> _gridCache = new Dictionary<Vector2Int, List<Vector3>>();
 
-            public List<Vector3> FindPath(Vector3 start, Room startRoom, Vector3 end, Room endRoom)
-            {
-                if (startRoom == null) startRoom = Room.Get(start);
-                if (endRoom == null) endRoom = Room.Get(end);
+        //    public List<Vector3> FindPath(Vector3 start, Room startRoom, Vector3 end, Room endRoom)
+        //    {
+        //        if (startRoom == null) startRoom = Room.Get(start);
+        //        if (endRoom == null) endRoom = Room.Get(end);
 
-                if (startRoom == endRoom)
-                    return LocalPathInRoom(start, end, startRoom);
+        //        if (startRoom == endRoom)
+        //            return LocalPathInRoom(start, end, startRoom);
 
-                var rooms = RoomGraph.Instance?.GetRoomPath(startRoom, endRoom);
-                if (rooms == null || rooms.Count == 0) return new List<Vector3> { start, end };
+        //        var rooms = RoomGraph.Instance?.GetRoomPath(startRoom, endRoom);
+        //        if (rooms == null || rooms.Count == 0) return new List<Vector3> { start, end };
 
-                var fullPath = new List<Vector3> { start };
-                for (int i = 0; i < rooms.Count - 1; i++)
-                {
-                    var a = rooms[i];
-                    var b = rooms[i + 1];
-                    var doorEdge = a.Doors.FirstOrDefault(d => d.Rooms.Contains(b));
-                    Vector3 connect = doorEdge?.Position ?? (a.Position + b.Position) * 0.5f;
+        //        var fullPath = new List<Vector3> { start };
+        //        for (int i = 0; i < rooms.Count - 1; i++)
+        //        {
+        //            var a = rooms[i];
+        //            var b = rooms[i + 1];
+        //            var doorEdge = a.Doors.FirstOrDefault(d => d.Rooms.Contains(b));
+        //            Vector3 connect = doorEdge?.Position ?? (a.Position + b.Position) * 0.5f;
 
-                    var local = LocalPathInRoom(fullPath.Last(), connect, a);
-                    if (local != null && local.Count > 0)
-                        fullPath.AddRange(local.Skip(1));
-                    else
-                        fullPath.Add(connect);
-                }
+        //            var local = LocalPathInRoom(fullPath.Last(), connect, a);
+        //            if (local != null && local.Count > 0)
+        //                fullPath.AddRange(local.Skip(1));
+        //            else
+        //                fullPath.Add(connect);
+        //        }
 
-                var lastPath = LocalPathInRoom(fullPath.Last(), end, endRoom);
-                if (lastPath != null && lastPath.Count > 0)
-                    fullPath.AddRange(lastPath.Skip(1));
-                else
-                    fullPath.Add(end);
+        //        var lastPath = LocalPathInRoom(fullPath.Last(), end, endRoom);
+        //        if (lastPath != null && lastPath.Count > 0)
+        //            fullPath.AddRange(lastPath.Skip(1));
+        //        else
+        //            fullPath.Add(end);
 
-                ClearRayCache();
-                return fullPath;
-            }
+        //        ClearRayCache();
+        //        return fullPath;
+        //    }
 
-            public List<Vector3> LocalPathInRoom(Vector3 start, Vector3 end, Room room)
-            {
-                var result = new List<Vector3> { start };
-                if (IsDirectPathClear(start, end))
-                {
-                    result.Add(end);
-                    return result;
-                }
+        //    public List<Vector3> LocalPathInRoom(Vector3 start, Vector3 end, Room room)
+        //    {
+        //        var result = new List<Vector3> { start };
+        //        if (IsDirectPathClear(start, end))
+        //        {
+        //            result.Add(end);
+        //            return result;
+        //        }
 
-                var points = new List<Vector3>(GetWalkablePoints(room));
-                if (points.Count == 0)
-                {
-                    result.Add(end);
-                    return result;
-                }
+        //        var points = new List<Vector3>(GetWalkablePoints(room));
+        //        if (points.Count == 0)
+        //        {
+        //            result.Add(end);
+        //            return result;
+        //        }
 
-                // 空间分格缓存
-                BuildGridCache(points);
+        //        // 空间分格缓存
+        //        BuildGridCache(points);
 
-                // 图结构
-                var graph = new Dictionary<Vector3, List<Vector3>>(points.Count + 2);
-                foreach (var p in points) graph[p] = new List<Vector3>();
+        //        // 图结构
+        //        var graph = new Dictionary<Vector3, List<Vector3>>(points.Count + 2);
+        //        foreach (var p in points) graph[p] = new List<Vector3>();
 
-                // 用网格邻域替代全 O(n^2) 检查
-                foreach (var p in points)
-                {
-                    foreach (var n in GetNeighborsFromGrid(p))
-                    {
-                        if (p == n) continue;
-                        if (Vector3.Distance(p, n) < NodeConnectDistance && IsDirectPathClear(p, n))
-                        {
-                            graph[p].Add(n);
-                        }
-                    }
-                }
+        //        // 用网格邻域替代全 O(n^2) 检查
+        //        foreach (var p in points)
+        //        {
+        //            foreach (var n in GetNeighborsFromGrid(p))
+        //            {
+        //                if (p == n) continue;
+        //                if (Vector3.Distance(p, n) < NodeConnectDistance && IsDirectPathClear(p, n))
+        //                {
+        //                    graph[p].Add(n);
+        //                }
+        //            }
+        //        }
 
-                // 接入 start/end
-                graph[start] = new List<Vector3>();
-                graph[end] = new List<Vector3>();
-                foreach (var p in points)
-                {
-                    if (Vector3.Distance(start, p) < StartEndConnectDistance && IsDirectPathClear(start, p)) graph[start].Add(p);
-                    if (Vector3.Distance(end, p) < StartEndConnectDistance && IsDirectPathClear(end, p)) graph[p].Add(end);
-                }
+        //        // 接入 start/end
+        //        graph[start] = new List<Vector3>();
+        //        graph[end] = new List<Vector3>();
+        //        foreach (var p in points)
+        //        {
+        //            if (Vector3.Distance(start, p) < StartEndConnectDistance && IsDirectPathClear(start, p)) graph[start].Add(p);
+        //            if (Vector3.Distance(end, p) < StartEndConnectDistance && IsDirectPathClear(end, p)) graph[p].Add(end);
+        //        }
 
-                // A* 搜索（使用字典 + List open）
-                var came = new Dictionary<Vector3, Vector3>();
-                var g = new Dictionary<Vector3, float>();
-                var f = new Dictionary<Vector3, float>();
-                var open = new List<Vector3> { start };
+        //        // A* 搜索（使用字典 + List open）
+        //        var came = new Dictionary<Vector3, Vector3>();
+        //        var g = new Dictionary<Vector3, float>();
+        //        var f = new Dictionary<Vector3, float>();
+        //        var open = new List<Vector3> { start };
 
-                foreach (var p in graph.Keys) { g[p] = float.MaxValue; f[p] = float.MaxValue; }
-                g[start] = 0f; f[start] = Vector3.Distance(start, end);
+        //        foreach (var p in graph.Keys) { g[p] = float.MaxValue; f[p] = float.MaxValue; }
+        //        g[start] = 0f; f[start] = Vector3.Distance(start, end);
 
-                while (open.Count > 0)
-                {
-                    var current = open.OrderBy(p => f[p]).First();
-                    open.Remove(current);
+        //        while (open.Count > 0)
+        //        {
+        //            var current = open.OrderBy(p => f[p]).First();
+        //            open.Remove(current);
 
-                    if (Vector3.Distance(current, end) < 0.5f)
-                    {
-                        var path = new List<Vector3> { end };
-                        var c = current;
-                        while (came.ContainsKey(c))
-                        {
-                            path.Add(c);
-                            c = came[c];
-                        }
-                        path.Add(start);
-                        path.Reverse();
-                        ClearRayCache();
-                        return path;
-                    }
+        //            if (Vector3.Distance(current, end) < 0.5f)
+        //            {
+        //                var path = new List<Vector3> { end };
+        //                var c = current;
+        //                while (came.ContainsKey(c))
+        //                {
+        //                    path.Add(c);
+        //                    c = came[c];
+        //                }
+        //                path.Add(start);
+        //                path.Reverse();
+        //                ClearRayCache();
+        //                return path;
+        //            }
 
-                    foreach (var neighbor in graph[current])
-                    {
-                        float tentative = g[current] + Vector3.Distance(current, neighbor);
-                        if (tentative < g[neighbor])
-                        {
-                            came[neighbor] = current;
-                            g[neighbor] = tentative;
-                            f[neighbor] = tentative + Vector3.Distance(neighbor, end);
-                            if (!open.Contains(neighbor)) open.Add(neighbor);
-                        }
-                    }
-                }
+        //            foreach (var neighbor in graph[current])
+        //            {
+        //                float tentative = g[current] + Vector3.Distance(current, neighbor);
+        //                if (tentative < g[neighbor])
+        //                {
+        //                    came[neighbor] = current;
+        //                    g[neighbor] = tentative;
+        //                    f[neighbor] = tentative + Vector3.Distance(neighbor, end);
+        //                    if (!open.Contains(neighbor)) open.Add(neighbor);
+        //                }
+        //            }
+        //        }
 
-                result.Add(end);
-                ClearRayCache();
-                return result;
-            }
+        //        result.Add(end);
+        //        ClearRayCache();
+        //        return result;
+        //    }
 
             // ---------------- 空间格子缓存 ----------------
-            private static Vector2Int ToGrid(Vector3 v)
-            {
-                return new Vector2Int(Mathf.FloorToInt(v.x / GridSize), Mathf.FloorToInt(v.z / GridSize));
-            }
+            //private static Vector2Int ToGrid(Vector3 v)
+            //{
+            //    return new Vector2Int(Mathf.FloorToInt(v.x / GridSize), Mathf.FloorToInt(v.z / GridSize));
+            //}
 
-            private static void BuildGridCache(IEnumerable<Vector3> points)
-            {
-                _gridCache.Clear();
-                foreach (var p in points)
-                {
-                    var g = ToGrid(p);
-                    if (!_gridCache.TryGetValue(g, out var list)) _gridCache[g] = list = new List<Vector3>();
-                    list.Add(p);
-                }
-            }
+            //private static void BuildGridCache(IEnumerable<Vector3> points)
+            //{
+            //    _gridCache.Clear();
+            //    foreach (var p in points)
+            //    {
+            //        var g = ToGrid(p);
+            //        if (!_gridCache.TryGetValue(g, out var list)) _gridCache[g] = list = new List<Vector3>();
+            //        list.Add(p);
+            //    }
+            //}
 
-            private static IEnumerable<Vector3> GetNeighborsFromGrid(Vector3 p)
-            {
-                var gp = ToGrid(p);
-                for (int dx = -1; dx <= 1; dx++)
-                    for (int dz = -1; dz <= 1; dz++)
-                    {
-                        var key = new Vector2Int(gp.x + dx, gp.y + dz);
-                        if (_gridCache.TryGetValue(key, out var list))
-                            foreach (var v in list) yield return v;
-                    }
-            }
+            //private static IEnumerable<Vector3> GetNeighborsFromGrid(Vector3 p)
+            //{
+            //    var gp = ToGrid(p);
+            //    for (int dx = -1; dx <= 1; dx++)
+            //        for (int dz = -1; dz <= 1; dz++)
+            //        {
+            //            var key = new Vector2Int(gp.x + dx, gp.y + dz);
+            //            if (_gridCache.TryGetValue(key, out var list))
+            //                foreach (var v in list) yield return v;
+            //        }
+            //}
 
-            // ---------------- Physics 缓存 ----------------
-            public static bool IsDirectPathClear(Vector3 from, Vector3 to)
-            {
-                if (_rayCache == null) _rayCache = new Dictionary<(Vector3, Vector3), bool>(64);
-                var key = (from, to);
-                if (_rayCache.TryGetValue(key, out var ok)) return ok;
-                ok = !Physics.Linecast(from, to);
-                _rayCache[key] = ok;
-                return ok;
-            }
+            //// ---------------- Physics 缓存 ----------------
+            //public static bool IsDirectPathClear(Vector3 from, Vector3 to)
+            //{
+            //    if (_rayCache == null) _rayCache = new Dictionary<(Vector3, Vector3), bool>(64);
+            //    var key = (from, to);
+            //    if (_rayCache.TryGetValue(key, out var ok)) return ok;
+            //    ok = !Physics.Linecast(from, to);
+            //    _rayCache[key] = ok;
+            //    return ok;
+            //}
 
-            private static void ClearRayCache()
-            {
-                if (_rayCache == null) return;
-                _rayCache.Clear();
-            }
+            //private static void ClearRayCache()
+            //{
+            //    if (_rayCache == null) return;
+            //    _rayCache.Clear();
+            //}
 
-            // ---------------- 可行走点获取（仍保留原思路，但减少分配） ----------------
-            private static List<Vector3> GetWalkablePoints(Room room)
-            {
-                var list = new List<Vector3>();
-                if (room?.GameObject == null) return list;
+            //// ---------------- 可行走点获取（仍保留原思路，但减少分配） ----------------
+            //private static List<Vector3> GetWalkablePoints(Room room)
+            //{
+            //    var list = new List<Vector3>();
+            //    if (room?.GameObject == null) return list;
 
-                var cols = room.GameObject.GetComponentsInChildren<Collider>(true);
-                foreach (var c in cols)
-                {
-                    if (c is BoxCollider box)
-                    {
-                        var corners = GetBoxCorners(box);
-                        foreach (var p in corners)
-                            if (IsPositionStandable(p)) list.Add(p);
-                    }
-                }
+            //    var cols = room.GameObject.GetComponentsInChildren<Collider>(true);
+            //    foreach (var c in cols)
+            //    {
+            //        if (c is BoxCollider box)
+            //        {
+            //            var corners = GetBoxCorners(box);
+            //            foreach (var p in corners)
+            //                if (IsPositionStandable(p)) list.Add(p);
+            //        }
+            //    }
 
-                return list;
-            }
+            //    return list;
+            //}
 
-            private static Vector3[] GetBoxCorners(BoxCollider box)
-            {
-                Vector3 center = box.center;
-                Vector3 ext = box.size * 0.5f;
-                var corners = new Vector3[8];
-                int i = 0;
-                for (int x = -1; x <= 1; x += 2)
-                    for (int y = -1; y <= 1; y += 2)
-                        for (int z = -1; z <= 1; z += 2)
-                            corners[i++] = box.transform.TransformPoint(center + new Vector3(x * ext.x, y * ext.y, z * ext.z));
-                return corners;
-            }
+            //private static Vector3[] GetBoxCorners(BoxCollider box)
+            //{
+            //    Vector3 center = box.center;
+            //    Vector3 ext = box.size * 0.5f;
+            //    var corners = new Vector3[8];
+            //    int i = 0;
+            //    for (int x = -1; x <= 1; x += 2)
+            //        for (int y = -1; y <= 1; y += 2)
+            //            for (int z = -1; z <= 1; z += 2)
+            //                corners[i++] = box.transform.TransformPoint(center + new Vector3(x * ext.x, y * ext.y, z * ext.z));
+            //    return corners;
+            //}
 
-            private static bool IsPositionStandable(Vector3 pos)
-            {
-                // 检查脚下是否可站立
-                return Physics.CheckSphere(pos + Vector3.down * 0.1f, 0.3f, -1);
-            }
+            //private static bool IsPositionStandable(Vector3 pos)
+            //{
+            //    // 检查脚下是否可站立
+            //    return Physics.CheckSphere(pos + Vector3.down * 0.1f, 0.3f, -1);
+            //}
 
-            public List<Room> GetPathRooms(Room start, Room end) => RoomGraph.Instance?.GetRoomPath(start, end);
-            public List<Vector3> FindPath(Vector3 start, Vector3 end, Room endRoom) => LocalPathInRoom(start, end, endRoom);
-        }
+            //public List<Room> GetPathRooms(Room start, Room end) => RoomGraph.Instance?.GetRoomPath(start, end);
+            //public List<Vector3> FindPath(Vector3 start, Vector3 end, Room endRoom) => LocalPathInRoom(start, end, endRoom);
+        //}
     }
 
     // ----------------- 基础类型 -----------------
@@ -484,21 +484,5 @@ namespace Next_generationSite_27.UnionP
             }
             return top;
         }
-    }
-
-    // ----------------- 向后兼容旧接口 -----------------
-    public static class RoomGraphExtensions
-    {
-        public static List<Vector3> LocalPathInRoom(Vector3 start, Vector3 end, Room room)
-            => RoomGraph.InternalNav.LocalPathInRoom(start, end, room);
-
-        public static List<Vector3> FindPath(Vector3 start, Vector3 end, Room endRoom)
-            => RoomGraph.InternalNav.FindPath(start, end, endRoom);
-
-        public static List<Room> GetPathRooms(Room startRoom, Room endRoom)
-            => RoomGraph.InternalNav.GetPathRooms(startRoom, endRoom);
-
-        public static bool IsDirectPathClear(Vector3 from, Vector3 to)
-            => RoomGraph.InternalNavigator.IsDirectPathClear(from, to);
     }
 }

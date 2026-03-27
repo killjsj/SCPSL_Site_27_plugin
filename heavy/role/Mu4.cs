@@ -45,7 +45,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public override uint Id { get; set; } = Mu4PID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Mu-4 小队 队长";
-            public override string Description { get => Scp5k_Control.Is5kRound ? "连接Scp079" : "断开Scp-079"; set { } } 
+            public override string Description { get => "断开Scp-079"; set { } } 
             public override string CustomInfo { get; set; } = "Mu-4 小队 队长";
             public override Exiled.API.Features.Broadcast Broadcast { get => new Exiled.API.Features.Broadcast($"<size=40><color=red>你是 Mu-4 小队 队长</color></size>\n<size=30><color=yellow>{Description}</color></size>", 4); set { } }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
@@ -121,7 +121,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public override uint Id { get; set; } = Mu4SID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Mu-4 小队 重装";
-            public override string Description { get => Scp5k_Control.Is5kRound ? "连接Scp079" : "断开Scp-079"; set { } }
+            public override string Description { get => "断开Scp-079"; set { } }
             public override string CustomInfo { get; set; } = "Mu-4 小队 重装";
             public override Exiled.API.Features.Broadcast Broadcast { get => new Exiled.API.Features.Broadcast($"<size=40><color=red>你是 Mu-4 小队 重装</color></size>\n<size=30><color=yellow>{Description}</color></size>", 4); set { } }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }
@@ -205,7 +205,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public override uint Id { get; set; } = Mu4NID;
             public override int MaxHealth { get; set; }
             public override string Name { get; set; } = "Mu-4 小队 队员";
-            public override string Description { get => Scp5k_Control.Is5kRound ? "连接Scp079" : "断开Scp-079"; set { } }
+            public override string Description { get =>  "断开Scp-079"; set { } }
             public override string CustomInfo { get; set; } = "Mu-4 小队 队员";
             public override Exiled.API.Features.Broadcast Broadcast { get => new Exiled.API.Features.Broadcast($"<size=40><color=red>你是 Mu-4 小队 队员</color></size>\n<size=30><color=yellow>{Description}</color></size>", 4); set { } }
             public override RoleTypeId Role { get => base.Role; set => base.Role = value; }

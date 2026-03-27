@@ -104,16 +104,9 @@ namespace Next_generationSite_27.UnionP.heavy
                 {
                     item.SendConsoleMessage("<noparse>" + Text + "</noparse>", "white");
                 }
-                if (CassieIsOffline.Instance.CheckEnabled())
-                {
-                    var s = new CassieTtsPayload(Text, false, new Subtitles.SubtitlePart());
-                    new CassieAnnouncement(s, 0f, 0f).AddToQueue();
-                }
-                else
-                {
                     var s = new CassieTtsPayload(tts,Text, false);
                     new CassieAnnouncement(s, 0f, 0f).AddToQueue();
-                }
+                
             }
             catch (Exception ex)
             {

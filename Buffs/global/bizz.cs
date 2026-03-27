@@ -7,6 +7,7 @@ using Exiled.Events.EventArgs.Server;
 using Exiled.Events.EventArgs.Warhead;
 using GameCore;
 using InventorySystem.Items.Usables.Scp244.Hypothermia;
+using MEC;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +16,12 @@ using System.Threading;
 using System.Threading.Tasks;
 namespace Next_generationSite_27.UnionP.Buffs
 {
-    public class Blizzard_Combined : BuffBase
+    public class Blizzard_Combined : GlobalBuffBase
     {
         public override BuffType Type => BuffType.Mixed;
         public override string BuffName => "暴风雪";
+        public override string Description => "在地表制造大雪 通过血包保暖";
+
 
         public static Blizzard_Combined Instance { get; private set; }
 
@@ -106,10 +109,12 @@ namespace Next_generationSite_27.UnionP.Buffs
         }
         public void RoundStarted()
         {
-
-            if(!CheckEnabled()) return;
-            _ = MEC.Timing.RunCoroutine(Bliz(ctsBlz.Token));
-            Exiled.API.Features.Cassie.MessageTranslated("", "警告 检测到地表温度极具下降 预计持续10分钟! (使用药包进行保暖)");
+            Timing.CallDelayed(1.4f, () =>
+            {
+                if (!CheckEnabled()) return;
+                _ = MEC.Timing.RunCoroutine(Bliz(ctsBlz.Token));
+                Exiled.API.Features.Cassie.MessageTranslated("", "警告 检测到地表温度极具下降 预计持续10分钟! (使用药包进行保暖)");
+            });
         }
         private void OnUsingItem(UsedItemEventArgs ev)
         {
@@ -302,6 +307,7 @@ namespace Next_generationSite_27.UnionP.Buffs
             DateTime StartTime = DateTime.UtcNow;
             while (!Token.IsCancellationRequested)
             {
+                        if (DateTime.UtcNow - StartTime > TimeSpan.FromMinutes(10)) ctsBlz.Cancel();
                 if (this.CheckEnabled() && AutoEvent.AutoEvent.EventManager.CurrentEvent == null)
                 {
 
@@ -309,7 +315,6 @@ namespace Next_generationSite_27.UnionP.Buffs
                     {
 
 
-                        if (DateTime.UtcNow - StartTime > TimeSpan.FromMinutes(10)) ctsBlz.Cancel();
 
                         foreach (Player player in Player.List)
                         {

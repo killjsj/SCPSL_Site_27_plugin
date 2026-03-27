@@ -9,6 +9,7 @@ using Exiled.API.Features.DamageHandlers;
 using Exiled.API.Features.Items;
 using Exiled.API.Features.Pickups;
 using Exiled.API.Features.Spawn;
+using Exiled.CustomItems.API.Features;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.Handlers;
 using Footprinting;
@@ -86,7 +87,6 @@ namespace Next_generationSite_27.UnionP.Turret
                 Vector3 wallNormal = collision.contacts[0].normal;
                 Quaternion bunkerRotation = CalculateBunkerRotation(wallNormal, playerRotation);
 
-                Turret.Create(collision.contacts[0].point, bunkerRotation.eulerAngles,Owner);
                 pickup.Destroy();
                 Destroy(this);
             }
@@ -558,7 +558,7 @@ namespace Next_generationSite_27.UnionP.Turret
         }
     }
 
-    [CustomItem(ItemType.GrenadeFlash)]
+    [CustomItem(ItemType.Coin)]
     public class TurretItem : CustomItemPlus
     {
         public static uint TurretId = 9178;
@@ -571,27 +571,16 @@ namespace Next_generationSite_27.UnionP.Turret
         public override void Init()
         {
             base.Init();
-            this.Type = ItemType.GrenadeFlash;
+            this.Type = ItemType.Coin;
             Instance = this;
         }
-        public override void Destroy()
+        protected override void OnUsed(Player player, Item item)
         {
-            IUnsubscribeEvents();
-            base.Destroy();
-        }
-        protected void ISubscribeEvents()
-        {
-            Exiled.Events.Handlers.Player.ThrownProjectile += OnDroppedItem;
-        }
-        protected void IUnsubscribeEvents()
-        {
-            Exiled.Events.Handlers.Player.ThrownProjectile -= OnDroppedItem;
-        }
-        public void OnDroppedItem(ThrownProjectileEventArgs ev)
-        {
-            if (this.Check(ev.Pickup))
+            base.OnUsed(player, item);
+            if(this.Check(item))
             {
-                ev.Pickup.Base.gameObject.AddComponent<Builder>().init(ev.Pickup, ev.Player.Rotation, ev.Player);
+                Turret.Create(player.Position, Vector3.right, player);
+
             }
         }
     }

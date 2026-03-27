@@ -42,7 +42,6 @@ using UnityEngine;
 using UnityEngine.DedicatedServer;
 using UnityEngine.EventSystems;
 using UserSettings.ServerSpecific;
-using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 using static Next_generationSite_27.UnionP.heavy.Goc;
 using static TMPro.TMP_InputField;
 using static UnityEngine.UI.CanvasScaler;

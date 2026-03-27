@@ -38,7 +38,9 @@ namespace Next_generationSite_27.UnionP
         [HarmonyPrefix]
         public static bool Prefix(ReferenceHub player, ref bool __result)
         {
-            if(LobbySOng.Ins.DummyHub.ReferenceHub == player)
+            if (player == null || LobbySOng.Ins.DummyHub == null) return true;
+            //if(player)
+            if (LobbySOng.Ins.DummyHub.ReferenceHub == player)
             {
                 __result = false;
                 return false;
@@ -119,6 +121,7 @@ namespace Next_generationSite_27.UnionP
         {
             //Exiled.Events.Handlers.Server.RoundStarted -= RoundStarted;
             Exiled.Events.Handlers.Server.WaitingForPlayers -= WaitingForPlayers;
+            Exiled.Events.Handlers.Server.RestartingRound -= restart;
             if (r.IsRunning) Timing.KillCoroutines(r);
             if (DummyHub != null) DummyHub.Destroy();
             Ins = null;
@@ -131,12 +134,19 @@ namespace Next_generationSite_27.UnionP
             //Exiled.Events.Handlers.Server.RoundStarted += RoundStarted;
             Ins = this;
             VoicePlayerBase.OnFinishedTrack += VoicePlayerBase_OnFinishedTrack;
+            Exiled.Events.Handlers.Server.RestartingRound += restart;
         }
         public void RoundStarted()
         {
             if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
 
             readytonext = true;
+        }
+        public void restart()
+        {
+            if (DummyHub != null) { DummyHub.Destroy(); DummyHub = null; }
+            readytonext = true;
+
         }
         public bool AdminOverride { get => _AdminOverride; set
             {
@@ -164,6 +174,7 @@ namespace Next_generationSite_27.UnionP
 
         void WaitingForPlayers()
         {
+            restart();
             //createDummy();
             if (r.IsRunning) Timing.KillCoroutines(r);
             r = Timing.RunCoroutine(Processer());
@@ -201,9 +212,11 @@ namespace Next_generationSite_27.UnionP
                 yield return Timing.WaitForSeconds(0.4f);
                 if (SongAble && readytonext && WaitForProcess.TryDequeue(out Processing))
                 {
-                    if (!long.TryParse(Processing.id, out long songId)) { /* 错误处理 */ continue; }
+                    if (!long.TryParse(Processing.id, out long songId)) { Processing.player?.SendConsoleMessage($"歌曲加载 - {songId} 无效id!", "yellow"); continue; }
                     readytonext = false;
+#pragma warning disable CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
                     ProcessSongAsync(songId);
+#pragma warning restore CS4014 // 由于此调用不会等待，因此在调用完成前将继续执行当前方法
                 }
             }
             Log.Info("exit!");
@@ -230,8 +243,8 @@ namespace Next_generationSite_27.UnionP
                     Log.Info($"Loading {songId} - ana");
                     if (url.exception != null)
                     {
-                        Log.Info($"Loading {songId} - exception {url.exception}");
-                        Processing.player?.SendConsoleMessage($"歌曲加载错误 - {url.exception}", "red");
+                        Log.Info($"Loading {songId} ana- exception {url.exception}");
+                        Processing.player?.SendConsoleMessage($"歌曲加载错误 ana- {url.exception}", "red");
                         if (retries == 0)
                         {
                             readytonext = true;
@@ -245,6 +258,7 @@ namespace Next_generationSite_27.UnionP
                     {
                         var target = url.result.data[0];
                         var name = del.result.songs[0].name;
+                        var author = del.result.songs[0].ar;
 
                         Log.Info($"Loading {songId} - downlaoding");
                         Processing.player?.SendConsoleMessage("歌曲加载 - 下载中", "green");

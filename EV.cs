@@ -476,12 +476,6 @@ namespace Next_generationSite_27.UnionP
         public void OnRoundEnd(Exiled.Events.EventArgs.Server.RoundEndedEventArgs ev)
         {
             Plugin.plugin.scpChangeReqs = new List<ScpChangeReq>();
-
-            Plugin.plugin.superSCP.stop();
-            Timing.KillCoroutines(new CoroutineHandle[]
-            {
-                            this.updateInfo
-            });
             if (config.RoundEndFF)
             {
                 ServerConsole.FriendlyFire = true;
@@ -813,26 +807,7 @@ namespace Next_generationSite_27.UnionP
                 });
             }
 
-
-            // 11. 启用 Super SCP (如果配置允许)
-            updateInfo = Timing.RunCoroutine(this.UpdateInfo());
-            if (Scp5k_Control.Is5kRound)
-            {
                 GOCBomb.init();
-            }
-            try
-            {
-                if (Player.Enumerable.Count() >= Config.EnableSuperScpCount && Config.EnableSuperScp)
-                {
-                    Plugin.enableSSCP = true;
-                    Plugin.plugin.superSCP.start();
-                    Log.Debug("Super SCP enabled and started.");
-                }
-            }
-            catch (Exception superScpEx)
-            {
-                Log.Error($"Error enabling/starting Super SCP: {superScpEx}");
-            }
             
         }
         public Player SelectChosenSCPPlayer(List<Player> VIPPlayerList, List<string> nottodaySCP)
@@ -873,7 +848,6 @@ namespace Next_generationSite_27.UnionP
             return chosenPlayer;
         }
         public List<string> NotTodaySCP = new List<string>();
-        CoroutineHandle updateInfo;
         public void SentValidCommand(SentValidCommandEventArgs ev)
         {
             if (ev.Player.RemoteAdminAccess)
@@ -957,13 +931,6 @@ namespace Next_generationSite_27.UnionP
             }
             if (flag)
             {
-                if (Scp5k_Control.Is5kRound)
-                {
-                    ev.EscapeScenario = EscapeScenario.CustomEscape;
-                    ev.NewRole = RoleTypeId.ChaosRifleman;
-                    ev.IsAllowed = true;
-                    return;
-                } else
                 {
                     ev.EscapeScenario = EscapeScenario.CustomEscape;
                     ev.NewRole = RoleTypeId.NtfSergeant;
@@ -1116,7 +1083,6 @@ namespace Next_generationSite_27.UnionP
             Scp330Interobject.MaxAmountPerLife = 4;
             st = false;
             StopBroadcast = false;
-            Plugin.enableSSCP = false;
             cachedCards = new Dictionary<ushort, ItemType>();
             SPD = new List<ReferenceHub>();
             SPC = new List<GameObject>();
@@ -1739,68 +1705,12 @@ namespace Next_generationSite_27.UnionP
 
 
         }
-        public IEnumerator<float> UpdateInfo()
-        {
-            string FirstColorHex = Config.FirstColorHex;
-            string SecondColorHex = Config.SecondColorHex;
-            string MainColorHex = Config.MainColorHex;
-            string TextVar = Config.TextShow;
-            float Showtime = Config.Showtime;
-            int Showduration = Config.Showduration;
-            while (Round.IsStarted && !CassieIsOffline.Instance.CheckEnabled())
-            {
-
-                StringBuilder sb = new StringBuilder();
-                sb.AppendLine(string.Concat(new string[]
-                {
-                    "<color=",
-                    MainColorHex,
-                    ">",
-                    TextVar,
-                    "</color>"
-                }));
-                foreach (Exiled.API.Features.Player player in Enumerable.Where<Exiled.API.Features.Player>(Exiled.API.Features.Player.Enumerable, (Exiled.API.Features.Player p) => p.Role.Team == Team.SCPs && p.IsAlive))
-                {
-                    sb.Append(string.Format("|<size=32><color={0}>{1} </color> :  <color={2}>{3}HP</color></size>| ", new object[]
-                    {
-                        FirstColorHex,
-                        player.Role.Name,
-                        SecondColorHex,
-                        Convert.ToInt32(player.Health)
-                    }));
-                }
-                string scpInfo = sb.ToString();
-                Exiled.API.Features.Map.Broadcast((ushort)Showduration, scpInfo, global::Broadcast.BroadcastFlags.Normal, false);
-                yield return Timing.WaitForSeconds(Showtime);
-            }
-            yield break;
-        }
-        public List<ushort> x3itemid = new List<ushort>();
         public void DisruptorFiring(DisruptorFiringEventArgs ev)
         {
-            if (Plugin.enableSSCP)
-            {
-                if (!x3itemid.Contains(ev.Pickup.Serial))
-                {
-                    ItemIdentifier identifier = ev.Pickup.Base.ItemId;
-                    ParticleDisruptor template = identifier.TypeId.GetTemplate<ParticleDisruptor>();
-                    MagazineModule magazineModule;
-                    if (!template.TryGetModule(out magazineModule, true))
-                    {
-                        return;
-                    }
-                    magazineModule.ServerSetInstanceAmmo(identifier.SerialNumber, 10);
-                    magazineModule.ServerResyncData();
-                    x3itemid.Add(identifier.SerialNumber);
-                }
-            }
+
         }
         public void ChangingRole(ChangingRoleEventArgs ev)
         {
-            if (Plugin.plugin.superSCP.PatchedPlayers.Contains(ev.Player))
-            {
-                Plugin.plugin.superSCP.PatchedPlayers.Remove(ev.Player);
-            }
             if (config.RoundSelfChoose)
             {
                 if (ev.NewRole == RoleTypeId.Overwatch)

@@ -23,7 +23,6 @@ using UnityEngine;
 using static Next_generationSite_27.UnionP.heavy.JS_L1;
 using static Next_generationSite_27.UnionP.heavy.Scannner;
 using static Next_generationSite_27.UnionP.heavy.SpeedBuilditem;
-using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 //using static Next_generationSite_27.UnionP.Scp5k.Scp5k_Control;
 
 namespace Next_generationSite_27.UnionP.heavy
@@ -146,11 +145,6 @@ namespace Next_generationSite_27.UnionP.heavy
                     {
                         //MEC.Plugin.RunCoroutine(UiuPlayerUpdate(player));
                         player.Position = new Vector3(16, 292, -41);
-                        foreach (var item in GOCFF)
-                        {
-                            player.SetFriendlyFire(item);
-
-                        }
                         player.SetCustomRoleFriendlyFire("Goc_C", RoleTypeId.Tutorial, 0);
                         player.SetCustomRoleFriendlyFire("Goc_P", RoleTypeId.Tutorial, 0);
                     }
@@ -233,11 +227,6 @@ namespace Next_generationSite_27.UnionP.heavy
                     {
                         //MEC.Plugin.RunCoroutine(UiuPlayerUpdate(player));
                         player.Position = new Vector3(16, 292, -41);
-                        foreach (var item in GOCFF)
-                        {
-                            player.SetFriendlyFire(item);
-
-                        }
                         player.SetCustomRoleFriendlyFire("Goc_C", RoleTypeId.Tutorial, 0);
                         player.SetCustomRoleFriendlyFire("Goc_P", RoleTypeId.Tutorial, 0);
                     }
@@ -375,7 +364,7 @@ namespace Next_generationSite_27.UnionP.heavy
                             return;
                         }
 
-                        if ((scp5k_Sci.TryGet(Goc610PID, out var sciRole) && sciRole.Check(ev.Player)) || (scp5k_Sci.TryGet(Goc610CID, out var sciCRole) && sciCRole.Check(ev.Player)))
+                        if ((CustomRole.TryGet(Goc610PID, out var sciRole) && sciRole.Check(ev.Player)) || (CustomRole.TryGet(Goc610CID, out var sciCRole) && sciCRole.Check(ev.Player)))
                         {
                             //Log.Info("✅ 玩家拥有安装权限");
 
@@ -1017,11 +1006,7 @@ namespace Next_generationSite_27.UnionP.heavy
                     {
                         //MEC.Plugin.RunCoroutine(UiuPlayerUpdate(player));
                         player.Position = new Vector3(16, 292, -41);
-                        foreach (var item in GOCFF)
-                        {
-                            player.SetFriendlyFire(item);
-
-                        }
+                        
                         player.SetCustomRoleFriendlyFire("Goc_C", RoleTypeId.Tutorial, 0);
                         player.SetCustomRoleFriendlyFire("Goc_P", RoleTypeId.Tutorial, 0);
                     }
@@ -1104,11 +1089,6 @@ namespace Next_generationSite_27.UnionP.heavy
                     {
                         //MEC.Plugin.RunCoroutine(UiuPlayerUpdate(player));
                         player.Position = new Vector3(16, 292, -41);
-                        foreach (var item in GOCFF)
-                        {
-                            player.SetFriendlyFire(item);
-
-                        }
                         player.SetCustomRoleFriendlyFire("Goc_C", RoleTypeId.Tutorial, 0);
                         player.SetCustomRoleFriendlyFire("Goc_P", RoleTypeId.Tutorial, 0);
                     }

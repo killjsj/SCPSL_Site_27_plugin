@@ -372,7 +372,6 @@ WHERE userid = @userid;";
             string ip = null,
             int point = -1,
             DateTime? last_time = null,
-            TimeSpan? total_duration = null,
             TimeSpan? today_duration = null)
         {
             if (!connected || string.IsNullOrEmpty(userid)) return;
@@ -394,11 +393,17 @@ WHERE userid = @userid;";
                     experience_multiplier = experience_multiplier ?? p.experience_multiplier;
                     ip = ip ?? p.ip;
                     last_time = last_time ?? p.last_time;
-                    total_duration = total_duration ?? p.total_duration;
                     today_duration = today_duration ?? p.today_duration;
-
-                    // 使用 INSERT ... ON DUPLICATE KEY UPDATE
-                    string upsertSql = @"
+                    TimeSpan? total_time = null;
+                    if(total_time != null)
+                    {
+                        total_time = p.total_duration + today_duration;
+                    }else
+                    {
+                        total_time = p.total_duration;
+                    }
+                        // 使用 INSERT ... ON DUPLICATE KEY UPDATE
+                        string upsertSql = @"
 INSERT INTO user 
     (userid, name, experience, experience_multiplier, ip,point, today_duration, total_duration, last_time)
 VALUES 
@@ -421,7 +426,7 @@ ON DUPLICATE KEY UPDATE
                     cmd.Parameters.AddWithValue("@ip", ip ?? string.Empty);
                     cmd.Parameters.AddWithValue("@point", point);
                     cmd.Parameters.AddWithValue("@today_duration", today_duration ?? TimeSpan.Zero);
-                    cmd.Parameters.AddWithValue("@total_duration", total_duration ?? TimeSpan.Zero);
+                    cmd.Parameters.AddWithValue("@total_duration", total_time ?? TimeSpan.Zero);
                     cmd.Parameters.AddWithValue("@last_time", last_time ?? DateTime.Now);
 
                     cmd.ExecuteNonQuery();

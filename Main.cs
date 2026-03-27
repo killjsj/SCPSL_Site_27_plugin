@@ -221,11 +221,7 @@ namespace Next_generationSite_27.UnionP
 
         }
         // --- snake end ---
-        // --- superSCP ---
-        public static bool enableSSCP = false;
-        public SuperSCP superSCP = new SuperSCP();
         public static IFFManager CurrentFFManager;
-        // --- superSCP end---
         static public List<BaseClass> baseClasses = new List<BaseClass>();
         public string settingPath => $"{Paths.Configs}\\Plugins\\union_plugin";
         public static string SettingPath => plugin.settingPath;
@@ -249,8 +245,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RespawningTeam += eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers += eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Player.Shot += eventhandle.Shot;
-            Exiled.Events.Handlers.Player.Hurting += superSCP.Hurting;
-            Exiled.Events.Handlers.Player.Died += superSCP.Died;
             Exiled.Events.Handlers.Player.ChangedItem += eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState += eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
@@ -264,7 +258,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Server.RestartingRound += RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
-            Exiled.Events.Handlers.Player.ChangingRole += superSCP.ChangingRole;
 
             Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
             //Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
@@ -277,24 +270,12 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Left += eventhandle.OnPlayerLeave;
 
             Exiled.Events.Handlers.Player.Spawned += eventhandle.OnSpawned;
-            Exiled.Events.Handlers.Scp079.GainingExperience += superSCP.GainingExperience;
             Exiled.Events.Handlers.Item.DisruptorFiring += eventhandle.DisruptorFiring;
 
             Exiled.Events.Handlers.Server.RoundEnded += eventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Left += OnLeft;
 
-
-            Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating += Scp5k_Control.DeadmanSwitchInitiating;
-            Exiled.Events.Handlers.Player.Escaping += Scp5k_Control.Escaping;
-            Exiled.Events.Handlers.Server.RespawningTeam += Scp5k_Control.RespawningTeam;
-            Exiled.Events.Handlers.Player.Dying += Scp5k_Control.Died;
-            //Exiled.Events.Handlers.Warhead.Detonating += Scp5k_Control.WarheadDetonated;
-            Exiled.Events.Handlers.Server.EndingRound += Scp5k_Control.RoundEnding;
-            Exiled.Events.Handlers.Server.RoundStarted += Scp5k_Control.RoundStarted;
-            Exiled.Events.Handlers.Player.ChangingRole += Scp5k_Control.ChangingRole;
-            //Exiled.Events.Handlers.Warhead.ChangingLeverStatus += Scp5k_Control.ChangingLeverStatus;
-            Exiled.Events.Handlers.Player.Hurting += Scp5k_Control.PlayerDamaged;
             //Exiled.Events.Handlers.Map.AnnouncingScpTermination += Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole += GOCAnim.OnchangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
@@ -365,7 +346,19 @@ namespace Next_generationSite_27.UnionP
             DefaultAudioManager.RegisterAudio("Scp500_StartAudio", () =>
                 File.OpenRead($"{SettingPath}\\Scp5kStart.wav"));
             CustomRole.RegisterRoles(assembly: Assembly);
-            foreach (var item in Assembly.GetTypes())
+            RegBases(Assembly);
+            base.OnEnabled();
+        }
+        public void OnLeft(LeftEventArgs ev)
+        {
+            if (PlayerMenuCache.ContainsKey(ev.Player))
+            {
+                PlayerMenuCache.Remove(ev.Player);
+            }
+        }
+        public void RegBases(Assembly ass)
+        {
+            foreach (var item in ass.GetTypes())
             {
                 if (!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(BaseClass)))
                 {
@@ -388,14 +381,6 @@ namespace Next_generationSite_27.UnionP
                     }
                 }
             }
-            base.OnEnabled();
-        }
-        public void OnLeft(LeftEventArgs ev)
-        {
-            if (PlayerMenuCache.ContainsKey(ev.Player))
-            {
-                PlayerMenuCache.Remove(ev.Player);
-            }
         }
         public override void OnDisabled()
         {
@@ -408,9 +393,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.WaitingForPlayers -= eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Server.RestartingRound -= RestartingRound;
             Exiled.Events.Handlers.Player.Shot -= eventhandle.Shot;
-            //Exiled.Events.Handlers.Player.DroppedItem -= eventhandle.DroppedItem;
-            Exiled.Events.Handlers.Player.Hurting -= superSCP.Hurting;
-            Exiled.Events.Handlers.Player.Died -= superSCP.Died;
             Exiled.Events.Handlers.Player.ChangedItem -= eventhandle.ChangedItem;
             Exiled.Events.Handlers.Player.ChangingMicroHIDState -= eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
@@ -420,10 +402,8 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Server.RoundStarted -= eventhandle.RoundStarted;
             Exiled.Events.Handlers.Player.Verified -= eventhandle.Verified;
-            Exiled.Events.Handlers.Scp079.GainingExperience -= superSCP.GainingExperience;
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
             Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
-            Exiled.Events.Handlers.Player.ChangingRole -= superSCP.ChangingRole;
             Exiled.Events.Handlers.Server.RoundEnded -= eventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Shot -= Bomb.OnPlayerShotWeapon;
@@ -437,18 +417,6 @@ namespace Next_generationSite_27.UnionP
 
             Exiled.Events.Handlers.Item.DisruptorFiring -= eventhandle.DisruptorFiring;
             Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
-
-            //5k
-            Exiled.Events.Handlers.Warhead.DeadmanSwitchInitiating -= Scp5k_Control.DeadmanSwitchInitiating;
-            Exiled.Events.Handlers.Player.Dying -= Scp5k_Control.Died;
-            //Exiled.Events.Handlers.Warhead.Detonating -= Scp5k_Control.WarheadDetonated;
-            Exiled.Events.Handlers.Player.Escaping -= Scp5k_Control.Escaping;
-            Exiled.Events.Handlers.Server.RespawningTeam -= Scp5k_Control.RespawningTeam;
-            //Exiled.Events.Handlers.Warhead.ChangingLeverStatus -= Scp5k_Control.ChangingLeverStatus;
-            Exiled.Events.Handlers.Server.EndingRound -= Scp5k_Control.RoundEnding;
-            Exiled.Events.Handlers.Server.RoundStarted -= Scp5k_Control.RoundStarted;
-            Exiled.Events.Handlers.Player.Hurting -= Scp5k_Control.PlayerDamaged;
-            Exiled.Events.Handlers.Player.ChangingRole -= Scp5k_Control.ChangingRole;
             //Exiled.Events.Handlers.Map.AnnouncingScpTermination -= Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole -= GOCAnim.OnchangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem -= GOCBomb.OnPickUp;
@@ -464,8 +432,7 @@ namespace Next_generationSite_27.UnionP
                 {
                     if (item is BaseClass BC)
                     {
-                        BC.StartInit();
-                        baseClasses.Add(BC);
+                        BC.StartDelete();
                     }
 
 
@@ -474,11 +441,6 @@ namespace Next_generationSite_27.UnionP
             harmony.UnpatchAll();
             eventhandle.update();
             eventhandle.stopBroadcast();
-            if (enableSSCP)
-            {
-                enableSSCP = false;
-                superSCP.stop();
-            }
             eventhandle = null;
             base.OnDisabled();
         }

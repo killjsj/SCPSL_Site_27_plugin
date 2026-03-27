@@ -28,7 +28,7 @@ namespace AudioApi
         }
     }
 #pragma warning disable CS8618
-    public class VoicePlayerBase : MonoBehaviour,IUnityMethod
+    public class VoicePlayerBase : MonoBehaviour
     {
         /// <summary>
         /// AudioPlayers列表

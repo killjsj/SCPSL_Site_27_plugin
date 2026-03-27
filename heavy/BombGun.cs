@@ -35,6 +35,7 @@ namespace Next_generationSite_27.UnionP.heavy
             public override float Weight { get; set; } = 2;
             public override SpawnProperties SpawnProperties { get; set; } = null;
             public override Vector3 Scale { get; set; } = new Vector3(2f, 2f, 2f);
+            public static bomb_gun ins;
             protected override void OnUpgrading(UpgradingEventArgs ev)
             {
                 if (Check(ev.Pickup))
@@ -53,6 +54,7 @@ namespace Next_generationSite_27.UnionP.heavy
             }
             public override void Init()
             {
+                ins = this;
                 base.Init();
             }
         }

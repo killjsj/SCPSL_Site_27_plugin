@@ -73,26 +73,6 @@ using Object = UnityEngine.Object;
 using Type = System.Type;
 namespace Next_generationSite_27.UnionP
 {
-    class Scp049Attckcd : BaseClass
-    {
-        public override void Delete()
-        {
-            LabApi.Events.Handlers.Scp049Events.Attacking -= Scp049Events_Attacking;
-        }
-
-        private void Scp049Events_Attacking(LabApi.Events.Arguments.Scp049Events.Scp049AttackingEventArgs ev)
-        {
-            ev.CooldownTime = GetCooldown();
-        }
-        private static float GetCooldown()
-        {
-            return Plugin.enableSSCP ? 1.1f : 1.5f;
-        }
-        public override void Init()
-        {
-            LabApi.Events.Handlers.Scp049Events.Attacking += Scp049Events_Attacking;
-        }
-    }
     [HarmonyPatch(typeof(PlayerEvents))]
     public class PlayerEventsUpdatePatch
     {
@@ -144,13 +124,13 @@ namespace Next_generationSite_27.UnionP
             __result = 150;
             return false;
         }
-        [HarmonyPatch(nameof(InventoryLimits.GetCategoryLimit), typeof(BodyArmor), typeof(ItemCategory))]
-        [HarmonyPrefix]
-        public static bool FireArmnPrefix(BodyArmor armor, ItemCategory category, ref sbyte __result)
-        {
-            __result = 8;
-            return false;
-        }
+        //[HarmonyPatch(nameof(InventoryLimits.GetCategoryLimit), typeof(BodyArmor), typeof(ItemCategory))]
+        //[HarmonyPrefix]
+        //public static bool FireArmnPrefix(BodyArmor armor, ItemCategory category, ref sbyte __result)
+        //{
+        //    __result = 8;
+        //    return false;
+        //}
     }
 
     [HarmonyPatch]
@@ -200,23 +180,6 @@ namespace Next_generationSite_27.UnionP
                     }
                 }
             }
-        }
-    }
-    [HarmonyPatch(typeof(Scp173BlinkTimer))]
-    public static class Scp173BlinkTimerPatch
-    {
-        [HarmonyPatch("get_TotalCooldownServer")]
-        [HarmonyPrefix]
-        public static bool Prefix(Scp173BlinkTimer __instance, ref float __result)
-        {
-            if (Plugin.enableSSCP)
-            {
-                var role = __instance.Role as PlayerRoles.PlayableScps.Scp173.Scp173Role;
-                role.SubroutineModule.TryGetSubroutine<Scp173BreakneckSpeedsAbility>(out var _breakneckSpeedsAbility);
-                __result = (3 - 0.6f) * (_breakneckSpeedsAbility.IsActive ? 0.5f : 1f);
-                return false;  // 跳过原始方法执行}
-            }
-            return true;
         }
     }
     [HarmonyPatch(typeof(NtfSpawnWave))]
@@ -698,12 +661,58 @@ namespace Next_generationSite_27.UnionP
         public static bool PrPrefix(ref ItemPickupBase pickup, bool upgradeDropped, Scp914KnobSetting setting)
         {
             var p = Plugin.plugin.eventhandle.OnUpgradingPickup(pickup);
-            if (p != null) {
+            if (p != null)
+            {
                 pickup = p.Base;
             }
             return true;
         }
+    }// WHYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
+    /// <summary>
+    /// I have no idea why the fuck the dedicated server player can be disconnected.
+    /// But apparently it never gets disconnected outside of bugs so we're removing its ability to.
+    /// </summary>
+    /// thanks to @1269801279253909565 (@cyn)
+    [HarmonyPatch]
+    public static class NWDedicatedServerDisconnectPatch
+    {
+        [HarmonyTargetMethods]
+        public static IEnumerable<MethodBase> TargetMethods()
+        {
+            yield return AccessTools.Method(typeof(NetworkConnectionToClient), nameof(NetworkConnectionToClient.Disconnect));
+            yield return AccessTools.Method(typeof(NetworkConnectionToServer), nameof(NetworkConnectionToServer.Disconnect));
+            yield return AccessTools.Method(typeof(LocalConnectionToClient), nameof(LocalConnectionToClient.Disconnect));
+            yield return AccessTools.Method(typeof(LocalConnectionToServer), nameof(LocalConnectionToServer.Disconnect));
+        }
+
+        public static bool Prefix(NetworkConnection __instance)
+        {
+            // Block the dedicated server player from ever disconnecting.
+            if (__instance.connectionId == 0)
+            {
+                Log.Error("Critical: attempted to disconnect the dedicated server player. This has been blocked.");
+                return false;
+            }
+
+            return true;
+        }
     }
+    [HarmonyPatch(typeof(NetworkServer), "UnpackAndInvoke")]
+    public static class HostDisconnectPatch
+    {
+        public static void Postfix(ref bool __result, NetworkConnectionToClient connection, NetworkReader reader, int channelId)
+        {
+            // If the connection is 0 (the dedicated server), force the result to be true.
+            // We do not want to disconnect the dedicated server it causes MASSIVE issues.
+            // If you see a " NetworkServer: failed to unpack and invoke message. Disconnecting 0." you probably sent a message to the host.
+            // Do not do that. Use Player.ReadyList or check Player.IsHost before sending a network message.
+            if (connection.connectionId == 0)
+            {
+                __result = true;
+            }
+        }
+    }
+
     [HarmonyPatch(typeof(ReferenceHub))]
     public static class MReferenceHubPatch
     {
@@ -730,7 +739,14 @@ namespace Next_generationSite_27.UnionP
                     num++;
                 }
             }
-            __result = num - Plugin.plugin.eventhandle.SPD.Count;
+                    __result = num ;
+            foreach (var item in Plugin.plugin.eventhandle.SPD)
+            {
+                if(item != null)
+                {
+                    __result--;
+                }
+            }
             if(LobbySOng.Ins != null)
             {
                 if (LobbySOng.Ins.DummyHub != null)
@@ -741,30 +757,6 @@ namespace Next_generationSite_27.UnionP
             }
             //Log.Info($"__result={__result}");
             return false;
-        }
-    }
-    [HarmonyPatch]
-
-    public static class NetworkCOnnectionPatchTemp
-    {
-        static MethodBase TargetMethod()
-        {
-            var method = typeof(NetworkConnection)
-                .GetMethods(BindingFlags.Instance | BindingFlags.Public)
-                .First(m =>
-                    m.Name == "Send" &&
-                    m.IsGenericMethod &&
-                    m.GetParameters().Length == 2);
-
-            return method.MakeGenericMethod(typeof(VoiceMessage));
-        }
-
-        [HarmonyPrefix]
-        static bool Prefix(VoiceMessage message, int channelId = 0)
-
-        {
-            //Log.Info(message.Channel);
-            return true;
         }
     }
     [HarmonyPatch(typeof(CharacterClassManager))]

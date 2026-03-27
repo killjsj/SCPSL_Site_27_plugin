@@ -152,14 +152,60 @@ namespace Next_generationSite_27.UnionP
             List<string> newargs = arguments.ToList();
             response = $"done! op:{runner.Position}";
 
-            RoomName r = (RoomName)Enum.Parse(typeof(RoomName),newargs[0],true);
-            var room = Room.Get(x=>x.RoomName == r).First();
-            if(room == null)
+            RoomName r = (RoomName)Enum.Parse(typeof(RoomName), newargs[0], true);
+            var room = Room.Get(x => x.RoomName == r).First();
+            if (room == null)
             {
                 response = $"Room {r} not found!";
                 return false;
             }
             runner.Position = room.Position;
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class SPPCommand : ICommand
+    {
+        string ICommand.Command { get; } = "SPP";
+
+        string[] ICommand.Aliases { get; } = new[] { "生成prefab" };
+
+        string ICommand.Description { get; } = "SPP PrefabName";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            if (!sender.CheckPermission(PlayerPermissions.FacilityManagement, out response))
+            {
+                return false;
+            }
+            if (arguments.Count < 1)
+            {
+                response = "To execute this command provide at least 1 arguments! PrefabList:\n";
+                var a = Enum.GetNames(typeof(PrefabType));
+                foreach (var item in a)
+                {
+                    response += item + "\n";
+                }
+                return false;
+            }
+
+            List<string> newargs = arguments.ToList();
+
+            PrefabType r = (PrefabType)Enum.Parse(typeof(PrefabType), newargs[0], true);
+            var g = PrefabHelper.Spawn(r, runner.Position);
+            var d = Door.Get(g);
+            if (d != null)
+            {
+                var e = Interactables.Interobjects.DoorUtils.DoorPermissionFlags.ContainmentLevelOne;
+
+                d.PermissionsPolicy = new Interactables.Interobjects.DoorUtils.DoorPermissionsPolicy(e, true);
+                NetworkServer.UnSpawn(g);
+                NetworkServer.Spawn(g);
+                //d.
+            }
+            response = $"done!";
             return true;
 
         }
@@ -567,34 +613,6 @@ namespace Next_generationSite_27.UnionP
 
     //    }
     //}
-    [CommandHandler(typeof(GameConsoleCommandHandler))]
-    [CommandHandler(typeof(RemoteAdminCommandHandler))]
-    class Scp5kstartCommand : ICommand
-    {
-        string ICommand.Command { get; } = "5k";
-
-        string[] ICommand.Aliases { get; } = new[] { "Scp5000" };
-
-        string ICommand.Description { get; } = "!!! 使用后将立刻重启服务器并启动5k 由于进行测试(有bug) 谨慎使用";
-
-        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-        {
-            var runner = Player.Get(sender);
-            if (runner != null)
-            {
-                if (runner.KickPower < 12)
-                {
-                    response = "你没权 （player.KickPower < 12）";
-                    return false;
-                }
-            }
-            Scp5k_Control.IsForce5kRound = true;
-            Round.Restart();
-            response = $"done!";
-            return true;
-
-        }
-    }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class EffectTestCommand : ICommand
     {
@@ -816,51 +834,7 @@ namespace Next_generationSite_27.UnionP
 
         }
     }
-    [CommandHandler(typeof(RemoteAdminCommandHandler))]
-    class BotZombieCommand : ICommand
-    {
-        string ICommand.Command { get; } = "BotZombie";
 
-        string[] ICommand.Aliases { get; } = new[] { "BZZ" };
-
-        string ICommand.Description { get; } = "!!! 使用后产生一个机器小僵尸 bzz [PlayerId(主人 可选)]";
-
-        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
-        {
-            var runner = Player.Get(sender);
-            Player Owner = null;
-            if (arguments.Count < 1)
-            {
-                Owner = runner;
-            }
-            else
-            {
-
-                string[] newargs;
-                List<ReferenceHub> list = RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out newargs);
-                if (list == null)
-                {
-                    response = "An unexpected problem has occurred during PlayerId/Name array processing.";
-                    return false;
-                }
-                if (list[0] == null)
-                {
-                    response = "An unexpected problem has occurred during PlayerId/Name array processing.2";
-                    return false;
-                }
-                Owner = Player.Get(list[0]);
-            }
-            if (runner.KickPower < 12)
-            {
-                response = "你没权 （player.KickPower < 12）";
-                return false;
-            }
-            BetterZombie.Create(Owner);
-            response = $"done!";
-            return true;
-
-        }
-    }
     [CommandHandler(typeof(RemoteAdminCommandHandler))]
     class CreateCommand : ICommand
     {
@@ -878,6 +852,31 @@ namespace Next_generationSite_27.UnionP
             p.Visible = true;
             var BW = p.GameObject.AddComponent<bunker>();
             BW.Health = 100;
+            response = $"done!";
+            return true;
+
+        }
+    }
+    [CommandHandler(typeof(RemoteAdminCommandHandler))]
+    class CreateTCommand : ICommand
+    {
+        string ICommand.Command { get; } = "createAts";
+
+        string[] ICommand.Aliases { get; } = new[] { "CAts" };
+
+        string ICommand.Description { get; } = "!!!";
+
+        bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
+        {
+            var runner = Player.Get(sender);
+            var sk = new SerializableSchematic
+            {
+                SchematicName = "test",
+                Position = runner.Position
+            };
+
+            //Log.Info($"5kEffect Loaed!");
+            GameObject skg = sk.SpawnOrUpdateObject();
             response = $"done!";
             return true;
 
@@ -973,8 +972,8 @@ namespace Next_generationSite_27.UnionP
                 response = "Target room not found.";
                 return false;
             }
-            var nav = RoomGraph.InternalNav;
-            var re = nav.GetPathRooms(runner.CurrentRoom, Room.Get(targetRoomId));
+            var nav = RoomGraph.Instance;
+            var re = nav.GetRoomPath(runner.CurrentRoom, Room.Get(targetRoomId));
 
             // 修复：检查路径是否存在
             if (re == null || re.Count == 0)
@@ -1031,8 +1030,8 @@ namespace Next_generationSite_27.UnionP
             //var re = pathfinding.GetPathPoints(
             //    target.Position, new Vector3(x, y, z)
             //);
-            var nav = RoomGraph.InternalNav;
-            var re = nav.FindPath(runner.Position, runner.CurrentRoom, new Vector3(x, y, z), Room.Get(new Vector3(x, y, z)));
+            var nav = RoomGraph.Instance;
+            var re = nav.GetRoomPath(runner.CurrentRoom, Room.Get(new Vector3(x, y, z)));
             // 修复：检查路径是否存在
             if (re == null || re.Count == 0)
             {
@@ -1047,7 +1046,7 @@ namespace Next_generationSite_27.UnionP
                 Timing.CallDelayed(0.5f, delegate
                 {
                     npc.Role.Set(RoleTypeId.Tutorial);
-                    npc.Position = item + Vector3.up * 2f;
+                    npc.Position = item .Position+ Vector3.up * 2f;
                     npc.Health = npc.MaxHealth;
                 });
                 Player.Dictionary.Add(npc.GameObject, npc);
@@ -1134,7 +1133,7 @@ namespace Next_generationSite_27.UnionP
 
         string[] ICommand.Aliases { get; } = new[] { "Scp5000Role" };
 
-        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/Doc/GOCSPY/Changer/NukeGOC/NU7";
+        string ICommand.Description { get; } = "5kRole PlayerID GOC/UIU/BOT/GOCSPY/NukeGOC/NU7";
 
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
@@ -1206,17 +1205,6 @@ namespace Next_generationSite_27.UnionP
                         }
                         break;
                     }
-                case "CHANGER":
-                    {
-                        foreach (var item in list)
-                        {
-
-                            Player player = Player.Get(item);
-                            Scp5k.Scp5k_Control.ColorChangerRole.instance.AddRole(player);
-
-                        }
-                        break;
-                    }
                 case "NU7":
                     {
                         foreach (var item in list)
@@ -1245,18 +1233,6 @@ namespace Next_generationSite_27.UnionP
                         foreach (var item in list)
                         {
                             if (CustomRole.TryGet(bot.botID, out var Prole))
-                            {
-                                Player player = Player.Get(item);
-                                Prole.AddRole(player);
-                            }
-                        }
-                        break;
-                    }
-                case "DOC":
-                    {
-                        foreach (var item in list)
-                        {
-                            if (CustomRole.TryGet(Scp5k.Scp5k_Control.SciID, out var Prole))
                             {
                                 Player player = Player.Get(item);
                                 Prole.AddRole(player);

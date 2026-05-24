@@ -463,7 +463,7 @@ namespace Next_generationSite_27.UnionP.heavy.role
 
             if (ClipSize > 0)
             {
-                int num = ((AutomaticActionModule)ev.Firearm.Base.Modules.FirstOrDefault((ModuleBase x) => x is AutomaticActionModule))?.SyncAmmoChambered ?? 0;
+                int num = ((AutomaticActionModule)ev.Firearm.Base.Modules.FirstOrDefault((ModuleBase x) => x is AutomaticActionModule))?.AmmoStored ?? 0;
                 int num2 = ClipSize - num;
                 AmmoType ammoType = ev.Firearm.AmmoType;
                 int magazineAmmo = ev.Firearm.MagazineAmmo;

@@ -206,7 +206,8 @@ namespace Next_generationSite_27.UnionP.Turret
                     using (new AutosyncRpc(autoItem.ItemId, out var writer))
                     {
                         writer.WriteByte(b);
-                        writer.WriteSubheader(ImpactEffectsModule.RpcType.ImpactDecal);
+                        writer.WriteByte(((IConvertible)0).ToByte((IFormatProvider)null));
+
                         writer.WriteByte((byte)type);
                         writer.WriteRelativePosition(hitPoint);
                         writer.WriteRelativePosition(startRaycastPoint);
@@ -231,9 +232,8 @@ namespace Next_generationSite_27.UnionP.Turret
                     using (new AutosyncRpc(autoItem.ItemId, out var writer))
                     {
                         writer.WriteByte(b);
+                        writer.WriteByte(((IConvertible)2).ToByte((IFormatProvider)null));
 
-                        writer.WriteSubheader(ImpactEffectsModule.RpcType.TracerDefault);
-                        
                         writer.WriteRelativePosition(hitPoint);
                         writer.WriteRelativePosition(startRaycastPoint);
                         writer.WriteByte((byte)Onwer.Role.Team);

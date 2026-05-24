@@ -88,7 +88,7 @@ namespace Next_generationSite_27.UnionP.UI
             var a = ParsePos(location);
             var targetX = a.targetX;
             var targetY = a.targetY;
-            var h = new HintServiceMeow.Core.Models.Hints.DynamicHint()
+            var h = new HintServiceMeow.Core.Models.Hints.Hint()
             {
                 Id = id,
                 AutoText = new TextUpdateHandler((x) =>
@@ -100,13 +100,9 @@ namespace Next_generationSite_27.UnionP.UI
                     }
                     return r;
                 }),
-                TargetX = targetX,
-                TargetY = targetY,
-                TopBoundary = targetY,
-                LeftBoundary = targetX,
-                BottomBoundary = targetY + 200,
-                RightBoundary = targetX + 100,
-                Strategy = HintServiceMeow.Core.Enum.DynamicHintStrategy.StayInPosition,
+                XCoordinate = targetX,
+                YCoordinate = targetY,
+
             };
             if (duration != 0)
             {
@@ -210,7 +206,7 @@ namespace Next_generationSite_27.UnionP.UI
                     targetX = 0;
                     break;
                 case ScreenLocation.ReversedForPlayerLVShow:
-                    targetY = 1070;
+                    targetY = 1053;
                     targetX = 0;
                     break;
                 case ScreenLocation.NtfSpawn:

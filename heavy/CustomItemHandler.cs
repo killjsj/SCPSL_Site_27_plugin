@@ -312,8 +312,6 @@ namespace Next_generationSite_27.UnionP.heavy
 
 
     [CommandHandler(typeof(RemoteAdminCommandHandler))] 
-    [CommandHandler(typeof(GameConsoleCommandHandler))]
-    [CommandHandler(typeof(ClientCommandHandler))]
     public class GiveAT4Command : ICommand
     {
         public string Command  => "give.at4";

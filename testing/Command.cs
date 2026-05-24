@@ -442,7 +442,7 @@ namespace Next_generationSite_27.UnionP
         bool ICommand.Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
         {
             var runner = Player.Get(sender);
-            response = $"done! op:{runner.Position.ToString()} {runner.CurrentRoom} {runner.CurrentRoom.RoomName} {runner.CurrentRoom.Identifier.Shape} \nNearestRooms:";
+            response = $"done! op:{runner.Position.ToString()} {runner.Rotation} {runner.CurrentRoom} {runner.CurrentRoom.RoomName} {runner.CurrentRoom.Identifier.Shape} \nNearestRooms:";
             foreach (var item in runner.CurrentRoom.NearestRooms)
             {
                 response += $"  {item} \n";

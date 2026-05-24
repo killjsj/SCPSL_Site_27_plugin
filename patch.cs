@@ -31,7 +31,6 @@ using LabApi.Events.Handlers;
 using MapGeneration.Holidays;
 using Mirror;
 using MySqlX.XDevAPI;
-using Next_generationSite_27.UnionP.Buffs;
 using Next_generationSite_27.UnionP.Scp5k;
 using NorthwoodLib.Pools;
 using Org.BouncyCastle.Pkix;
@@ -109,7 +108,7 @@ namespace Next_generationSite_27.UnionP
         [HarmonyPrefix]
         public static bool Prefix(ArraySegment<string> arguments, ICommandSender sender, ref string response, ref bool __result)
         {
-            Next_generationSite_27.UnionP.PlayerManager.BanCommand b = CommandProcessor.GetAllCommands().First(x => x is Next_generationSite_27.UnionP.PlayerManager.BanCommand) as Next_generationSite_27.UnionP.PlayerManager.BanCommand;
+            Next_generationSite_27.UnionP.PlayerManager.BanCommand b = CommandProcessor.RemoteAdminCommandHandler.AllCommands.First(x => x is Next_generationSite_27.UnionP.PlayerManager.BanCommand) as Next_generationSite_27.UnionP.PlayerManager.BanCommand;
             __result = b.Execute(arguments, sender, out response);
             return false;
         }
@@ -768,17 +767,6 @@ namespace Next_generationSite_27.UnionP
         {
             Plugin.plugin.eventhandle.assing();
             LobbySOng.Ins.RoundStarted();
-            return true;
-        }
-    }
-    [HarmonyPatch(typeof(DisruptorHitregModule))]
-    public static class DisruptorHitregModulePatch
-    {
-        [HarmonyPatch("TemplateSimulateShot")]
-        [HarmonyPrefix]
-        public static bool Prefix(DisruptorShotEvent data, BarrelTipExtension barrelTip)
-        {
-            Plugin.plugin.eventhandle.TemplateSimulateShot(data, barrelTip);
             return true;
         }
     }

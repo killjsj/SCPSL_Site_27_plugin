@@ -133,9 +133,10 @@ namespace Next_generationSite_27.UnionP.testing
         }
         protected override void OnCleanup()
         {
-            if (p)
+            if (p != null)
             {
-                p.StopAudio();
+                p.Stop();
+                p = null;
             }
             foreach (var item in Player.Enumerable)
             {
@@ -322,7 +323,7 @@ namespace Next_generationSite_27.UnionP.testing
                 yield return Timing.WaitForSeconds(1f);
             }
         }
-        AudioPlayer p;
+        IAudioHandle p;
         new czszConfig Config = new();
         protected override void OnStart()
         {

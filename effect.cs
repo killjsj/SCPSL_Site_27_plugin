@@ -23,7 +23,7 @@ namespace Next_generationSite_27.UnionP
 
         public bool CanBeDisplayed => true;
 
-        public override void OnTick()
+        protected override void OnTick()
         {
             var p = Player.Get(Hub);
             if (p != null)

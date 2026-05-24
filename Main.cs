@@ -40,6 +40,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management.Instrumentation;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -223,6 +224,7 @@ namespace Next_generationSite_27.UnionP
         // --- snake end ---
         public static IFFManager CurrentFFManager;
         static public List<BaseClass> baseClasses = new List<BaseClass>();
+        static public List<AutoEvent.Interfaces.Event> RegEvents = new List<AutoEvent.Interfaces.Event>();
         public string settingPath => $"{Paths.Configs}\\Plugins\\union_plugin";
         public static string SettingPath => plugin.settingPath;
         public override void OnEnabled()
@@ -241,12 +243,9 @@ namespace Next_generationSite_27.UnionP
             eventhandle = new EventHandle(Config);
 
             Exiled.Events.Handlers.Map.Generated += eventhandle.Generated;
-            Exiled.Events.Handlers.Player.Joined += eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam += eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers += eventhandle.WaitingForPlayers;
-            Exiled.Events.Handlers.Player.Shot += eventhandle.Shot;
             Exiled.Events.Handlers.Player.ChangedItem += eventhandle.ChangedItem;
-            Exiled.Events.Handlers.Player.ChangingMicroHIDState += eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
             ChaosKeycardItem.OnSnakeMovementDirChanged += eventhandle.OnSnakeMovementDirChanged;
             //PlayerEvents.InspectedKeycard += eventhandle.InspectedKeycard;+-
@@ -257,7 +256,6 @@ namespace Next_generationSite_27.UnionP
             //Exiled.Events.Handlers.Player.DroppedItem += eventhandle.DroppedItem;
             Exiled.Events.Handlers.Server.RestartingRound += eventhandle.RestartingRound;
             Exiled.Events.Handlers.Server.RestartingRound += RestartingRound;
-            Exiled.Events.Handlers.Player.ChangingRole += eventhandle.ChangingRole;
 
             Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
             //Exiled.Events.Handlers.Player.Shot += Bomb.OnPlayerShotWeapon;
@@ -270,8 +268,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Left += eventhandle.OnPlayerLeave;
 
             Exiled.Events.Handlers.Player.Spawned += eventhandle.OnSpawned;
-            Exiled.Events.Handlers.Item.DisruptorFiring += eventhandle.DisruptorFiring;
-
             Exiled.Events.Handlers.Server.RoundEnded += eventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Left += OnLeft;
@@ -279,7 +275,6 @@ namespace Next_generationSite_27.UnionP
             //Exiled.Events.Handlers.Map.AnnouncingScpTermination += Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole += GOCAnim.OnchangingRole;
             Exiled.Events.Handlers.Player.PickingUpItem += GOCBomb.OnPickUp;
-
             Exiled.Events.Handlers.Player.Verified += UnionP.testing.FlightFailed.OnVerify;
             Exiled.Events.Handlers.Player.Dying += UnionP.testing.FlightFailed.OnDied;
             Exiled.Events.Handlers.Player.Hurting += UnionP.testing.FlightFailed.OnHurt;
@@ -331,7 +326,7 @@ namespace Next_generationSite_27.UnionP
             max_active_g = Config.maxbomb;
             harmony = new Harmony("Killjsj.plugin.site27plugin");
             harmony.PatchAll();
-            AutoEvent.AutoEvent.EventManager.RegisterInternalEvents();
+
             Scp5k.GOCAnim.Load();
             DefaultAudioManager.RegisterAudio("decont_1", () =>
                 File.OpenRead($"{SettingPath}\\decont_1.wav"));
@@ -380,6 +375,29 @@ namespace Next_generationSite_27.UnionP
                         Log.Error($"Error initializing class {item.FullName}: {ex}");
                     }
                 }
+                if (!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(AutoEvent.Interfaces.Event)))
+                {
+                    try
+                    {
+                        object obj = Activator.CreateInstance(item);
+                        if (obj != null)
+                        {
+                            if (obj is AutoEvent.Interfaces.Event ev)
+                            {
+                                var result = EventManager.RegisterEvent(ev);
+
+                                if (result != EventRegistrationResult.Success)
+                                    Log.Warn($"Failed to register event: {result}");
+                                else RegEvents.Add(ev);
+                            }
+
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Error($"Error initializing class {item.FullName}: {ex}");
+                    }
+                }
             }
         }
         public override void OnDisabled()
@@ -388,13 +406,10 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Left -= OnLeft;
 
             Exiled.Events.Handlers.Map.Generated -= eventhandle.Generated;
-            Exiled.Events.Handlers.Player.Joined -= eventhandle.Joined;
             Exiled.Events.Handlers.Server.RespawningTeam -= eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers -= eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Server.RestartingRound -= RestartingRound;
-            Exiled.Events.Handlers.Player.Shot -= eventhandle.Shot;
             Exiled.Events.Handlers.Player.ChangedItem -= eventhandle.ChangedItem;
-            Exiled.Events.Handlers.Player.ChangingMicroHIDState -= eventhandle.ChangingMicroHIDState;
             //Exiled.Events.Handlers.P
             ChaosKeycardItem.OnSnakeMovementDirChanged -= eventhandle.OnSnakeMovementDirChanged;
             //PlayerEvents.InspectedKeycard -= eventhandle.InspectedKeycard;+-
@@ -403,7 +418,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.RoundStarted -= eventhandle.RoundStarted;
             Exiled.Events.Handlers.Player.Verified -= eventhandle.Verified;
             Exiled.Events.Handlers.Server.RestartingRound -= eventhandle.RestartingRound;
-            Exiled.Events.Handlers.Player.ChangingRole -= eventhandle.ChangingRole;
             Exiled.Events.Handlers.Server.RoundEnded -= eventhandle.OnRoundEnd;
 
             Exiled.Events.Handlers.Player.Shot -= Bomb.OnPlayerShotWeapon;
@@ -414,8 +428,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Player.Escaping -= eventhandle.Escaping;
 
             Exiled.Events.Handlers.Player.Left -= eventhandle.OnPlayerLeave;
-
-            Exiled.Events.Handlers.Item.DisruptorFiring -= eventhandle.DisruptorFiring;
             Exiled.Events.Handlers.Player.Spawned -= eventhandle.OnSpawned;
             //Exiled.Events.Handlers.Map.AnnouncingScpTermination -= Scp5k_Control.AnnouncingScpTermination;
             Exiled.Events.Handlers.Player.ChangingRole -= GOCAnim.OnchangingRole;
@@ -436,6 +448,13 @@ namespace Next_generationSite_27.UnionP
                     }
 
 
+                }
+            }
+            foreach (var item in RegEvents)
+            {
+                if(item != null)
+                {
+                    EventManager.UnregisterEvent(item);
                 }
             }
             harmony.UnpatchAll();

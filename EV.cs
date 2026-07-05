@@ -62,19 +62,12 @@ namespace Next_generationSite_27.UnionP
 
         PConfig Config => Plugin.Instance.Config;
         public Dictionary<Player, Stopwatch> BroadcastTime = new Dictionary<Player, Stopwatch>();
-        public Dictionary<ushort, Player> snakepairs = new Dictionary<ushort, Player>();
-        public Dictionary<Player, int> cachedHighestPairs = new Dictionary<Player, int>();
         MySQLConnect MysqlConnect = Plugin.plugin.connect;
-        public (string userid, string name, int? highscore, DateTime? time) cachedHighest = (string.Empty, string.Empty, null, DateTime.MinValue);
         public Dictionary<string, List<(bool enable, string card, string text, string holder, string color, string permColor, string displayCardname, int? RankLevel, bool applytoAll)>> cachedcard =
             new Dictionary<string, List<(bool enable, string card, string text, string holder, string color, string permColor, string displayCardname, int? RankLevel, bool applytoAll)>>();
         public Dictionary<ushort,ItemType> cachedCards = new Dictionary<ushort, ItemType>();
         public void ChangedItem(ChangedItemEventArgs ev)
         {
-            if (ev.OldItem != null)
-            {
-                snakepairs.Remove(ev.OldItem.Serial);
-            }
             if (ev.Item == null)
             {
             }
@@ -298,98 +291,12 @@ namespace Next_generationSite_27.UnionP
             }
             return itemType.TryGetTemplate(out keycard) && keycard.Customizable;
         }
-        public void InspectedKeycard(PlayerInspectedKeycardEventArgs ev)
-        {
-            if (ev.KeycardItem.Base is ChaosKeycardItem chaos)
-            {
-                if (!snakepairs.ContainsKey(chaos.ItemSerial))
-                {
-                    snakepairs.Add(chaos.ItemSerial, ev.Player);
-                }
-
-            }
-        }
-        public void OnSnakeMovementDirChanged(ushort? Nid, Vector2Int Head)
-        {
-            if (Nid != null)
-            {
-
-                ushort id = Nid.Value;
-                if (snakepairs.TryGetValue(id, out var player))
-                {
-
-                    var SE = ChaosKeycardItem.SnakeSessions[id];
-                    if (MysqlConnect.connected)
-                    {
-                        if (SE != null)
-                        {
-
-                            if (!cachedHighestPairs.ContainsKey(player))
-                            {
-                                var highscore = MysqlConnect.QuerySnake(player.UserId).highscore;
-                                if (highscore != null)
-                                {
-                                    cachedHighestPairs.Add(player, highscore.Value);
-                                }
-                                else
-                                {
-                                    cachedHighestPairs.Add(player, 0);
-                                }
-                            }
-                            if (!cachedHighest.highscore.HasValue)
-                            {
-                                cachedHighest = MysqlConnect.QueryHighest();
-                                if (!cachedHighest.highscore.HasValue)
-                                {
-                                    cachedHighest.highscore = 0;
-                                }
-                            }
-                            if (cachedHighestPairs[player] < SE.Score)
-                            {
-                                cachedHighestPairs[player] = SE.Score;
-                                if (SE.Score > cachedHighest.highscore)
-                                {
-                                    player.Broadcast(new Exiled.API.Features.Broadcast()
-                                    {
-                                        Content = $"<size=15>恭喜你更新服务器最高分:{cachedHighestPairs[player]}",
-                                        Duration = 1
-                                    });
-                                    cachedHighest = (player.UserId, player.DisplayNickname, SE.Score, DateTime.Now);
-                                }
-                                else
-                                {
-                                    player.Broadcast(new Exiled.API.Features.Broadcast()
-                                    {
-                                        Content = $"<size=15>恭喜你更新个人最高分:{cachedHighestPairs[player]}",
-                                        Duration = 1
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-
-            }
-        }
         public void RestartingRound()
         {
-            update();
             stopBroadcast();
             if (rder.IsRunning)
             {
                 MEC.Timing.KillCoroutines(rder);
-            }
-        }
-        public void update()
-        {
-            var MysqlConnect = Plugin.plugin.connect;
-
-            if (cachedHighestPairs != null)
-            {
-                foreach (var item in cachedHighestPairs)
-                {
-                    MysqlConnect.Update(item.Key.UserId, item.Key.Nickname, item.Value, DateTime.Now);
-                }
             }
         }
         public EventHandle(PConfig config)
@@ -755,11 +662,8 @@ namespace Next_generationSite_27.UnionP
             string newtext = "";
             for (int i = 0; i < text.Length; i++)
             {
-                // 在 0~1 之间均匀分布 Hue（色相）
                 float hue = i / (float)Mathf.Max(1, text.Length - 1);
-                Color color = Color.HSVToRGB(hue, 1f, 1f); // 饱和度和亮度最大
-
-                // 转为 HEX 格式
+                Color color = Color.HSVToRGB(hue, 1f, 1f);
                 string hex = ColorToHex(color);
 
                 newtext += $"<color={hex}>{text[i]}</color>";

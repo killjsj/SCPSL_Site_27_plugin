@@ -11,12 +11,12 @@ namespace Next_generationSite_27.UnionP
     {
         public void StartInit()
         {
-            Log.Info($"initing {this.GetType().FullName}");
+            //Log.Info($"initing {this.GetType().FullName}");
             this.Init();
         }
         public void StartDelete()
         {
-            Log.Info($"deleting {this.GetType().FullName}");
+            //Log.Info($"deleting {this.GetType().FullName}");
             this.Delete();
         }
         abstract public void Init();

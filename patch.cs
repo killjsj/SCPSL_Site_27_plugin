@@ -75,13 +75,14 @@ namespace Next_generationSite_27.UnionP
     [HarmonyPatch(typeof(PlayerEvents))]
     public class PlayerEventsUpdatePatch
     {
-        [HarmonyPatch("OnInspectedKeycard")]
+        
+        /*[HarmonyPatch("OnInspectedKeycard")]
         [HarmonyPrefix]
         public static bool Prefix(PlayerInspectedKeycardEventArgs ev)
         {
             Plugin.plugin.InspectedKeycard(ev); // 暂时性解决方案
             return true;
-        }
+        }*/
     }
     [HarmonyPatch(typeof(ItemPickupBase))]
     public class ItemPickupBasePatch
@@ -101,16 +102,22 @@ namespace Next_generationSite_27.UnionP
             return true;
         }
     }
-    [HarmonyPatch(typeof(BanCommand))]
+    [HarmonyPatch(typeof(CommandSystem.Commands.RemoteAdmin.BanCommand))]
     public class BanCommandPatch
     {
         [HarmonyPatch("Execute")]
         [HarmonyPrefix]
         public static bool Prefix(ArraySegment<string> arguments, ICommandSender sender, ref string response, ref bool __result)
         {
-            Next_generationSite_27.UnionP.PlayerManager.BanCommand b = CommandProcessor.RemoteAdminCommandHandler.AllCommands.First(x => x is Next_generationSite_27.UnionP.PlayerManager.BanCommand) as Next_generationSite_27.UnionP.PlayerManager.BanCommand;
-            __result = b.Execute(arguments, sender, out response);
-            return false;
+            if(CommandProcessor.RemoteAdminCommandHandler.TryGetCommand("sban", out var command))
+            {
+                Next_generationSite_27.UnionP.BanCommand b = command as Next_generationSite_27.UnionP.BanCommand;
+                __result = b.Execute(arguments, sender, out response);
+
+                 return false;
+            }
+            return true;
+
         }
     }
     [HarmonyPatch(typeof(InventoryLimits))]

@@ -37,60 +37,6 @@ namespace Next_generationSite_27
             }
         }
 
-        /// <summary>
-        /// 查询指定用户的 Snack 最高分和记录时间
-        /// </summary>
-        /// <param name="userid">用户ID</param>
-        /// <returns>(name, highscore, Snack_Create_time)</returns>
-        public (string name, int? highscore, DateTime? time) QuerySnake(string userid)
-        {
-            if (!connected)
-                return (string.Empty, null, null);
-
-            string query = @"
-                SELECT 
-                    name, 
-                    highscore, 
-                    Snack_Create_time 
-                FROM user 
-                WHERE userid = @userid";
-
-            try
-            {
-                connection.Open();
-                using (var cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@userid", userid);
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            int nameOrdinal = reader.GetOrdinal("name");
-                            int highscoreOrdinal = reader.GetOrdinal("highscore");
-                            int timeOrdinal = reader.GetOrdinal("Snack_Create_time");
-
-                            string name = reader.IsDBNull(nameOrdinal) ? string.Empty : reader.GetString(nameOrdinal);
-                            int? highscore = reader.IsDBNull(highscoreOrdinal) ? (int?)null : reader.GetInt32(highscoreOrdinal);
-                            DateTime? time = reader.IsDBNull(timeOrdinal) ? (DateTime?)null : reader.GetDateTime(timeOrdinal);
-
-                            return (name, highscore, time);
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"❌ 查询用户 {userid} 的 Snack 分数失败: {ex.Message}");
-            }
-            finally
-            {
-                if (connection.State == ConnectionState.Open)
-                    connection.Close();
-            }
-
-            // 用户不存在或无数据
-            return (string.Empty, null, null);
-        }
         public (int uid, string name, int experience,double? experience_multiplier, int point, string ip, DateTime? last_time, TimeSpan? total_duration, TimeSpan? today_duration) QueryUser(string userid)
         {
             if (!connected)
@@ -162,12 +108,12 @@ namespace Next_generationSite_27
         //    if (!connected)
         //        return (string.Empty, 0, null);
 
-        //    // 从 user 表直接读取 highscore 和 Snack_Create_time
+        //    // 从 user 表直接读取 highscore 和 record_time
         //    string query = @"
         //        SELECT 
         //            name, 
         //            highscore, 
-        //            Snack_Create_time 
+        //            record_time 
         //        FROM user 
         //        WHERE userid = @userid";
 
@@ -181,7 +127,7 @@ namespace Next_generationSite_27
         //            {
         //                if (reader.Read())
         //                {
-        //                    int timeOrdinal = reader.GetOrdinal("Snack_Create_time");
+        //                    int timeOrdinal = reader.GetOrdinal("record_time");
 
         //                    string name = reader["name"].ToString();
         //                    int highscore = reader.GetInt32("highscore");
@@ -316,54 +262,6 @@ namespace Next_generationSite_27
             return l;
 
         }
-        /// 更新用户在 user 表中的最高分记录（仅当新分数更高时）
-        /// </summary>
-        /// <param name="userid">用户ID</param>
-        /// <param name="name">玩家名称</param>
-        /// <param name="highscore">本次得分</param>
-        /// <param name="time">本次游戏时间</param>
-        public void Update(string userid, string name, int highscore, DateTime time)
-        {
-            if (!connected) return;
-
-            // 仅当新分数更高时，才更新 highscore 和 Snack_Create_time
-            string query = @"
-UPDATE user 
-SET 
-    name = @name,
-    highscore = @highscore,
-    Snack_Create_time = @snack_create_time
-WHERE userid = @userid;";
-
-            try
-            {
-                connection.Open();
-                using (var cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@userid", userid);
-                    cmd.Parameters.AddWithValue("@name", name ?? string.Empty); // 提供默认值
-                    cmd.Parameters.AddWithValue("@highscore", highscore);
-                    cmd.Parameters.AddWithValue("@snack_create_time", time);
-
-                    int rowsAffected = cmd.ExecuteNonQuery();
-
-                    // 如果没有更新（分数不高），可以插入新用户（如果用户不存在）
-                    if (rowsAffected == 0)
-                    {
-                        InsertOrUpdateUser(cmd, userid, name, highscore, time);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"更新用户 {userid} 的 Snack 分数失败: {ex.Message}");
-            }
-            finally
-            {
-                if (connection.State == ConnectionState.Open)
-                    connection.Close();
-            }
-        }
         public void Update(
             string userid,
             string name = null,
@@ -372,53 +270,39 @@ WHERE userid = @userid;";
             string ip = null,
             int point = -1,
             DateTime? last_time = null,
-            TimeSpan? today_duration = null)
+            TimeSpan? today_duration = null,
+            TimeSpan? total_duration = null)
         {
             if (!connected || string.IsNullOrEmpty(userid)) return;
 
             try
             {
-                    var p = QueryUser(userid);
+                var p = QueryUser(userid);
                 connection.Open();
-                using (var cmd = new MySqlCommand())
-                {
-                    cmd.Connection = connection;
 
-                    // 先查询现有用户数据（仅当需要 fallback 时）
+                name = name ?? p.name;
+                point = point == -1 ? p.point : point;
+                experience = experience == -1 ? p.experience : experience;
+                experience_multiplier = experience_multiplier ?? p.experience_multiplier;
+                ip = ip ?? p.ip;
+                last_time = last_time ?? p.last_time;
+                today_duration = today_duration ?? p.today_duration;
+                total_duration = total_duration ?? p.total_duration;
 
-                    // 填充默认值（来自数据库）
-                    name = name ?? p.name;
-                    point = point == -1 ? p.point : point;
-                    experience = experience == -1 ? p.experience : experience;
-                    experience_multiplier = experience_multiplier ?? p.experience_multiplier;
-                    ip = ip ?? p.ip;
-                    last_time = last_time ?? p.last_time;
-                    today_duration = today_duration ?? p.today_duration;
-                    TimeSpan? total_time = null;
-                    if(total_time != null)
-                    {
-                        total_time = p.total_duration + today_duration;
-                    }else
-                    {
-                        total_time = p.total_duration;
-                    }
-                        // 使用 INSERT ... ON DUPLICATE KEY UPDATE
-                        string upsertSql = @"
-INSERT INTO user 
-    (userid, name, experience, experience_multiplier, ip,point, today_duration, total_duration, last_time)
-VALUES 
-    (@userid, @name, @experience, @experience_multiplier, @ip,@point, @today_duration, @total_duration, @last_time)
+                string sql = @"
+INSERT INTO user (userid, name, experience, experience_multiplier, ip, point, today_duration, total_duration, last_time)
+VALUES (@userid, @name, @experience, @experience_multiplier, @ip, @point, @today_duration, @total_duration, @last_time)
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
     experience = VALUES(experience),
     experience_multiplier = VALUES(experience_multiplier),
     ip = VALUES(ip),
+    point = VALUES(point),
     today_duration = VALUES(today_duration),
     total_duration = VALUES(total_duration),
-    point = VALUES(point),
     last_time = VALUES(last_time);";
-
-                    cmd.CommandText = upsertSql;
+                using (var cmd = new MySqlCommand(sql, connection))
+                {
                     cmd.Parameters.AddWithValue("@userid", userid);
                     cmd.Parameters.AddWithValue("@name", name ?? string.Empty);
                     cmd.Parameters.AddWithValue("@experience", experience);
@@ -426,15 +310,14 @@ ON DUPLICATE KEY UPDATE
                     cmd.Parameters.AddWithValue("@ip", ip ?? string.Empty);
                     cmd.Parameters.AddWithValue("@point", point);
                     cmd.Parameters.AddWithValue("@today_duration", today_duration ?? TimeSpan.Zero);
-                    cmd.Parameters.AddWithValue("@total_duration", total_time ?? TimeSpan.Zero);
+                    cmd.Parameters.AddWithValue("@total_duration", total_duration ?? TimeSpan.Zero);
                     cmd.Parameters.AddWithValue("@last_time", last_time ?? DateTime.Now);
-
                     cmd.ExecuteNonQuery();
                 }
             }
             catch (Exception ex)
             {
-                Log.Error($"更新用户 {userid} 失败: {ex.Message}"); // 记录 SQL 有助于调试
+                Log.Error($"更新用户 {userid} 失败: {ex.Message}");
             }
             finally
             {
@@ -442,260 +325,48 @@ ON DUPLICATE KEY UPDATE
                     connection.Close();
             }
         }
-        private void InsertOrUpdateUser(MySqlCommand cmd, string userid, string name, int highscore, DateTime time)
-        {
-            // 先尝试插入（如果用户不存在）
-            string insertSql = @"
-INSERT INTO user (userid, name, highscore, Snack_Create_time)
-VALUES (@userid, @name, @highscore, @snack_create_time)
-ON DUPLICATE KEY UPDATE
-    name = VALUES(name),
-    highscore = GREATEST(highscore, VALUES(highscore)),
-    Snack_Create_time = CASE WHEN VALUES(highscore) > highscore THEN VALUES(Snack_Create_time) ELSE Snack_Create_time END";
 
-            cmd.CommandText = insertSql;
-            cmd.Parameters.Clear();
-            cmd.Parameters.AddWithValue("@userid", userid);
-            cmd.Parameters.AddWithValue("@name", name ?? string.Empty); // 提供默认值
-            cmd.Parameters.AddWithValue("@highscore", highscore);
-            cmd.Parameters.AddWithValue("@snack_create_time", time);
-            cmd.ExecuteNonQuery();
-        }
         /// <summary>
-        /// 查询全局最高分记录
+        /// 插入聊天记录
         /// </summary>
-        /// <returns>(userid, name, highscore, Snack_Create_time)</returns>
-        public (string userid, string name, int? highscore, DateTime? time) QueryHighest()
+        public void InsertChatLog(string userid, string name, string message, string channel, string port)
         {
-            if (!connected)
-                return (string.Empty, string.Empty, 0, null);
-
-            string query = @"
-                SELECT 
-                    userid, 
-                    name, 
-                    highscore, 
-                    Snack_Create_time 
-                FROM user 
-                WHERE highscore > 0 
-                ORDER BY highscore DESC 
-                LIMIT 1";
-
+            if (!connected || string.IsNullOrEmpty(userid)) return;
+            string sql = @"
+INSERT INTO chat_log (userid, name, message, channel, time, port)
+VALUES (@userid, @name, @message, @channel, @time, @port);";
             try
             {
                 connection.Open();
-                using (var cmd = new MySqlCommand(query, connection))
-                using (var reader = cmd.ExecuteReader())
-                {
-                    if (reader.Read())
-                    {
-                        int timeOrdinal = reader.GetOrdinal("Snack_Create_time");
-
-                        return (
-                            reader["userid"].ToString(),
-                            reader["name"].ToString(),
-                            reader.GetInt32("highscore"),
-                            reader.IsDBNull(timeOrdinal)
-                                ? (DateTime?)null
-                                : reader.GetDateTime(timeOrdinal)
-                        );
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"❌ 查询最高分失败: {ex.Message}");
-            }
-            finally
-            {
-                if (connection.State == ConnectionState.Open)
-                    connection.Close();
-            }
-
-            return (string.Empty, string.Empty, 0, null);
-        }
-        /// <summary>
-        /// 查询 Snack 游戏排行榜前 N 名
-        /// </summary>
-        /// <param name="rankcount">要查询的排名数量（如 10）</param>
-        /// <returns>排名列表：(rank, userid, name, highscore, Snack_Create_time)</returns>
-        public List<(int rank, string userid, string name, int highscore, DateTime? time)> GetTopSnackScores(int rankcount)
-        {
-            if (!connected)
-                return new List<(int, string, string, int, DateTime?)>();
-
-            // 限制最大返回数量，防止内存溢出
-            int limit = Math.Max(1, Math.Min(rankcount, 100)); // 最多返回 100 条
-
-            string query = @"
-        SELECT 
-            userid,
-            name,
-            highscore,
-            Snack_Create_time 
-        FROM user 
-        WHERE highscore > 0 
-        ORDER BY highscore DESC 
-        LIMIT @limit";
-
-            var result = new List<(int rank, string userid, string name, int highscore, DateTime? time)>();
-
-            try
-            {
-                connection.Open();
-                using (var cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@limit", limit);
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        int rank = 1;
-                        while (reader.Read())
-                        {
-                            int timeOrdinal = reader.GetOrdinal("Snack_Create_time");
-                            string userid = reader["userid"].ToString();
-                            string name = reader["name"].ToString();
-                            int highscore = reader.GetInt32("highscore");
-                            DateTime? time = reader.IsDBNull(timeOrdinal)
-                                    ? (DateTime?)null
-                                    : reader.GetDateTime(timeOrdinal);
-
-                            result.Add((rank++, userid, name, highscore, time));
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"❌ 查询前 {limit} 名排行榜失败: {ex.Message}");
-            }
-            finally
-            {
-                if (connection.State == ConnectionState.Open)
-                    connection.Close();
-            }
-
-            return result;
-        }
-        public void LogAdminPermission(string userid, string name, int port, string command, string result, string additionalInfo = "", string group = "")
-        {
-            if (!connected) return;
-
-            string query = @"
-                INSERT INTO admin_log 
-                (userid, name, operation_time, port, command_name, command_result, additional_info,admingrooup)
-                VALUES 
-                (@userid, @name, @operation_time, @port, @command_name, @command_result, @additional_info,@admingrooup)";
-
-            try
-            {
-                connection.Open();
-                using (var cmd = new MySqlCommand(query, connection))
-                {
-                    cmd.Parameters.AddWithValue("@userid", userid ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@name", name ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@operation_time", DateTime.Now);
-                    cmd.Parameters.AddWithValue("@port", port);
-                    cmd.Parameters.AddWithValue("@command_name", command ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@command_result", result ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@additional_info", additionalInfo ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@admingrooup", group ?? string.Empty);
-
-                    cmd.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"❌ 记录管理员权限日志失败: {ex.Message}");
-            }
-            finally
-            {
-                if (connection.State == ConnectionState.Open)
-                    connection.Close();
-            }
-        }
-        /// <summary>
-        /// 查询指定用户的徽章列表
-        /// </summary>
-        /// <param name="userid">用户ID</param>
-        /// <returns>徽章列表：(player_name, badge, color, expiration_date, is_permanent, notes)</returns>
-        public List<(string player_name, string badge, string color, DateTime expiration_date, bool is_permanent, string notes)> QueryBadge(string userid)
-        {
-            var badges = new List<(string player_name, string badge, string color, DateTime expiration_date, bool is_permanent, string notes)>();
-
-            if (!connected || string.IsNullOrEmpty(userid))
-                return badges;
-
-            string query = @"
-        SELECT 
-            player_name,
-            badge,
-            color,
-            expiration_date,
-            is_permanent,
-            notes
-        FROM badge 
-        WHERE userid = @userid 
-          AND (is_permanent = 1 OR expiration_date > NOW())
-        ORDER BY is_permanent DESC, expiration_date ASC";
-
-            try
-            {
-                connection.Open();
-                using (var cmd = new MySqlCommand(query, connection))
+                using (var cmd = new MySqlCommand(sql, connection))
                 {
                     cmd.Parameters.AddWithValue("@userid", userid);
-                    using (var reader = cmd.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            string player_name = reader["player_name"] as string ?? string.Empty;
-                            string badgeName = reader["badge"] as string ?? "未知徽章";
-                            string color = reader["color"] as string ?? "white";
-                            DateTime expiration_date = reader.GetDateTime("expiration_date");
-                            bool is_permanent = reader.GetInt32("is_permanent") == 1;
-                            string notes = reader["notes"] as string ?? string.Empty;
-
-                            badges.Add((player_name, badgeName, color, expiration_date, is_permanent, notes));
-                        }
-                    }
+                    cmd.Parameters.AddWithValue("@name", name ?? "");
+                    cmd.Parameters.AddWithValue("@message", message ?? "");
+                    cmd.Parameters.AddWithValue("@channel", channel ?? "");
+                    cmd.Parameters.AddWithValue("@time", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@port", port ?? "");
+                    cmd.ExecuteNonQuery();
                 }
             }
-            catch (Exception ex)
-            {
-                Log.Error($"❌ 查询用户 {userid} 的徽章失败: {ex.Message}");
-            }
+            catch (Exception ex) { Log.Error($"插入聊天记录失败: {ex.Message}"); }
             finally
             {
                 if (connection.State == ConnectionState.Open)
                     connection.Close();
             }
-
-            return badges;
         }
+
         /// <summary>
-        /// 更新或插入用户的封禁记录
+        /// 查询用户在所有服务器的违规总次数（ban表记录数）
         /// </summary>
-        /// <param name="userid">被封禁者用户ID</param>
-        /// <param name="name">被封禁者名称</param>
-        /// <param name="issuer_userid">执行者用户ID</param>
-        /// <param name="issuer_name">执行者名称</param>
-        /// <param name="reason">封禁原因</param>
-        /// <param name="start_time">封禁开始时间</param>
-        /// <param name="end_time">封禁结束时间</param>
-        /// <param name="port">封禁的服务器端口</param>
-        /// <returns>是否操作成功</returns>
-        /// <summary>
-        /// 插入用户的封禁记录（永远插入新记录，不更新）
-        /// </summary>
-        /// <param name="userid">被封禁者用户ID</param>
-        /// <param name="name">被封禁者名称</param>
-        /// <param name="issuer_userid">执行者用户ID</param>
-        /// <param name="issuer_name">执行者名称</param>
-        /// <param name="reason">封禁原因</param>
-        /// <param name="start_time">封禁开始时间</param>
-        /// <param name="end_time">封禁结束时间</param>
-        /// <param name="port">封禁的服务器端口</param>
-        /// <returns>是否插入成功</returns>
+        public int CountUserViolations(string userid)
+        {
+            if (!connected || string.IsNullOrEmpty(userid))
+                return 0;
+            return QueryAllBan(userid).Count;
+        }
+
         public bool InsertBanRecord(
             string userid,
             string name,
@@ -925,17 +596,97 @@ LIMIT 1";
         /// <summary>
         /// 关闭数据库连接
         /// </summary>
+        /// <summary>
+        /// 记录管理员操作日志
+        /// </summary>
+        public void LogAdminPermission(string userid, string name, int port, string command, string result, string additionalInfo = "", string group = "")
+        {
+            if (!connected) return;
+
+            string query = @"
+                INSERT INTO admin_log 
+                (userid, name, operation_time, port, command_name, command_result, additional_info,admingroup)
+                VALUES 
+                (@userid, @name, @operation_time, @port, @command_name, @command_result, @additional_info,@admingroup)";
+
+            try
+            {
+                connection.Open();
+                using (var cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@userid", userid ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@name", name ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@operation_time", DateTime.Now);
+                    cmd.Parameters.AddWithValue("@port", port);
+                    cmd.Parameters.AddWithValue("@command_name", command ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@command_result", result ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@additional_info", additionalInfo ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@admingroup", group ?? string.Empty);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+            catch (Exception ex) { Log.Error($"❌ 记录管理员权限日志失败: {ex.Message}"); }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    connection.Close();
+            }
+        }
+
+        /// <summary>
+        /// 查询用户称号
+        /// </summary>
+        public List<(string player_name, string badge, string color, DateTime expiration_date, bool is_permanent, string notes)> QueryBadge(string userid)
+        {
+            var badges = new List<(string player_name, string badge, string color, DateTime expiration_date, bool is_permanent, string notes)>();
+            if (!connected || string.IsNullOrEmpty(userid)) return badges;
+
+            string query = @"
+        SELECT player_name, badge, color, expiration_date, is_permanent, notes
+        FROM badge 
+        WHERE userid = @userid 
+          AND (is_permanent = 1 OR expiration_date > NOW())
+        ORDER BY is_permanent DESC, expiration_date ASC";
+
+            try
+            {
+                connection.Open();
+                using (var cmd = new MySqlCommand(query, connection))
+                {
+                    cmd.Parameters.AddWithValue("@userid", userid);
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            string player_name = reader["player_name"] as string ?? string.Empty;
+                            string badge = reader["badge"] as string ?? string.Empty;
+                            string color = reader["color"] as string ?? "white";
+                            DateTime expiration_date = reader.GetDateTime("expiration_date");
+                            bool is_permanent = Convert.ToBoolean(reader["is_permanent"]);
+                            string notes = reader["notes"] as string ?? string.Empty;
+                            badges.Add((player_name, badge, color, expiration_date, is_permanent, notes));
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) { Log.Error($"❌ 查询称号失败: {ex.Message}"); }
+            finally
+            {
+                if (connection.State == ConnectionState.Open)
+                    connection.Close();
+            }
+            return badges;
+        }
+
         public void Close()
         {
             connection?.Close();
         }
 
-        /// <summary>
-        /// 析构函数
-        /// </summary>
         ~MySQLConnect()
         {
             Close();
         }
+
     }
 }

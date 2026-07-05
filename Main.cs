@@ -215,13 +215,6 @@ namespace Next_generationSite_27.UnionP
             vote_control = new List<List<Player>>(); // 清空投票列表
         }
         // --- vote end ---
-        // --- snake ---
-        public void InspectedKeycard(PlayerInspectedKeycardEventArgs ev)
-        {
-            eventhandle.InspectedKeycard(ev);
-
-        }
-        // --- snake end ---
         public static IFFManager CurrentFFManager;
         static public List<BaseClass> baseClasses = new List<BaseClass>();
         static public List<AutoEvent.Interfaces.Event> RegEvents = new List<AutoEvent.Interfaces.Event>();
@@ -236,18 +229,16 @@ namespace Next_generationSite_27.UnionP
                               $"Database={Config.Database};" +
                               $"Uid={Config.Username};" +
                               $"Pwd={Config.Password};" +
+                              "allowPublicKeyRetrieval=true;"+
                               //"SslMode=none;" +
                               "Connection Timeout=30;";
 
             connect.Connect(connectionString);
             eventhandle = new EventHandle(Config);
-
             Exiled.Events.Handlers.Map.Generated += eventhandle.Generated;
             Exiled.Events.Handlers.Server.RespawningTeam += eventhandle.RespawningTeam;
             Exiled.Events.Handlers.Server.WaitingForPlayers += eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Player.ChangedItem += eventhandle.ChangedItem;
-            //Exiled.Events.Handlers.P
-            ChaosKeycardItem.OnSnakeMovementDirChanged += eventhandle.OnSnakeMovementDirChanged;
             //PlayerEvents.InspectedKeycard += eventhandle.InspectedKeycard;+-
             Exiled.Events.Handlers.Player.SentValidCommand += eventhandle.SentValidCommand;
 
@@ -342,6 +333,7 @@ namespace Next_generationSite_27.UnionP
                 File.OpenRead($"{SettingPath}\\Scp5kStart.wav"));
             CustomRole.RegisterRoles(assembly: Assembly);
             RegBases(Assembly);
+            UnionApiRegistrar.Initialize();
             base.OnEnabled();
         }
         public void OnLeft(LeftEventArgs ev)
@@ -353,6 +345,8 @@ namespace Next_generationSite_27.UnionP
         }
         public void RegBases(Assembly ass)
         {
+            int t = 0;
+            int s = 0;
             foreach (var item in ass.GetTypes())
             {
                 if (!item.IsAbstract && !item.IsInterface && !item.IsEnum && item.IsClass && item.IsSubclassOf(typeof(BaseClass)))
@@ -364,8 +358,10 @@ namespace Next_generationSite_27.UnionP
                         {
                             if (obj is BaseClass BC)
                             {
+                                t += 1;
                                 BC.StartInit();
                                 baseClasses.Add(BC);
+                                s += 1;
                             }
 
                         }
@@ -399,6 +395,7 @@ namespace Next_generationSite_27.UnionP
                     }
                 }
             }
+            Log.Info($"Registered {s} out of {t} BaseClass instances.");
         }
         public override void OnDisabled()
         {
@@ -410,8 +407,6 @@ namespace Next_generationSite_27.UnionP
             Exiled.Events.Handlers.Server.WaitingForPlayers -= eventhandle.WaitingForPlayers;
             Exiled.Events.Handlers.Server.RestartingRound -= RestartingRound;
             Exiled.Events.Handlers.Player.ChangedItem -= eventhandle.ChangedItem;
-            //Exiled.Events.Handlers.P
-            ChaosKeycardItem.OnSnakeMovementDirChanged -= eventhandle.OnSnakeMovementDirChanged;
             //PlayerEvents.InspectedKeycard -= eventhandle.InspectedKeycard;+-
             Exiled.Events.Handlers.Player.SentValidCommand -= eventhandle.SentValidCommand;
 
@@ -458,7 +453,6 @@ namespace Next_generationSite_27.UnionP
                 }
             }
             harmony.UnpatchAll();
-            eventhandle.update();
             eventhandle.stopBroadcast();
             eventhandle = null;
             base.OnDisabled();

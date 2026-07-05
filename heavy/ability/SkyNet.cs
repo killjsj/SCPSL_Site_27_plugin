@@ -133,7 +133,7 @@ namespace Next_generationSite_27.UnionP.heavy.ability
 
         public override string Name => "房间锁门";
 
-        public override string Des => "房间放毒7秒";
+        public override string Des => "指向目标锁定7秒";
 
         public override int id => 104;
         public override double Time => 75;
